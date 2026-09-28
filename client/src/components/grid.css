@@ -1,0 +1,73 @@
+/* 9×9 만다라트 격자. TDS 에 없는 영역이라 직접 그려요. 색은 tds-colors 와 브랜드 색을 써요. */
+
+.mg-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 20px;
+}
+
+.mg-block {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  overflow: hidden;
+  font: inherit;
+  text-align: center;
+  transition: opacity 0.12s ease;
+}
+
+.mg-block-large {
+  gap: 4px;
+  border-radius: 12px;
+}
+
+button.mg-block:active {
+  opacity: 0.6;
+}
+
+.mg-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  padding: 2px;
+  border: 0;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 9px;
+  line-height: 1.2;
+  word-break: break-all;
+  overflow: hidden;
+}
+
+.mg-block-large .mg-cell {
+  padding: 4px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+button.mg-cell:active {
+  filter: brightness(0.92);
+}
+
+.mg-cell-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.mg-block-large .mg-cell-text {
+  -webkit-line-clamp: 4;
+}
+
+.mg-cell-placeholder {
+  opacity: 0.55;
+}
