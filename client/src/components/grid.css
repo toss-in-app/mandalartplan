@@ -1,4 +1,5 @@
-/* 9×9 만다라트 격자. TDS 에 없는 영역이라 직접 그려요. 색은 tds-colors 와 브랜드 색을 써요. */
+/* 만다라트 격자. TDS 에 없는 영역이라 직접 그려요. 색은 tds-colors 와 브랜드 색을 써요.
+   small: 9×9 전체 보기 안의 3×3 · large: 편집 화면 미리보기 · main: 홈·세부 목표 화면의 큰 3×3 */
 
 .mg-board {
   display: grid;
@@ -27,12 +28,20 @@
   border-radius: 12px;
 }
 
+.mg-block-main {
+  gap: 8px;
+  border-radius: 0;
+  overflow: visible;
+}
+
 button.mg-block:active {
   opacity: 0.6;
 }
 
 .mg-cell {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   aspect-ratio: 1 / 1;
@@ -45,12 +54,26 @@ button.mg-block:active {
   line-height: 1.2;
   word-break: break-all;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .mg-block-large .mg-cell {
   padding: 4px;
   border-radius: 6px;
   font-size: 12px;
+}
+
+.mg-block-main .mg-cell {
+  padding: 8px 6px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.3;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+button.mg-cell {
+  cursor: pointer;
 }
 
 button.mg-cell:active {
@@ -68,6 +91,35 @@ button.mg-cell:active {
   -webkit-line-clamp: 4;
 }
 
+.mg-block-main .mg-cell-text {
+  -webkit-line-clamp: 4;
+}
+
 .mg-cell-placeholder {
   opacity: 0.55;
+}
+
+.mg-cell-caption {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.2;
+  opacity: 0.8;
+}
+
+.mg-cell-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+/* 터치·마우스 클릭 뒤 남는 포커스 링은 숨기고, 키보드 포커스만 표시해요 */
+button.mg-cell:focus:not(:focus-visible),
+button.mg-block:focus:not(:focus-visible) {
+  outline: none;
 }

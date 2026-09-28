@@ -43,8 +43,8 @@ describe('createEmptyBoard / normalizeBoard', () => {
     expect(board.id).toBe(makeBoardId(NOW));
     expect(board.id).toMatch(/^b[0-9]{13}$/);
     expect(board.subs).toHaveLength(8);
-    expect(board.subs.every((sub) => sub.actions.length === 8 && sub.done.length === 8)).toBe(true);
-    expect(getProgress(board)).toEqual({ filled: 0, totalCells: TOTAL_CELLS, done: 0, totalActions: TOTAL_ACTIONS });
+    expect(board.subs.every((sub) => sub.actions.length === 8)).toBe(true);
+    expect(getProgress(board)).toEqual({ filled: 0, totalCells: TOTAL_CELLS, actionsFilled: 0, totalActions: TOTAL_ACTIONS });
   });
 
   it('모양이 다른 값은 null 이에요', () => {
@@ -53,20 +53,20 @@ describe('createEmptyBoard / normalizeBoard', () => {
     expect(normalizeBoard('{}')).toBeNull();
   });
 
-  it('부족한 칸은 채우고, 긴 글은 MAX_TEXT 로 자르고, 글 없는 칸의 달성 표시는 지워요', () => {
+  it('부족한 칸은 채우고, 긴 글은 MAX_TEXT 로 자르고, 예전 done 필드는 버려요', () => {
     const long = 'a'.repeat(MAX_TEXT + 10);
     const board = normalizeBoard({ goal: long, subs: [{ title: '건강', actions: ['운동'], done: [true, true] }] }, NOW);
     expect(board).not.toBeNull();
     expect(board!.goal).toHaveLength(MAX_TEXT);
     expect(board!.subs).toHaveLength(8);
     expect(board!.subs[0].actions).toEqual(['운동', '', '', '', '', '', '', '']);
-    expect(board!.subs[0].done).toEqual([true, false, false, false, false, false, false, false]);
+    expect('done' in board!.subs[0]).toBe(false);
     expect(board!.templateId).toBeNull();
     expect(board!.createdAt).toBe(NOW);
   });
 
   it('선행 프로토타입의 단일 판(version·updatedAt)도 읽어요', () => {
-    const legacy = { version: 1, goal: '책 쓰기', updatedAt: 1758000000000, subs: [{ title: '글쓰기', actions: ['매일 300자'], done: [false] }] };
+    const legacy = { version: 1, goal: '책 쓰기', updatedAt: 1758000000000, subs: [{ title: '글쓰기', actions: ['매일 300자'] }] };
     const board = normalizeBoard(legacy, NOW);
     expect(board?.goal).toBe('책 쓰기');
     expect(board?.updatedAt).toBe(1758000000000);
@@ -79,48 +79,46 @@ describe('createEmptyBoard / normalizeBoard', () => {
     board.templateId = 'job-change';
     board.subs[2].title = '글쓰기 습관';
     board.subs[2].actions[5] = '매일 300자';
-    board.subs[2].done[5] = true;
     expect(normalizeBoard(JSON.parse(JSON.stringify(board)), NOW + 1)).toEqual(board);
   });
 });
 
 describe('getProgress / boardToText', () => {
-  it('글이 있는 칸만 세고, 달성은 글이 있는 실천만 인정해요', () => {
+  it('글이 있는 칸과 실천을 세요', () => {
     const board = createEmptyBoard(NOW);
     board.goal = '목표';
     board.subs[0].title = '세부';
     board.subs[0].actions[0] = '실천';
-    board.subs[0].done[0] = true;
-    board.subs[0].done[1] = true;
-    expect(getProgress(board)).toEqual({ filled: 3, totalCells: 73, done: 1, totalActions: 64 });
+    board.subs[0].actions[1] = ' ';
+    expect(getProgress(board)).toEqual({ filled: 3, totalCells: 73, actionsFilled: 1, totalActions: 64 });
   });
 
-  it('공유 텍스트는 비어 있는 세부 목표를 건너뛰고 달성 표시를 붙여요', () => {
+  it('공유 텍스트는 비어 있는 세부 목표를 건너뛰고 오늘 체크에 표시를 붙여요', () => {
     const board = createEmptyBoard(NOW);
     board.goal = '책 한 권 쓰기';
     board.subs[1].title = '글쓰기 습관';
     board.subs[1].actions[0] = '매일 300자';
-    board.subs[1].done[0] = true;
     board.subs[1].actions[3] = '주말 초고 정리';
-    expect(boardToText(board)).toBe(
-      ['[핵심 목표] 책 한 권 쓰기', '', '2. 글쓰기 습관', '- [달성] 매일 300자', '- 주말 초고 정리'].join('\n'),
+    expect(boardToText(board, new Set([actionIndex(1, 0)]))).toBe(
+      ['[핵심 목표] 책 한 권 쓰기', '', '2. 글쓰기 습관', '- [오늘] 매일 300자', '- 주말 초고 정리'].join('\n'),
     );
   });
 });
 
 describe('cellView', () => {
-  it('가운데 블록은 핵심·세부 목표, 둘레 블록은 세부 목표·실천을 가리켜요', () => {
+  it('가운데 블록은 핵심·세부 목표, 둘레 블록은 세부 목표·실천을 가리키고 오늘 체크를 반영해요', () => {
     const board = createEmptyBoard(NOW);
     board.goal = '핵심';
     board.subs[0].title = '세부1';
     board.subs[0].actions[0] = '실천1';
-    board.subs[0].done[0] = true;
     board.subs[7].title = '세부8';
-    expect(cellView(board, 4, 4)).toMatchObject({ kind: 'goal', text: '핵심' });
-    expect(cellView(board, 4, 0)).toMatchObject({ kind: 'sub', text: '세부1' });
-    expect(cellView(board, 4, 8)).toMatchObject({ kind: 'sub', text: '세부8' });
-    expect(cellView(board, 0, 4)).toMatchObject({ kind: 'sub', text: '세부1' });
-    expect(cellView(board, 0, 0)).toMatchObject({ kind: 'action', text: '실천1', done: true });
-    expect(cellView(board, 8, 8)).toMatchObject({ kind: 'action', text: '', done: false });
+    const checked = new Set([actionIndex(0, 0)]);
+    expect(cellView(board, 4, 4)).toMatchObject({ kind: 'goal', text: '핵심', index: null });
+    expect(cellView(board, 4, 0)).toMatchObject({ kind: 'sub', text: '세부1', index: 0 });
+    expect(cellView(board, 4, 8)).toMatchObject({ kind: 'sub', text: '세부8', index: 7 });
+    expect(cellView(board, 0, 4)).toMatchObject({ kind: 'sub', text: '세부1', index: 0 });
+    expect(cellView(board, 0, 0, checked)).toMatchObject({ kind: 'action', text: '실천1', index: 0, checked: true });
+    expect(cellView(board, 0, 0)).toMatchObject({ kind: 'action', checked: false });
+    expect(cellView(board, 8, 8)).toMatchObject({ kind: 'action', text: '', index: actionIndex(7, 7), checked: false });
   });
 });

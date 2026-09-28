@@ -102,23 +102,8 @@ export function useAppState() {
     (subIndex: number, actionIndex: number, text: string) =>
       updateBoard((b) => ({
         ...b,
-        subs: b.subs.map((sub, i) => {
-          if (i !== subIndex) return sub;
-          const actions = sub.actions.map((a, j) => (j === actionIndex ? clampText(text) : a));
-          // 글을 지우면 달성 표시도 함께 지워요.
-          const done = sub.done.map((d, j) => (j === actionIndex && !text.trim() ? false : d));
-          return { ...sub, actions, done };
-        }),
-      })),
-    [updateBoard],
-  );
-
-  const toggleDone = useCallback(
-    (subIndex: number, actionIndex: number) =>
-      updateBoard((b) => ({
-        ...b,
         subs: b.subs.map((sub, i) =>
-          i === subIndex ? { ...sub, done: sub.done.map((d, j) => (j === actionIndex ? !d : d)) } : sub,
+          i === subIndex ? { ...sub, actions: sub.actions.map((a, j) => (j === actionIndex ? clampText(text) : a)) } : sub,
         ),
       })),
     [updateBoard],
@@ -160,5 +145,5 @@ export function useAppState() {
 
   const board = state ? state.boards.boards[state.boards.active] : null;
 
-  return { state, board, setGoal, setSubTitle, setAction, toggleDone, updateSettings, updateCheckins, reset, createEmptyBoard };
+  return { state, board, setGoal, setSubTitle, setAction, updateSettings, updateCheckins, reset, createEmptyBoard };
 }

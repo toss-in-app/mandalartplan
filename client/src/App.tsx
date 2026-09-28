@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 
 import { fetchRemoteContent, getBundledContent, type Content } from './content';
 import { useAppState } from './hooks/useAppState';
-import { applyCheckin } from './lib/checkin';
+import { haptic } from './lib/bridge';
+import { toggleCheck } from './lib/checkin';
+import { CENTER, cellOfRing } from './lib/mandalart';
 import { goBack, navigate, useRoute } from './lib/router';
 import { dateKey } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
-import { CheckinScreen } from './screens/CheckinScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { OverviewScreen } from './screens/OverviewScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
+import { SubScreen } from './screens/SubScreen';
+import { TodayScreen } from './screens/TodayScreen';
 import './App.css';
 
 function App() {
@@ -35,7 +39,31 @@ function App() {
   // 저장된 상태를 읽는 동안(수십 ms)은 빈 화면. 번들 안에서 끝나는 일이라 로더는 두지 않아요.
   if (!state || !board) return null;
 
+  const record = state.checkins.byBoard[board.id];
+  const editCore = () => navigate({ name: 'block', block: CENTER });
+  const openSub = (subIndex: number) => navigate({ name: 'sub', sub: subIndex });
+
+  /** 실천 칸 탭 = 오늘 했어요 체크/해제. 처음 체크한 순간을 settings 에 남겨요(알림 안내용). */
+  const toggleToday = (actionIndex: number) => {
+    const now = Date.now();
+    void haptic('tap');
+    app.updateCheckins((checkins) => toggleCheck(checkins, board.id, dateKey(), actionIndex, now));
+    if (state.settings.firstCheckinAt === null) {
+      app.updateSettings((settings) => ({ ...settings, firstCheckinAt: now }));
+    }
+  };
+
   switch (route.name) {
+    case 'sub':
+      return (
+        <SubScreen
+          board={board}
+          subIndex={route.sub}
+          checkin={record}
+          onToggle={toggleToday}
+          onEdit={() => navigate({ name: 'block', block: cellOfRing(route.sub) })}
+        />
+      );
     case 'block':
       return (
         <BlockScreen
@@ -44,27 +72,13 @@ function App() {
           onChangeGoal={app.setGoal}
           onChangeSubTitle={app.setSubTitle}
           onChangeAction={app.setAction}
-          onToggleDone={app.toggleDone}
           onDone={goBack}
         />
       );
-    case 'checkin':
-      return (
-        <CheckinScreen
-          board={board}
-          record={state.checkins.byBoard[board.id]}
-          content={content}
-          isFirstEver={state.settings.firstCheckinAt === null}
-          onComplete={(indices) => {
-            const now = Date.now();
-            app.updateCheckins((checkins) => applyCheckin(checkins, board.id, dateKey(), indices, now));
-            if (state.settings.firstCheckinAt === null) {
-              app.updateSettings((settings) => ({ ...settings, firstCheckinAt: now }));
-            }
-          }}
-          onDone={goBack}
-        />
-      );
+    case 'overview':
+      return <OverviewScreen board={board} checkin={record} onSelectSub={openSub} onEditCore={editCore} />;
+    case 'today':
+      return <TodayScreen board={board} record={record} content={content} onDone={goBack} />;
     case 'share':
       return <PlaceholderScreen title="만다라트 공유" description="주요 기능 3 — 이미지로 저장하거나 글로 보내요" onDone={goBack} />;
     case 'settings':
@@ -74,10 +88,12 @@ function App() {
         <HomeScreen
           board={board}
           content={content}
-          checkin={state.checkins.byBoard[board.id]}
+          checkin={record}
           notificationVisible={state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown'}
-          onSelectBlock={(block) => navigate({ name: 'block', block })}
-          onCheckin={() => navigate({ name: 'checkin' })}
+          onEditCore={editCore}
+          onSelectSub={openSub}
+          onToday={() => navigate({ name: 'today' })}
+          onOverview={() => navigate({ name: 'overview' })}
           onShare={() => navigate({ name: 'share' })}
           onSettings={() => navigate({ name: 'settings' })}
         />

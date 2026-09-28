@@ -7,22 +7,27 @@ import { useEffect, useState } from 'react';
  * `history.pushState` 로 히스토리를 쌓기 때문에 앱인토스 네비게이션 바의 뒤로가기와
  * Android 시스템 백버튼이 그대로 "이전 화면" 으로 동작하고, 첫 화면에서는 미니앱이 종료돼요.
  * `history.state.depth` 로 앱 안에서 쌓은 깊이를 기억해, 딥링크로 바로 들어온 화면에서는
- * '완료' 가 뒤로가기 대신 홈으로 바꿔요.
+ * '홈으로' 가 뒤로가기 대신 홈으로 바꿔요.
  *
- * 딥링크(`intoss://mandalartplan/checkin`)는 `Environment.initialURL` 로 읽어 첫 화면을 정해요.
+ * 딥링크(`intoss://mandalartplan/today`)는 `Environment.initialURL` 로 읽어 첫 화면을 정해요.
  */
 
 export type Route =
   | { name: 'home' }
+  | { name: 'sub'; sub: number }
   | { name: 'block'; block: number }
-  | { name: 'checkin' }
+  | { name: 'overview' }
+  | { name: 'today' }
   | { name: 'share' }
   | { name: 'settings' };
 
 export function parseRoute(hash: string): Route {
   const block = /^#\/block\/([0-8])$/.exec(hash);
   if (block) return { name: 'block', block: Number(block[1]) };
-  if (hash === '#/checkin') return { name: 'checkin' };
+  const sub = /^#\/sub\/([0-7])$/.exec(hash);
+  if (sub) return { name: 'sub', sub: Number(sub[1]) };
+  if (hash === '#/overview') return { name: 'overview' };
+  if (hash === '#/today' || hash === '#/checkin') return { name: 'today' };
   if (hash === '#/share') return { name: 'share' };
   if (hash === '#/settings') return { name: 'settings' };
   return { name: 'home' };
@@ -32,6 +37,8 @@ export function routeToHash(route: Route): string {
   switch (route.name) {
     case 'block':
       return `#/block/${route.block}`;
+    case 'sub':
+      return `#/sub/${route.sub}`;
     case 'home':
       return '#/';
     default:
@@ -39,7 +46,7 @@ export function routeToHash(route: Route): string {
   }
 }
 
-/** `intoss://mandalartplan/checkin?x=1` 같은 스킴 URL 에서 첫 화면을 골라요. 모르면 null. */
+/** `intoss://mandalartplan/today?x=1` 같은 스킴 URL 에서 첫 화면을 골라요. 모르면 null. */
 export function routeFromSchemeUrl(url: string): Route | null {
   const match = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+\/?([^?#]*)/i.exec(url.trim());
   if (!match) return null;

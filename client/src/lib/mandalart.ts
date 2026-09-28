@@ -3,6 +3,7 @@
  *
  * 9×9 판은 3×3 블록 9개. 가운데 블록(4)의 가운데 칸이 핵심 목표, 그 둘레 8칸이 세부 목표.
  * 둘레 블록 b 는 세부 목표 ringIndex(b) 를 펼친 것으로, 가운데 칸에 세부 목표, 둘레 8칸에 실천 항목.
+ * 실천의 "오늘 했어요" 는 판이 아니라 체크인 기록(state.ts checkins)에 날짜별로 남아요.
  */
 
 export const SUB_COUNT = 8;
@@ -17,8 +18,6 @@ export const TOTAL_ACTIONS = SUB_COUNT * ACTION_COUNT; // 64
 export interface SubGoal {
   title: string;
   actions: string[];
-  /** 달성 표시(영구). 글이 없는 칸은 항상 false */
-  done: boolean[];
 }
 
 export interface Board {
@@ -39,11 +38,7 @@ export function makeBoardId(now: number): string {
 }
 
 export function createEmptySub(): SubGoal {
-  return {
-    title: '',
-    actions: Array.from({ length: ACTION_COUNT }, () => ''),
-    done: Array.from({ length: ACTION_COUNT }, () => false),
-  };
+  return { title: '', actions: Array.from({ length: ACTION_COUNT }, () => '') };
 }
 
 export function createEmptyBoard(now: number = Date.now()): Board {
@@ -96,7 +91,7 @@ function cleanTime(value: unknown, fallback: number): number {
 
 /**
  * 저장돼 있던 값을 검증해서 Board 로 만들어요. 모양이 다르면 null.
- * 선행 프로토타입의 `{ version: 1, goal, subs, updatedAt }` 도 받아들여요(id·createdAt 은 새로 만듦).
+ * 예전 형식(`version`·`updatedAt` 만 있는 단일 판, 실천별 `done`)도 받아들이고 모르는 필드는 버려요.
  */
 export function normalizeBoard(input: unknown, now: number = Date.now()): Board | null {
   if (!input || typeof input !== 'object') return null;
@@ -114,13 +109,8 @@ export function normalizeBoard(input: unknown, now: number = Date.now()): Board 
     if (!item || typeof item !== 'object') return;
     const sub = item as Record<string, unknown>;
     const actions = Array.isArray(sub.actions) ? sub.actions : [];
-    const done = Array.isArray(sub.done) ? sub.done : [];
     board.subs[i].title = cleanText(sub.title);
-    for (let a = 0; a < ACTION_COUNT; a++) {
-      const text = cleanText(actions[a]);
-      board.subs[i].actions[a] = text;
-      board.subs[i].done[a] = text.trim().length > 0 && done[a] === true;
-    }
+    for (let a = 0; a < ACTION_COUNT; a++) board.subs[i].actions[a] = cleanText(actions[a]);
   });
   return board;
 }
@@ -129,34 +119,34 @@ export interface Progress {
   /** 글이 적힌 칸 수 (최대 73) */
   filled: number;
   totalCells: number;
-  /** 달성 표시한 실천 수 (글이 있는 것만) */
-  done: number;
+  /** 글이 적힌 실천 수 (최대 64) */
+  actionsFilled: number;
   totalActions: number;
 }
 
 export function getProgress(board: Board): Progress {
   let filled = board.goal.trim() ? 1 : 0;
-  let done = 0;
+  let actionsFilled = 0;
   for (const sub of board.subs) {
     if (sub.title.trim()) filled += 1;
-    sub.actions.forEach((action, i) => {
-      if (!action.trim()) return;
+    for (const action of sub.actions) {
+      if (!action.trim()) continue;
       filled += 1;
-      if (sub.done[i]) done += 1;
-    });
+      actionsFilled += 1;
+    }
   }
-  return { filled, totalCells: TOTAL_CELLS, done, totalActions: TOTAL_ACTIONS };
+  return { filled, totalCells: TOTAL_CELLS, actionsFilled, totalActions: TOTAL_ACTIONS };
 }
 
-/** 공유용 텍스트. 비어 있는 세부 목표는 건너뛰어요. */
-export function boardToText(board: Board): string {
+/** 공유용 텍스트. 비어 있는 세부 목표는 건너뛰고, 오늘 체크한 실천에는 [오늘] 을 붙여요. */
+export function boardToText(board: Board, checkedToday: ReadonlySet<number> = new Set()): string {
   const lines: string[] = [`[핵심 목표] ${board.goal.trim() || '아직 정하지 않았어요'}`];
   board.subs.forEach((sub, i) => {
     const actions = sub.actions
       .map((action, j) => {
         const text = action.trim();
         if (!text) return null;
-        return `${sub.done[j] ? '- [달성] ' : '- '}${text}`;
+        return `${checkedToday.has(actionIndex(i, j)) ? '- [오늘] ' : '- '}${text}`;
       })
       .filter((line): line is string => line !== null);
     if (!sub.title.trim() && actions.length === 0) return;

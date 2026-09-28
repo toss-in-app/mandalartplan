@@ -1,7 +1,6 @@
-import { Checkbox, FixedBottomCTA, TextField, Top } from '@toss/tds-mobile';
+import { FixedBottomCTA, TextField, Top } from '@toss/tds-mobile';
 
 import { Block } from '../components/Block';
-import { haptic } from '../lib/bridge';
 import { ACTION_COUNT, CENTER, MAX_TEXT, SUB_COUNT, cellOfRing, ringIndex, type Board } from '../lib/mandalart';
 
 interface BlockScreenProps {
@@ -11,7 +10,6 @@ interface BlockScreenProps {
   onChangeGoal: (goal: string) => void;
   onChangeSubTitle: (subIndex: number, title: string) => void;
   onChangeAction: (subIndex: number, actionIndex: number, text: string) => void;
-  onToggleDone: (subIndex: number, actionIndex: number) => void;
   onDone: () => void;
 }
 
@@ -51,10 +49,8 @@ export function BlockScreen(props: BlockScreenProps) {
             subIndex={subIndex}
             title={sub.title}
             actions={sub.actions}
-            done={sub.done}
             onChangeSubTitle={props.onChangeSubTitle}
             onChangeAction={props.onChangeAction}
-            onToggleDone={props.onToggleDone}
           />
         )}
       </div>
@@ -104,13 +100,11 @@ interface SubFormProps {
   subIndex: number;
   title: string;
   actions: string[];
-  done: boolean[];
   onChangeSubTitle: (subIndex: number, title: string) => void;
   onChangeAction: (subIndex: number, actionIndex: number, text: string) => void;
-  onToggleDone: (subIndex: number, actionIndex: number) => void;
 }
 
-function SubForm({ subIndex, title, actions, done, onChangeSubTitle, onChangeAction, onToggleDone }: SubFormProps) {
+function SubForm({ subIndex, title, actions, onChangeSubTitle, onChangeAction }: SubFormProps) {
   return (
     <>
       <TextField
@@ -123,33 +117,19 @@ function SubForm({ subIndex, title, actions, done, onChangeSubTitle, onChangeAct
         maxLength={MAX_TEXT}
         onChange={(event) => onChangeSubTitle(subIndex, event.target.value)}
       />
-      {Array.from({ length: ACTION_COUNT }, (_, i) => {
-        const hasText = actions[i].trim().length > 0;
-        return (
-          <TextField
-            key={i}
-            id={inputId(cellOfRing(i))}
-            variant="line"
-            label={`실천 ${i + 1}`}
-            labelOption="sustain"
-            placeholder="구체적인 행동 한 가지"
-            value={actions[i]}
-            maxLength={MAX_TEXT}
-            onChange={(event) => onChangeAction(subIndex, i, event.target.value)}
-            right={
-              <Checkbox.Circle
-                checked={done[i]}
-                disabled={!hasText}
-                aria-label={`실천 ${i + 1} 완료`}
-                onCheckedChange={() => {
-                  void haptic('tap');
-                  onToggleDone(subIndex, i);
-                }}
-              />
-            }
-          />
-        );
-      })}
+      {Array.from({ length: ACTION_COUNT }, (_, i) => (
+        <TextField
+          key={i}
+          id={inputId(cellOfRing(i))}
+          variant="line"
+          label={`실천 ${i + 1}`}
+          labelOption="sustain"
+          placeholder="구체적인 행동 한 가지"
+          value={actions[i]}
+          maxLength={MAX_TEXT}
+          onChange={(event) => onChangeAction(subIndex, i, event.target.value)}
+        />
+      ))}
     </>
   );
 }

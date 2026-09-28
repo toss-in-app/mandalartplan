@@ -1,9 +1,10 @@
 import { colors } from '@toss/tds-colors';
 import { Button, List, ListRow, ProgressBar, Text, Top } from '@toss/tds-mobile';
 
-import { MandalartGrid } from '../components/MandalartGrid';
+import { Block } from '../components/Block';
 import { activeSeason, type Content } from '../content';
-import { getProgress, type Board } from '../lib/mandalart';
+import { checkedInSub, formatDateLabel, todaySet } from '../lib/checkin';
+import { CENTER, getProgress, type Board } from '../lib/mandalart';
 import { dateKey, streak, type CheckinRecord } from '../lib/state';
 import { brandColor } from '../theme';
 
@@ -12,29 +13,45 @@ interface HomeScreenProps {
   content: Content;
   checkin: CheckinRecord | undefined;
   notificationVisible: boolean;
-  onSelectBlock: (block: number) => void;
-  onCheckin: () => void;
+  onEditCore: () => void;
+  onSelectSub: (subIndex: number) => void;
+  onToday: () => void;
+  onOverview: () => void;
   onShare: () => void;
   onSettings: () => void;
 }
 
-export function HomeScreen({ board, content, checkin, notificationVisible, onSelectBlock, onCheckin, onShare, onSettings }: HomeScreenProps) {
+/**
+ * 홈 = 가운데 3×3 (핵심 목표 + 세부 목표 8). 세부 목표를 누르면 그 목표의 3×3 으로,
+ * 가운데(핵심 목표)를 누르면 편집으로. 9×9 는 '전체 보기' 로.
+ */
+export function HomeScreen({
+  board,
+  content,
+  checkin,
+  notificationVisible,
+  onEditCore,
+  onSelectSub,
+  onToday,
+  onOverview,
+  onShare,
+  onSettings,
+}: HomeScreenProps) {
   const today = dateKey();
   const progress = getProgress(board);
+  const checked = todaySet(checkin, today);
   const hasGoal = board.goal.trim().length > 0;
   const isEmpty = progress.filled === 0;
-  const actionsFilled = progress.filled - (hasGoal ? 1 : 0) - board.subs.filter((s) => s.title.trim()).length;
   const days = streak(checkin, today);
-  const todayChecked = checkin?.days[today]?.length;
   const season = activeSeason(content, today);
 
   const subtitle = isEmpty
     ? '가운데 칸을 눌러 핵심 목표부터 정해 보세요'
-    : todayChecked === undefined
-      ? days > 0
-        ? `${days}일째 이어가는 중 · 오늘 체크인 전`
-        : `${progress.filled}칸 작성 · 오늘 체크인 전`
-      : `${days}일째 · 오늘 ${todayChecked}개 체크`;
+    : checked.size > 0
+      ? `${days}일째 · 오늘 ${checked.size}개 했어요`
+      : days > 0
+        ? `${days}일째 이어가는 중 · 오늘은 아직`
+        : `${formatDateLabel(today)} · 세부 목표를 눌러 실천을 체크해요`;
 
   return (
     <>
@@ -56,40 +73,57 @@ export function HomeScreen({ board, content, checkin, notificationVisible, onSel
         </div>
       )}
 
-      <MandalartGrid board={board} onSelectBlock={onSelectBlock} />
+      <div style={{ padding: '0 20px' }}>
+        <Block
+          board={board}
+          block={CENTER}
+          size="main"
+          caption={(view) => {
+            if (view.kind !== 'sub' || view.index === null || !view.text) return null;
+            const total = board.subs[view.index].actions.filter((a) => a.trim()).length;
+            if (total === 0) return '실천을 적어요';
+            return `오늘 ${checkedInSub(checked, view.index)}/${total}`;
+          }}
+          onSelectCell={(_cell, view) => {
+            if (view.kind === 'goal') onEditCore();
+            else if (view.kind === 'sub' && view.index !== null) onSelectSub(view.index);
+          }}
+        />
+      </div>
 
       <div style={{ padding: '20px 20px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
           <Text typography="t7" color={colors.grey600}>
-            달성
+            오늘 실천
           </Text>
           <Text typography="t7" color={colors.grey800} fontWeight="semibold">
-            {progress.done} / {progress.totalActions}
+            {checked.size} / {progress.actionsFilled}
           </Text>
         </div>
-        <ProgressBar size="normal" color={brandColor} progress={progress.done / progress.totalActions} animate />
+        <ProgressBar
+          size="normal"
+          color={brandColor}
+          progress={progress.actionsFilled === 0 ? 0 : checked.size / progress.actionsFilled}
+          animate
+        />
       </div>
 
-      <div style={{ padding: '24px 20px 8px' }}>
-        <Button display="full" size="large" disabled={actionsFilled === 0} onClick={onCheckin}>
-          오늘 체크인 하기
-        </Button>
-        {actionsFilled === 0 && (
-          <div style={{ paddingTop: 8 }}>
-            <Text typography="t7" color={colors.grey500} textAlign="center" display="block">
-              실천 항목을 하나 이상 적으면 체크인할 수 있어요
-            </Text>
-          </div>
-        )}
+      <div style={{ display: 'flex', gap: 8, padding: '24px 20px 8px' }}>
+        <div style={{ flex: 1 }}>
+          <Button display="full" size="large" disabled={progress.actionsFilled === 0} onClick={onToday}>
+            오늘 기록 보기
+          </Button>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Button display="full" size="large" color="dark" variant="weak" disabled={isEmpty} onClick={onOverview}>
+            전체 보기
+          </Button>
+        </div>
       </div>
 
       <List>
         {notificationVisible && (
-          <ListRow
-            onClick={onSettings}
-            withArrow
-            contents={<ListRow.Texts type="1RowTypeA" top="매일 저녁 알림 받기" />}
-          />
+          <ListRow onClick={onSettings} withArrow contents={<ListRow.Texts type="1RowTypeA" top="매일 저녁 알림 받기" />} />
         )}
         <ListRow onClick={onSettings} withArrow contents={<ListRow.Texts type="1RowTypeA" top="설정" />} />
       </List>

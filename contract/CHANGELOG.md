@@ -8,3 +8,9 @@
 
 ## 2026-09-29 [client] 기능 1 체크인 화면
 - 계약 변경 없음. `checkins.v1` 기록·`cheers` 사용 시작. 400일 초과분은 완료 때 오래된 날부터 제거.
+
+## 2026-09-29 v2 [client] 화면 구조 개정 (사용자 피드백)
+- `state.schema.json` sub 에서 `done`(영구 달성) 제거. 판에는 영구 상태 없음, 오늘 체크만 `checkins.v1`. 예전 값은 읽을 때 버림.
+- 체크가 0개가 된 날은 `days` 에서 삭제 → 연속 일수 = 하나라도 체크한 날.
+- `events.md`: `checkin_complete` → `action_check`, `today_view` 추가. 광고 그룹 `interstitial-checkin-done`·`banner-checkin` → `interstitial-today`·`banner-today`. 알림 링크는 홈.
+- 화면: `checkin` 삭제, `sub/:s`·`overview`·`today` 추가 (`wireframes/mandalartplan-flow.md` v2).
