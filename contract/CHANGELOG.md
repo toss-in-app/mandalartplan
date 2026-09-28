@@ -5,3 +5,6 @@
 - `state.schema.json`: Storage 키 3개 — boards(판 1~2)·checkins(판별 날짜→실천 index)·settings(알림 상태·잠금·본 콘텐츠 버전·첫 체크인).
 - `events.md`: 분석 이벤트 11개, 광고 그룹 4개, 알림 템플릿 1개, 공유 형식.
 - 규칙: 같은 minClientVersion 안에서는 필드 추가만. 클라는 모르는 필드 무시. 바뀌면 여기에 한 줄.
+
+## 2026-09-29 [client] 기능 1 체크인 화면
+- 계약 변경 없음. `checkins.v1` 기록·`cheers` 사용 시작. 400일 초과분은 완료 때 오래된 날부터 제거.

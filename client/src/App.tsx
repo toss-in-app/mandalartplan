@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 
 import { fetchRemoteContent, getBundledContent, type Content } from './content';
 import { useAppState } from './hooks/useAppState';
+import { applyCheckin } from './lib/checkin';
 import { goBack, navigate, useRoute } from './lib/router';
+import { dateKey } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
+import { CheckinScreen } from './screens/CheckinScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import './App.css';
@@ -46,7 +49,22 @@ function App() {
         />
       );
     case 'checkin':
-      return <PlaceholderScreen title="오늘 체크인" description="주요 기능 1 — 오늘 한 실천을 체크해요" onDone={goBack} />;
+      return (
+        <CheckinScreen
+          board={board}
+          record={state.checkins.byBoard[board.id]}
+          content={content}
+          isFirstEver={state.settings.firstCheckinAt === null}
+          onComplete={(indices) => {
+            const now = Date.now();
+            app.updateCheckins((checkins) => applyCheckin(checkins, board.id, dateKey(), indices, now));
+            if (state.settings.firstCheckinAt === null) {
+              app.updateSettings((settings) => ({ ...settings, firstCheckinAt: now }));
+            }
+          }}
+          onDone={goBack}
+        />
+      );
     case 'share':
       return <PlaceholderScreen title="만다라트 공유" description="주요 기능 3 — 이미지로 저장하거나 글로 보내요" onDone={goBack} />;
     case 'settings':
