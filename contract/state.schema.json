@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://toss-in-app.github.io/mandalart/state.schema.json",
+  "$id": "https://toss-in-app.github.io/mandalartplan/state.schema.json",
   "title": "mandalart local state v1 (Storage keys)",
   "description": "기기 로컬 Storage 에 문자열(JSON)로 저장하는 값. 개인정보 없음. 각 키는 $defs 의 하나와 일치해야 하고, 모양이 다르면 클라는 빈 값으로 취급한다.",
   "type": "object",

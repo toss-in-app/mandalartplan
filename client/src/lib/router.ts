@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
  * `history.state.depth` 로 앱 안에서 쌓은 깊이를 기억해, 딥링크로 바로 들어온 화면에서는
  * '완료' 가 뒤로가기 대신 홈으로 바꿔요.
  *
- * 딥링크(`intoss://mandalart/checkin`)는 `Environment.initialURL` 로 읽어 첫 화면을 정해요.
+ * 딥링크(`intoss://mandalartplan/checkin`)는 `Environment.initialURL` 로 읽어 첫 화면을 정해요.
  */
 
 export type Route =
@@ -39,7 +39,7 @@ export function routeToHash(route: Route): string {
   }
 }
 
-/** `intoss://mandalart/checkin?x=1` 같은 스킴 URL 에서 첫 화면을 골라요. 모르면 null. */
+/** `intoss://mandalartplan/checkin?x=1` 같은 스킴 URL 에서 첫 화면을 골라요. 모르면 null. */
 export function routeFromSchemeUrl(url: string): Route | null {
   const match = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+\/?([^?#]*)/i.exec(url.trim());
   if (!match) return null;

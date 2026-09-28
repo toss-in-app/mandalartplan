@@ -1,7 +1,7 @@
-# mandalart — 만다라트 플래너 (앱인토스 미니앱)
+# mandalartplan — 만다라트 (앱인토스 미니앱)
 
 핵심 목표 1개 · 세부 목표 8개 · 실천 64개를 9×9 만다라트에 적고, 매일 실천을 체크해 진행률을 쌓고, 완성한 9×9 를 이미지로 공유하는 미니앱이에요.
-서버 없음, 로그인 없음, 저장은 기기 로컬(`Storage`). 워크플로우 카드는 `~/Desktop/toss/apps/mandalart.md`, 설계는 `steps/3-design/wireframes/mandalart-flow.md`.
+서버 없음, 로그인 없음, 저장은 기기 로컬(`Storage`). 워크플로우 카드는 `~/Desktop/toss/apps/mandalartplan.md`, 설계는 `steps/3-design/wireframes/mandalartplan-flow.md`.
 
 ## 실행
 

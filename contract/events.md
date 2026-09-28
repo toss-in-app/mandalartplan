@@ -28,12 +28,12 @@
 ## 알림 템플릿 (콘솔 정기 발송, 기능성)
 | id | 발송 | 문구(해요체, 느낌표·이모지 없음) | 링크 |
 |----|------|----------------------------------|------|
-| `daily-checkin` | 매일 21:00 | "오늘 실천을 체크할 시간이에요" / "만다라트 플래너에서 오늘 한 일을 남겨 보세요" | `intoss://mandalart/checkin` |
+| `daily-checkin` | 매일 21:00 | "오늘 실천을 체크할 시간이에요" / "만다라트에서 오늘 한 일을 남겨 보세요" | `intoss://mandalartplan/checkin` |
 
 ## 공유
-- 링크: `Share.createLink({ path: 'intoss://mandalart', ogImageUrl: 'https://toss-in-app.github.io/mandalart/og.png' })`. 개인 데이터는 링크에 싣지 않는다.
+- 링크: `Share.createLink({ path: 'intoss://mandalartplan', ogImageUrl: 'https://toss-in-app.github.io/mandalartplan/og.png' })`. 개인 데이터는 링크에 싣지 않는다.
 - 텍스트: `[핵심 목표] …` + 세부 목표별 실천 목록(`- [달성] …`).
-- 이미지: 1080×1350 PNG(워터마크 "만다라트 플래너") / 고화질 2160×2700(워터마크 없음, 리워드).
+- 이미지: 1080×1350 PNG(워터마크 "만다라트") / 고화질 2160×2700(워터마크 없음, 리워드).
 
 ## Storage 키
 `mandalart.boards.v1` · `mandalart.checkins.v1` · `mandalart.settings.v1` (스키마 `state.schema.json`). 선행 프로토타입의 `mandalart.board.v1` 은 5단계에서 `boards.v1` 로 1회 이전 후 삭제.

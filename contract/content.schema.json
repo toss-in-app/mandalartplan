@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://toss-in-app.github.io/mandalart/content.schema.json",
+  "$id": "https://toss-in-app.github.io/mandalartplan/content.schema.json",
   "title": "mandalart content v1",
   "description": "정적 호스팅 content.json 과 번들 동봉본의 공통 스키마. 보여질 문자열만 담는다. URL·표현식·특정인 이름 금지. 같은 minClientVersion 안에서는 필드 추가만 하고, 클라는 모르는 필드를 무시한다.",
   "type": "object",
