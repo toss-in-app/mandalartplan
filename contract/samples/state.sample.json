@@ -1,0 +1,41 @@
+{
+  "mandalart.boards.v1": {
+    "version": 1,
+    "active": 0,
+    "boards": [
+      {
+        "id": "b1759000000000",
+        "goal": "올해는 몸과 마음이 건강한 한 해",
+        "templateId": "healthy-year",
+        "createdAt": 1759000000000,
+        "updatedAt": 1759003600000,
+        "subs": [
+          { "title": "규칙적인 수면", "actions": ["밤 12시 전에 자기", "아침 7시에 일어나기", "자기 전 휴대폰 멀리 두기", "", "", "", "", ""], "done": [true, false, false, false, false, false, false, false] },
+          { "title": "꾸준한 운동", "actions": ["주 3회 30분 걷기", "", "", "", "", "", "", ""], "done": [false, false, false, false, false, false, false, false] },
+          { "title": "", "actions": ["", "", "", "", "", "", "", ""], "done": [false, false, false, false, false, false, false, false] },
+          { "title": "", "actions": ["", "", "", "", "", "", "", ""], "done": [false, false, false, false, false, false, false, false] },
+          { "title": "", "actions": ["", "", "", "", "", "", "", ""], "done": [false, false, false, false, false, false, false, false] },
+          { "title": "", "actions": ["", "", "", "", "", "", "", ""], "done": [false, false, false, false, false, false, false, false] },
+          { "title": "", "actions": ["", "", "", "", "", "", "", ""], "done": [false, false, false, false, false, false, false, false] },
+          { "title": "", "actions": ["", "", "", "", "", "", "", ""], "done": [false, false, false, false, false, false, false, false] }
+        ]
+      }
+    ]
+  },
+  "mandalart.checkins.v1": {
+    "version": 1,
+    "byBoard": {
+      "b1759000000000": {
+        "days": { "2026-09-26": [0, 1], "2026-09-27": [], "2026-09-28": [0, 2, 8] },
+        "lastCompletedAt": 1759064400000
+      }
+    }
+  },
+  "mandalart.settings.v1": {
+    "version": 1,
+    "notification": "unknown",
+    "unlocks": { "extraBoard": false },
+    "seenContentVersion": 1,
+    "firstCheckinAt": 1758891600000
+  }
+}

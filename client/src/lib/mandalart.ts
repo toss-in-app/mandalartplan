@@ -1,29 +1,41 @@
 /**
- * 만다라트 데이터 모델.
+ * 만다라트 데이터 모델 (계약: contract/state.schema.json 의 board).
  *
- * 9×9 판은 3×3 블록 9개로 이뤄져요. 가운데 블록(4)의 가운데 칸이 핵심 목표,
- * 그 둘레 8칸이 세부 목표예요. 둘레 블록 b 는 세부 목표 ringIndex(b) 를 펼친 것으로,
- * 가운데 칸에 세부 목표, 둘레 8칸에 실천 항목이 들어가요.
+ * 9×9 판은 3×3 블록 9개. 가운데 블록(4)의 가운데 칸이 핵심 목표, 그 둘레 8칸이 세부 목표.
+ * 둘레 블록 b 는 세부 목표 ringIndex(b) 를 펼친 것으로, 가운데 칸에 세부 목표, 둘레 8칸에 실천 항목.
  */
 
 export const SUB_COUNT = 8;
 export const ACTION_COUNT = 8;
 /** 3×3 블록 안에서 가운데 칸(또는 9개 블록 중 가운데 블록)의 index */
 export const CENTER = 4;
-/** 한 칸에 쓸 수 있는 최대 글자 수 */
+/** 한 칸에 쓸 수 있는 최대 글자 수 (계약 text40) */
 export const MAX_TEXT = 40;
+export const TOTAL_CELLS = 1 + SUB_COUNT + SUB_COUNT * ACTION_COUNT; // 73
+export const TOTAL_ACTIONS = SUB_COUNT * ACTION_COUNT; // 64
 
 export interface SubGoal {
   title: string;
   actions: string[];
+  /** 달성 표시(영구). 글이 없는 칸은 항상 false */
   done: boolean[];
 }
 
 export interface Board {
-  version: 1;
+  /** 'b' + 생성 시각(ms 13자리) */
+  id: string;
   goal: string;
   subs: SubGoal[];
+  /** 예시 템플릿에서 시작했으면 그 id */
+  templateId: string | null;
+  createdAt: number;
   updatedAt: number;
+}
+
+const BOARD_ID_RE = /^b[0-9]{13}$/;
+
+export function makeBoardId(now: number): string {
+  return `b${String(Math.max(0, Math.floor(now))).padStart(13, '0').slice(-13)}`;
 }
 
 export function createEmptySub(): SubGoal {
@@ -34,12 +46,14 @@ export function createEmptySub(): SubGoal {
   };
 }
 
-export function createEmptyBoard(): Board {
+export function createEmptyBoard(now: number = Date.now()): Board {
   return {
-    version: 1,
+    id: makeBoardId(now),
     goal: '',
     subs: Array.from({ length: SUB_COUNT }, createEmptySub),
-    updatedAt: 0,
+    templateId: null,
+    createdAt: now,
+    updatedAt: now,
   };
 }
 
@@ -59,6 +73,15 @@ export function cellOfRing(ring: number): number {
   return ring < CENTER ? ring : ring + 1;
 }
 
+/** 체크인 기록에 쓰는 실천 번호 (0~63) = 세부 목표 index × 8 + 실천 index */
+export function actionIndex(subIndex: number, action: number): number {
+  return subIndex * ACTION_COUNT + action;
+}
+
+export function splitActionIndex(index: number): { subIndex: number; action: number } {
+  return { subIndex: Math.floor(index / ACTION_COUNT), action: index % ACTION_COUNT };
+}
+
 export function clampText(value: string): string {
   return value.slice(0, MAX_TEXT);
 }
@@ -67,15 +90,25 @@ function cleanText(value: unknown): string {
   return typeof value === 'string' ? clampText(value) : '';
 }
 
-/** 저장돼 있던 값을 검증해서 Board 로 만들어요. 모양이 다르면 null 을 돌려줘요. */
-export function normalizeBoard(input: unknown): Board | null {
+function cleanTime(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.floor(value) : fallback;
+}
+
+/**
+ * 저장돼 있던 값을 검증해서 Board 로 만들어요. 모양이 다르면 null.
+ * 선행 프로토타입의 `{ version: 1, goal, subs, updatedAt }` 도 받아들여요(id·createdAt 은 새로 만듦).
+ */
+export function normalizeBoard(input: unknown, now: number = Date.now()): Board | null {
   if (!input || typeof input !== 'object') return null;
   const raw = input as Record<string, unknown>;
-  if (raw.version !== 1 || !Array.isArray(raw.subs)) return null;
+  if (!Array.isArray(raw.subs)) return null;
 
-  const board = createEmptyBoard();
+  const board = createEmptyBoard(now);
+  if (typeof raw.id === 'string' && BOARD_ID_RE.test(raw.id)) board.id = raw.id;
   board.goal = cleanText(raw.goal);
-  board.updatedAt = typeof raw.updatedAt === 'number' ? raw.updatedAt : 0;
+  board.templateId = typeof raw.templateId === 'string' && raw.templateId ? raw.templateId : null;
+  board.createdAt = cleanTime(raw.createdAt, now);
+  board.updatedAt = cleanTime(raw.updatedAt, board.createdAt);
 
   raw.subs.slice(0, SUB_COUNT).forEach((item, i) => {
     if (!item || typeof item !== 'object') return;
@@ -84,27 +117,19 @@ export function normalizeBoard(input: unknown): Board | null {
     const done = Array.isArray(sub.done) ? sub.done : [];
     board.subs[i].title = cleanText(sub.title);
     for (let a = 0; a < ACTION_COUNT; a++) {
-      board.subs[i].actions[a] = cleanText(actions[a]);
-      board.subs[i].done[a] = done[a] === true;
+      const text = cleanText(actions[a]);
+      board.subs[i].actions[a] = text;
+      board.subs[i].done[a] = text.trim().length > 0 && done[a] === true;
     }
   });
   return board;
 }
 
-export function parseBoard(json: string | null): Board | null {
-  if (!json) return null;
-  try {
-    return normalizeBoard(JSON.parse(json));
-  } catch {
-    return null;
-  }
-}
-
 export interface Progress {
-  /** 글이 적힌 칸 수 (핵심 1 + 세부 8 + 실천 64 = 최대 73) */
+  /** 글이 적힌 칸 수 (최대 73) */
   filled: number;
   totalCells: number;
-  /** 완료 표시한 실천 항목 수 (글이 있는 것만 셈) */
+  /** 달성 표시한 실천 수 (글이 있는 것만) */
   done: number;
   totalActions: number;
 }
@@ -120,12 +145,7 @@ export function getProgress(board: Board): Progress {
       if (sub.done[i]) done += 1;
     });
   }
-  return {
-    filled,
-    totalCells: 1 + SUB_COUNT + SUB_COUNT * ACTION_COUNT,
-    done,
-    totalActions: SUB_COUNT * ACTION_COUNT,
-  };
+  return { filled, totalCells: TOTAL_CELLS, done, totalActions: TOTAL_ACTIONS };
 }
 
 /** 공유용 텍스트. 비어 있는 세부 목표는 건너뛰어요. */
@@ -136,7 +156,7 @@ export function boardToText(board: Board): string {
       .map((action, j) => {
         const text = action.trim();
         if (!text) return null;
-        return `${sub.done[j] ? '- [완료] ' : '- '}${text}`;
+        return `${sub.done[j] ? '- [달성] ' : '- '}${text}`;
       })
       .filter((line): line is string => line !== null);
     if (!sub.title.trim() && actions.length === 0) return;

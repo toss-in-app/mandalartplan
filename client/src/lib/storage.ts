@@ -1,9 +1,21 @@
 import { Storage } from '@apps-in-toss/web-framework';
 
 import { withTimeout } from './async';
-import { createEmptyBoard, parseBoard, type Board } from './mandalart';
+import { normalizeBoard } from './mandalart';
+import {
+  KEYS,
+  createDefaultSettings,
+  createEmptyBoards,
+  createEmptyCheckins,
+  normalizeBoards,
+  normalizeCheckins,
+  normalizeSettings,
+  type AppState,
+  type BoardsState,
+  type CheckinsState,
+  type SettingsState,
+} from './state';
 
-export const BOARD_KEY = 'mandalart.board.v1';
 const BRIDGE_TIMEOUT_MS = 1500;
 
 /*
@@ -63,14 +75,44 @@ export async function removeItem(key: string): Promise<void> {
   }
 }
 
-export async function loadBoard(): Promise<Board> {
-  return parseBoard(await readItem(BOARD_KEY)) ?? createEmptyBoard();
+function parse(json: string | null): unknown {
+  if (!json) return null;
+  try {
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
 }
 
-export async function saveBoard(board: Board): Promise<void> {
-  await writeItem(BOARD_KEY, JSON.stringify(board));
+/** 세 키를 읽고, 선행 프로토타입의 단일 판(`mandalart.board.v1`)이 있으면 boards 로 옮겨요. */
+export async function loadState(now: number = Date.now()): Promise<AppState> {
+  const [boardsRaw, checkinsRaw, settingsRaw] = await Promise.all([
+    readItem(KEYS.boards),
+    readItem(KEYS.checkins),
+    readItem(KEYS.settings),
+  ]);
+
+  let boards = normalizeBoards(parse(boardsRaw), now);
+  if (!boards) {
+    const legacy = normalizeBoard(parse(await readItem(KEYS.legacyBoard)), now);
+    boards = legacy ? { version: 1, active: 0, boards: [legacy] } : createEmptyBoards(now);
+    if (legacy) {
+      await writeItem(KEYS.boards, JSON.stringify(boards));
+      await removeItem(KEYS.legacyBoard);
+    }
+  }
+
+  return {
+    boards,
+    checkins: normalizeCheckins(parse(checkinsRaw)) ?? createEmptyCheckins(),
+    settings: normalizeSettings(parse(settingsRaw)) ?? createDefaultSettings(),
+  };
 }
 
-export async function clearBoard(): Promise<void> {
-  await removeItem(BOARD_KEY);
+export const saveBoards = (boards: BoardsState) => writeItem(KEYS.boards, JSON.stringify(boards));
+export const saveCheckins = (checkins: CheckinsState) => writeItem(KEYS.checkins, JSON.stringify(checkins));
+export const saveSettings = (settings: SettingsState) => writeItem(KEYS.settings, JSON.stringify(settings));
+
+export async function clearAll(): Promise<void> {
+  await Promise.all([removeItem(KEYS.boards), removeItem(KEYS.checkins), removeItem(KEYS.legacyBoard)]);
 }

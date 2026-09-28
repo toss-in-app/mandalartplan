@@ -1,37 +1,70 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-import { useBoard } from './hooks/useBoard';
+import { fetchRemoteContent, getBundledContent, type Content } from './content';
+import { useAppState } from './hooks/useAppState';
 import { goBack, navigate, useRoute } from './lib/router';
 import { BlockScreen } from './screens/BlockScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import './App.css';
 
 function App() {
   const route = useRoute();
-  const { board, setGoal, setSubTitle, setAction, toggleDone, reset } = useBoard();
+  const app = useAppState();
+  const [content, setContent] = useState<Content>(getBundledContent);
+
+  // 첫 화면은 번들 콘텐츠로 즉시 그리고, 원격은 뒤에서 한 번만 시도해요.
+  useEffect(() => {
+    let alive = true;
+    void fetchRemoteContent().then((remote) => {
+      if (alive && remote) setContent(remote);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [route]);
 
-  // 저장된 보드를 읽는 동안(수십 ms)은 빈 화면. 번들 안에서 끝나는 일이라 로더는 두지 않아요.
-  if (!board) return null;
+  const { state, board } = app;
+  // 저장된 상태를 읽는 동안(수십 ms)은 빈 화면. 번들 안에서 끝나는 일이라 로더는 두지 않아요.
+  if (!state || !board) return null;
 
-  if (route.name === 'block') {
-    return (
-      <BlockScreen
-        board={board}
-        block={route.block}
-        onChangeGoal={setGoal}
-        onChangeSubTitle={setSubTitle}
-        onChangeAction={setAction}
-        onToggleDone={toggleDone}
-        onDone={goBack}
-      />
-    );
+  switch (route.name) {
+    case 'block':
+      return (
+        <BlockScreen
+          board={board}
+          block={route.block}
+          onChangeGoal={app.setGoal}
+          onChangeSubTitle={app.setSubTitle}
+          onChangeAction={app.setAction}
+          onToggleDone={app.toggleDone}
+          onDone={goBack}
+        />
+      );
+    case 'checkin':
+      return <PlaceholderScreen title="오늘 체크인" description="주요 기능 1 — 오늘 한 실천을 체크해요" onDone={goBack} />;
+    case 'share':
+      return <PlaceholderScreen title="만다라트 공유" description="주요 기능 3 — 이미지로 저장하거나 글로 보내요" onDone={goBack} />;
+    case 'settings':
+      return <PlaceholderScreen title="설정" description="알림·템플릿·두 번째 판·초기화·약관" onDone={goBack} />;
+    default:
+      return (
+        <HomeScreen
+          board={board}
+          content={content}
+          checkin={state.checkins.byBoard[board.id]}
+          notificationVisible={state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown'}
+          onSelectBlock={(block) => navigate({ name: 'block', block })}
+          onCheckin={() => navigate({ name: 'checkin' })}
+          onShare={() => navigate({ name: 'share' })}
+          onSettings={() => navigate({ name: 'settings' })}
+        />
+      );
   }
-
-  return <HomeScreen board={board} onSelectBlock={(block) => navigate({ name: 'block', block })} onReset={reset} />;
 }
 
 export default App;
