@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseRoute, routeFromSchemeUrl, routeToHash } from './router';
+import { parseRoute, resolveHash, routeFromSchemeUrl, routeToHash } from './router';
 
 describe('parseRoute / routeToHash', () => {
   it('해시와 라우트가 서로 바뀌어요', () => {
@@ -34,5 +34,15 @@ describe('routeFromSchemeUrl', () => {
     expect(routeFromSchemeUrl('https://mandalartplan.apps.tossmini.com/share')).toEqual({ name: 'share' });
     expect(routeFromSchemeUrl('')).toBeNull();
     expect(routeFromSchemeUrl('not a url')).toBeNull();
+  });
+});
+
+describe('resolveHash', () => {
+  it('해시가 비어 있으면 바닥 화면(딥링크), 있으면 해시 화면이에요', () => {
+    const base = { name: 'today' as const };
+    expect(resolveHash('', base)).toEqual(base);
+    expect(resolveHash('#', base)).toEqual(base);
+    expect(resolveHash('#/', base)).toEqual(base);
+    expect(resolveHash('#/sub/3', base)).toEqual({ name: 'sub', sub: 3 });
   });
 });
