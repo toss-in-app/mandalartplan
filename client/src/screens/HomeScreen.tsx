@@ -19,6 +19,7 @@ interface HomeScreenProps {
   onOverview: () => void;
   onShare: () => void;
   onSettings: () => void;
+  onStartWithTemplate: () => void;
 }
 
 /**
@@ -36,6 +37,7 @@ export function HomeScreen({
   onOverview,
   onShare,
   onSettings,
+  onStartWithTemplate,
 }: HomeScreenProps) {
   const today = dateKey();
   const progress = getProgress(board);
@@ -122,6 +124,9 @@ export function HomeScreen({
       </div>
 
       <List>
+        {isEmpty && (
+          <ListRow onClick={onStartWithTemplate} withArrow contents={<ListRow.Texts type="1RowTypeA" top="예시로 시작하기" />} />
+        )}
         {notificationVisible && (
           <ListRow onClick={onSettings} withArrow contents={<ListRow.Texts type="1RowTypeA" top="매일 저녁 알림 받기" />} />
         )}

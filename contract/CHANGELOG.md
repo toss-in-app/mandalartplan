@@ -14,3 +14,6 @@
 - 체크가 0개가 된 날은 `days` 에서 삭제 → 연속 일수 = 하나라도 체크한 날.
 - `events.md`: `checkin_complete` → `action_check`, `today_view` 추가. 광고 그룹 `interstitial-checkin-done`·`banner-checkin` → `interstitial-today`·`banner-today`. 알림 링크는 홈.
 - 화면: `checkin` 삭제, `sub/:s`·`overview`·`today` 추가 (`wireframes/mandalartplan-flow.md` v2).
+
+## 2026-10-04 [client] 기능 2 설정·예시 템플릿
+- 계약 변경 없음. `content.templates` 적용 시 그 판의 `checkins.byBoard[판]` 삭제(실천이 바뀌므로). 약관·개인정보 주소는 `STATIC_BASE_URL` 상수.

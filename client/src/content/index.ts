@@ -9,7 +9,10 @@ import bundledJson from './bundled.json';
 
 /** 이 클라가 이해하는 콘텐츠 형식 버전 */
 export const CONTENT_CLIENT_VERSION = 1;
-export const CONTENT_URL = 'https://toss-in-app.github.io/mandalartplan/content.json';
+export const STATIC_BASE_URL = 'https://toss-in-app.github.io/mandalartplan';
+export const CONTENT_URL = `${STATIC_BASE_URL}/content.json`;
+export const TERMS_URL = `${STATIC_BASE_URL}/terms/`;
+export const PRIVACY_URL = `${STATIC_BASE_URL}/privacy/`;
 const FETCH_TIMEOUT_MS = 3000;
 
 export interface ContentTemplateSub {

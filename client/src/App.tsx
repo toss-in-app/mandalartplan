@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useDialog, useToast } from '@toss/tds-mobile';
+import { useCallback, useEffect, useState } from 'react';
 
-import { fetchRemoteContent, getBundledContent, type Content } from './content';
+import { fetchRemoteContent, getBundledContent, type Content, type ContentTemplate } from './content';
 import { useAppState } from './hooks/useAppState';
+import { useTemplatePicker } from './hooks/useTemplatePicker';
 import { haptic } from './lib/bridge';
 import { toggleCheck } from './lib/checkin';
-import { CENTER, cellOfRing } from './lib/mandalart';
+import { CENTER, cellOfRing, getProgress } from './lib/mandalart';
 import { goBack, navigate, useRoute } from './lib/router';
 import { dateKey } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OverviewScreen } from './screens/OverviewScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 import { SubScreen } from './screens/SubScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import './App.css';
@@ -19,6 +22,43 @@ function App() {
   const route = useRoute();
   const app = useAppState();
   const [content, setContent] = useState<Content>(getBundledContent);
+  const { openConfirm } = useDialog();
+  const toast = useToast();
+
+  /** 예시 템플릿 적용. 이미 적은 글이 있으면 덮어쓸지 먼저 물어요. */
+  const pickTemplate = useCallback(
+    async (template: ContentTemplate) => {
+      const current = app.board;
+      if (!current) return;
+      if (getProgress(current).filled > 0) {
+        const ok = await openConfirm({
+          title: '예시로 바꿀까요?',
+          description: '지금 적은 내용과 오늘 체크 기록이 예시 내용으로 바뀌어요.',
+          confirmButton: '바꾸기',
+          cancelButton: '닫기',
+        });
+        if (!ok) return;
+      }
+      app.applyTemplate(template);
+      toast.openToast(`${template.title} 예시를 넣었어요`);
+      navigate({ name: 'home' });
+    },
+    [app, openConfirm, toast],
+  );
+  const openTemplatePicker = useTemplatePicker(content, pickTemplate);
+
+  const resetAll = useCallback(async () => {
+    const ok = await openConfirm({
+      title: '처음부터 다시 만들까요?',
+      description: '적은 목표·실천과 체크 기록이 모두 지워져요. 되돌릴 수 없어요.',
+      confirmButton: '지우기',
+      cancelButton: '닫기',
+    });
+    if (!ok) return;
+    await app.reset();
+    toast.openToast('새 만다라트를 시작해요');
+    navigate({ name: 'home' });
+  }, [app, openConfirm, toast]);
 
   // 첫 화면은 번들 콘텐츠로 즉시 그리고, 원격은 뒤에서 한 번만 시도해요.
   useEffect(() => {
@@ -82,7 +122,15 @@ function App() {
     case 'share':
       return <PlaceholderScreen title="만다라트 공유" description="주요 기능 3 — 이미지로 저장하거나 글로 보내요" onDone={goBack} />;
     case 'settings':
-      return <PlaceholderScreen title="설정" description="알림·템플릿·두 번째 판·초기화·약관" onDone={goBack} />;
+      return (
+        <SettingsScreen
+          content={content}
+          notification={state.settings.notification}
+          hasAnyText={getProgress(board).filled > 0}
+          onPickTemplate={openTemplatePicker}
+          onReset={() => void resetAll()}
+        />
+      );
     default:
       return (
         <HomeScreen
@@ -96,6 +144,7 @@ function App() {
           onOverview={() => navigate({ name: 'overview' })}
           onShare={() => navigate({ name: 'share' })}
           onSettings={() => navigate({ name: 'settings' })}
+          onStartWithTemplate={openTemplatePicker}
         />
       );
   }

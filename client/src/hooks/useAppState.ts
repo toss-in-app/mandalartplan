@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { ContentTemplate } from '../content';
 import { clampText, createEmptyBoard, type Board } from '../lib/mandalart';
+import { boardFromTemplate } from '../lib/template';
 import { createEmptyBoards, type AppState, type BoardsState, type CheckinsState, type SettingsState } from '../lib/state';
 import { clearAll, loadState, saveBoards, saveCheckins, saveSettings } from '../lib/storage';
 
@@ -127,6 +129,22 @@ export function useAppState() {
     [patch],
   );
 
+  /** 지금 보고 있는 판을 예시 템플릿 글로 채우고, 그 판의 체크 기록은 지워요(실천이 모두 바뀌니까). */
+  const applyTemplate = useCallback(
+    (template: ContentTemplate) => {
+      const prev = stateRef.current;
+      if (!prev) return;
+      const { active, boards } = prev.boards;
+      const now = Date.now();
+      const nextBoard = boardFromTemplate(boards[active], template, now);
+      patch('boards', { ...prev.boards, boards: boards.map((b, i) => (i === active ? nextBoard : b)) });
+      const byBoard = { ...stateRef.current!.checkins.byBoard };
+      delete byBoard[nextBoard.id];
+      patch('checkins', { version: 1, byBoard });
+    },
+    [patch],
+  );
+
   /** 판과 체크인 기록을 지우고 빈 판 하나로 돌아가요. 설정(잠금 해제·알림 상태)은 남겨요. */
   const reset = useCallback(async () => {
     const prev = stateRef.current;
@@ -145,5 +163,5 @@ export function useAppState() {
 
   const board = state ? state.boards.boards[state.boards.active] : null;
 
-  return { state, board, setGoal, setSubTitle, setAction, updateSettings, updateCheckins, reset, createEmptyBoard };
+  return { state, board, setGoal, setSubTitle, setAction, applyTemplate, updateSettings, updateCheckins, reset, createEmptyBoard };
 }
