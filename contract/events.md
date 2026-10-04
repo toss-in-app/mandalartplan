@@ -38,3 +38,14 @@
 
 ## Storage 키
 `mandalart.boards.v1` · `mandalart.checkins.v1` · `mandalart.settings.v1` (스키마 `state.schema.json`). 선행 프로토타입의 `mandalart.board.v1` 은 읽어서 `boards.v1` 로 1회 이전 후 삭제. 예전 판의 `done` 필드는 읽을 때 버린다.
+
+## 백업·복원 (2026-10-04 추가, Supabase)
+| 이벤트 | 언제 | 파라미터 |
+|--------|------|----------|
+| `backup_enable` | 설정 '백업 켜기' 성공 | |
+| `backup_run` | 백업 성공(자동·수동) | `auto`(true/false), `cells` |
+| `backup_restore` | 서버 본으로 복원 확인 | `cells` |
+| `backup_disable` | '백업 끄고 서버 데이터 지우기' | |
+| `backup_error` | 키 발급·네트워크 실패 | `stage`(key/get/upsert/delete), `code` |
+
+Supabase RPC: `backup_get(p_key)` · `backup_upsert(p_key, p_payload, p_payload_version, p_client_version, p_cells_filled)` · `backup_delete(p_key)` — `supabase/schema.sql`. 테이블 직접 접근 없음(RLS). 페이로드 `contract/backup.schema.json`.

@@ -68,7 +68,14 @@ describe('settings', () => {
   it('기본값과 정규화', () => {
     expect(createDefaultSettings().notification).toBe('unknown');
     const s = normalizeSettings({ version: 1, notification: 'agreed', unlocks: { extraBoard: 'yes' }, seenContentVersion: 3, firstCheckinAt: 5 });
-    expect(s).toEqual({ version: 1, notification: 'agreed', unlocks: { extraBoard: false }, seenContentVersion: 3, firstCheckinAt: 5 });
+    expect(s).toEqual({
+      version: 1,
+      notification: 'agreed',
+      unlocks: { extraBoard: false },
+      seenContentVersion: 3,
+      firstCheckinAt: 5,
+      backup: { enabled: false, key: null, lastBackupAt: null },
+    });
     expect(normalizeSettings({ version: 0 })).toBeNull();
   });
 });

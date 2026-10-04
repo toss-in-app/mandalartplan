@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { BackupPayload } from '../backup/payload';
 import type { ContentTemplate } from '../content';
 import { clampText, createEmptyBoard, type Board } from '../lib/mandalart';
 import { boardFromTemplate } from '../lib/template';
@@ -145,6 +146,18 @@ export function useAppState() {
     [patch],
   );
 
+  /** 서버 백업 본으로 판·체크 기록·잠금 해제를 통째로 바꿔요(복원). 알림 상태·백업 설정은 그대로. */
+  const importBackup = useCallback(
+    (payload: BackupPayload) => {
+      const prev = stateRef.current;
+      if (!prev) return;
+      patch('boards', payload.boards);
+      patch('checkins', payload.checkins);
+      patch('settings', { ...stateRef.current!.settings, unlocks: { extraBoard: payload.unlocks.extraBoard } });
+    },
+    [patch],
+  );
+
   /** 판과 체크인 기록을 지우고 빈 판 하나로 돌아가요. 설정(잠금 해제·알림 상태)은 남겨요. */
   const reset = useCallback(async () => {
     const prev = stateRef.current;
@@ -163,5 +176,5 @@ export function useAppState() {
 
   const board = state ? state.boards.boards[state.boards.active] : null;
 
-  return { state, board, setGoal, setSubTitle, setAction, applyTemplate, updateSettings, updateCheckins, reset, createEmptyBoard };
+  return { state, board, setGoal, setSubTitle, setAction, applyTemplate, importBackup, updateSettings, updateCheckins, reset, createEmptyBoard };
 }

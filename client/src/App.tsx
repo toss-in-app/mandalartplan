@@ -2,11 +2,16 @@ import { useDialog, useToast } from '@toss/tds-mobile';
 import { useCallback, useEffect, useState } from 'react';
 
 import { fetchRemoteContent, getBundledContent, type Content, type ContentTemplate } from './content';
+import { BackupApiError } from './backup/api';
+import { BackupKeyError } from './backup/key';
+import { cellsFilled } from './backup/payload';
+import { useBackup } from './backup/useBackup';
 import { useAppState } from './hooks/useAppState';
 import { useTemplatePicker } from './hooks/useTemplatePicker';
 import { haptic } from './lib/bridge';
 import { toggleCheck } from './lib/checkin';
 import { CENTER, cellOfRing, getProgress } from './lib/mandalart';
+import { formatDateTime } from './lib/format';
 import { goBack, navigate, useRoute } from './lib/router';
 import { dateKey } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
@@ -46,6 +51,97 @@ function App() {
     [app, openConfirm, toast],
   );
   const openTemplatePicker = useTemplatePicker(content, pickTemplate);
+
+  const backup = useBackup(app);
+  const backupErrorToast = useCallback(
+    (error: unknown) => {
+      if (error instanceof BackupKeyError) toast.openToast(error.message);
+      else if (error instanceof BackupApiError) toast.openToast('지금은 서버에 연결할 수 없어요');
+      else toast.openToast('지금은 백업할 수 없어요');
+    },
+    [toast],
+  );
+
+  const enableBackup = useCallback(async () => {
+    const ok = await openConfirm({
+      title: '서버 백업을 켤까요?',
+      description: '토스 익명 식별값으로 만든 키와 적은 내용·체크 기록이 서버에 저장돼요. 이름·연락처는 저장하지 않아요. 설정에서 언제든 끄고 지울 수 있어요.',
+      confirmButton: '켜기',
+      cancelButton: '닫기',
+    });
+    if (!ok) return;
+    try {
+      const remote = await backup.enable();
+      const localFilled = app.board ? cellsFilled({ version: 1, active: 0, boards: [app.board] }) : 0;
+      if (remote && remote.cellsFilled > 0) {
+        const restore =
+          localFilled === 0 ||
+          (await openConfirm({
+            title: '서버에 백업이 있어요',
+            description: `${formatDateTime(remote.updatedAt)} 백업(73칸 중 ${remote.cellsFilled}칸)으로 바꿀까요? 닫기를 누르면 지금 기기 내용을 서버에 올려요.`,
+            confirmButton: '복원',
+            cancelButton: '닫기',
+          }));
+        if (restore) {
+          backup.restore(remote.payload);
+          toast.openToast('서버 백업으로 복원했어요');
+          navigate({ name: 'home' });
+          return;
+        }
+      }
+      await backup.backupNow();
+      toast.openToast('서버 백업을 켰어요');
+    } catch (error) {
+      backupErrorToast(error);
+    }
+  }, [app.board, backup, backupErrorToast, openConfirm, toast]);
+
+  const backupNow = useCallback(async () => {
+    try {
+      await backup.backupNow();
+      toast.openToast('백업했어요');
+    } catch (error) {
+      backupErrorToast(error);
+    }
+  }, [backup, backupErrorToast, toast]);
+
+  const restoreBackup = useCallback(async () => {
+    try {
+      const remote = await backup.fetchRemote();
+      if (!remote) {
+        toast.openToast('서버에 백업이 없어요');
+        return;
+      }
+      const ok = await openConfirm({
+        title: '서버 백업으로 바꿀까요?',
+        description: `${formatDateTime(remote.updatedAt)} 백업(73칸 중 ${remote.cellsFilled}칸)이에요. 지금 기기의 내용은 사라져요.`,
+        confirmButton: '복원',
+        cancelButton: '닫기',
+      });
+      if (!ok) return;
+      backup.restore(remote.payload);
+      toast.openToast('서버 백업으로 복원했어요');
+      navigate({ name: 'home' });
+    } catch (error) {
+      backupErrorToast(error);
+    }
+  }, [backup, backupErrorToast, openConfirm, toast]);
+
+  const disableBackup = useCallback(async () => {
+    const ok = await openConfirm({
+      title: '백업을 끄고 서버 데이터를 지울까요?',
+      description: '서버에 있는 백업 본이 바로 지워져요. 이 기기의 내용은 그대로예요.',
+      confirmButton: '지우기',
+      cancelButton: '닫기',
+    });
+    if (!ok) return;
+    try {
+      await backup.disable();
+      toast.openToast('서버 백업을 끄고 지웠어요');
+    } catch (error) {
+      backupErrorToast(error);
+    }
+  }, [backup, backupErrorToast, openConfirm, toast]);
 
   const resetAll = useCallback(async () => {
     const ok = await openConfirm({
@@ -127,6 +223,16 @@ function App() {
           content={content}
           notification={state.settings.notification}
           hasAnyText={getProgress(board).filled > 0}
+          backup={{
+            configured: backup.configured,
+            enabled: backup.enabled,
+            busy: backup.busy,
+            lastBackupAt: backup.lastBackupAt,
+            onEnable: () => void enableBackup(),
+            onBackupNow: () => void backupNow(),
+            onRestore: () => void restoreBackup(),
+            onDisable: () => void disableBackup(),
+          }}
           onPickTemplate={openTemplatePicker}
           onReset={() => void resetAll()}
         />

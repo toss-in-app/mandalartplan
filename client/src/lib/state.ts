@@ -35,13 +35,24 @@ export interface CheckinsState {
 
 export type NotificationStatus = 'unknown' | 'agreed' | 'declined';
 
+export interface BackupSettings {
+  /** 설정에서 '백업 켜기' 를 누른 뒤 true. 끄면 서버 본도 지워요 */
+  enabled: boolean;
+  /** sha256('mandalartplan:' + 토스 익명 키) → 'k' + hex 64. 켤 때 한 번 계산 */
+  key: string | null;
+  lastBackupAt: number | null;
+}
+
 export interface SettingsState {
   version: 1;
   notification: NotificationStatus;
   unlocks: { extraBoard: boolean };
   seenContentVersion: number;
   firstCheckinAt: number | null;
+  backup: BackupSettings;
 }
+
+const BACKUP_KEY_RE = /^k[0-9a-f]{64}$/;
 
 export interface AppState {
   boards: BoardsState;
@@ -100,7 +111,14 @@ export function normalizeCheckins(input: unknown): CheckinsState | null {
 }
 
 export function createDefaultSettings(): SettingsState {
-  return { version: 1, notification: 'unknown', unlocks: { extraBoard: false }, seenContentVersion: 0, firstCheckinAt: null };
+  return {
+    version: 1,
+    notification: 'unknown',
+    unlocks: { extraBoard: false },
+    seenContentVersion: 0,
+    firstCheckinAt: null,
+    backup: { enabled: false, key: null, lastBackupAt: null },
+  };
 }
 
 export function normalizeSettings(input: unknown): SettingsState | null {
@@ -113,6 +131,13 @@ export function normalizeSettings(input: unknown): SettingsState | null {
   s.unlocks.extraBoard = unlocks.extraBoard === true;
   if (typeof raw.seenContentVersion === 'number' && raw.seenContentVersion >= 0) s.seenContentVersion = Math.floor(raw.seenContentVersion);
   if (typeof raw.firstCheckinAt === 'number' && raw.firstCheckinAt >= 0) s.firstCheckinAt = Math.floor(raw.firstCheckinAt);
+  const backup = raw.backup && typeof raw.backup === 'object' ? (raw.backup as Record<string, unknown>) : {};
+  const key = typeof backup.key === 'string' && BACKUP_KEY_RE.test(backup.key) ? backup.key : null;
+  s.backup = {
+    enabled: backup.enabled === true && key !== null,
+    key,
+    lastBackupAt: typeof backup.lastBackupAt === 'number' && backup.lastBackupAt >= 0 ? Math.floor(backup.lastBackupAt) : null,
+  };
   return s;
 }
 

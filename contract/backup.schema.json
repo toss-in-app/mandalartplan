@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://toss-in-app.github.io/mandalartplan/backup.schema.json",
+  "title": "mandalartplan backup payload v1",
+  "description": "Supabase mandalart_backups.payload 에 저장하는 백업 본. 기기 로컬 상태(boards·checkins)와 잠금 해제만. 알림 상태·개인정보 없음. 백업 키는 sha256('mandalartplan:' + 토스 익명 키) 의 'k'+hex64.",
+  "type": "object",
+  "required": ["version", "exportedAt", "boards", "checkins", "unlocks"],
+  "properties": {
+    "version": { "const": 1 },
+    "exportedAt": { "type": "integer", "minimum": 0, "description": "기기 시각 ms" },
+    "boards": { "$ref": "state.schema.json#/$defs/boards" },
+    "checkins": { "$ref": "state.schema.json#/$defs/checkins" },
+    "unlocks": { "type": "object", "required": ["extraBoard"], "properties": { "extraBoard": { "type": "boolean" } } }
+  }
+}

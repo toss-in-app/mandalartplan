@@ -1,7 +1,7 @@
 # mandalartplan — 만다라트 (앱인토스 미니앱)
 
 핵심 목표 1개 · 세부 목표 8개 · 실천 64개를 9×9 만다라트에 적고, 매일 실천을 체크해 진행률을 쌓고, 완성한 9×9 를 이미지로 공유하는 미니앱이에요.
-서버 없음, 로그인 없음, 저장은 기기 로컬(`Storage`). 워크플로우 카드는 `~/Desktop/toss/apps/mandalartplan.md`, 설계는 `steps/3-design/wireframes/mandalartplan-flow.md`.
+자체 서버·로그인 없음. 저장은 기기 로컬(`Storage`)이고, 사용자가 켜면 Supabase 에 백업(토스 익명 키 기반). 워크플로우 카드는 `~/Desktop/toss/apps/mandalartplan.md`, 설계는 `steps/3-design/wireframes/mandalartplan-flow.md`.
 
 ## 실행
 
@@ -24,12 +24,14 @@ contract/                  # 계약 (3단계 승인본). 바뀌면 CHANGELOG.md 
 content/content.source.json  # 콘텐츠 원본(사람이 검수). scripts/build-content.mjs 의 입력
 scripts/build-content.mjs    # 검증 통과한 것만 static/ 과 번들 동봉본으로
 static/                      # GitHub Pages 에 올릴 것: content.json · index · terms · privacy · og.png(예정)
+supabase/schema.sql          # 백업·복원용 Supabase 테이블·RLS·RPC (2026-10-04, 사용자가 SQL Editor 에서 실행)
 client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/web-framework 3.x)
 ├── apps-in-toss.config.ts   #   appName·브랜드 색·네비게이션 바·웹뷰 옵션 (콘솔 appName 과 같아야 함)
 └── src/
     ├── main.tsx             #   TDSMobileAITProvider
     ├── App.tsx              #   라우트: home · block/:n · checkin · share · settings (뒤 셋은 5단계)
     ├── content/             #   bundled.json(생성) + 로더(원격 content.json 시도, 실패 시 번들)
+    ├── backup/              #   Supabase 백업·복원: config(URL·anon 키) · key(익명 키 sha256) · api(RPC fetch) · useBackup
     ├── lib/
     │   ├── mandalart.ts     #   판 모델·검증·진행률·공유 텍스트
     │   ├── state.ts         #   boards · checkins · settings 정규화, 날짜 키, 연속 일수

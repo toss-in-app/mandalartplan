@@ -17,3 +17,9 @@
 
 ## 2026-10-04 [client] 기능 2 설정·예시 템플릿
 - 계약 변경 없음. `content.templates` 적용 시 그 판의 `checkins.byBoard[판]` 삭제(실천이 바뀌므로). 약관·개인정보 주소는 `STATIC_BASE_URL` 상수.
+
+## 2026-10-04 v3 백업·복원 (Supabase + 익명 키)
+- `state.schema.json` settings 에 `backup { enabled, key, lastBackupAt }` 추가(필드 추가만, 없으면 기본값).
+- `backup.schema.json` 신설: 서버 페이로드 = boards + checkins + unlocks + exportedAt.
+- `supabase/schema.sql`: 테이블 `mandalart_backups`(RLS, 정책 없음) + RPC get/upsert/delete(security definer, anon 실행 허용).
+- `events.md` 백업 이벤트 5개.

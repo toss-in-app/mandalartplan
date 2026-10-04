@@ -1,5 +1,6 @@
 // vitest 공통 설정: jest-dom 매처 + jsdom 에 없는 브라우저 API 흉내
 import '@testing-library/jest-dom/vitest';
+import { webcrypto } from 'node:crypto';
 import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
@@ -48,4 +49,9 @@ for (const proto of [Document.prototype, Element.prototype, DocumentFragment.pro
       throw error;
     }
   } as typeof proto.querySelectorAll;
+}
+
+// jsdom 에는 crypto.subtle 이 없어요 → Node 의 Web Crypto 로 (백업 키 sha256)
+if (!globalThis.crypto?.subtle) {
+  Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 }

@@ -186,7 +186,8 @@
         "notification",
         "unlocks",
         "seenContentVersion",
-        "firstCheckinAt"
+        "firstCheckinAt",
+        "backup"
       ],
       "properties": {
         "version": {
@@ -223,6 +224,43 @@
               "$ref": "#/$defs/epochMs"
             }
           ]
+        },
+        "backup": {
+          "type": "object",
+          "required": [
+            "enabled",
+            "key",
+            "lastBackupAt"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "설정에서 '백업 켜기' 를 누른 뒤 true. 끄면 서버 본도 지움"
+            },
+            "key": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^k[0-9a-f]{64}$"
+                }
+              ],
+              "description": "sha256('mandalartplan:' + 토스 익명 키). 켤 때 한 번 계산해 저장"
+            },
+            "lastBackupAt": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/epochMs"
+                }
+              ]
+            }
+          },
+          "description": "2026-10-04 추가 (Supabase 백업·복원)"
         }
       }
     }
