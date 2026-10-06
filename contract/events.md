@@ -18,7 +18,7 @@
 
 핵심 지표(콘솔 9단계): 활성 `action_check` · 전환 `board_filled`, `share_image_save`, `notification_agree`.
 
-## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `client/src/ads.ts` 상수로. 테스트 ID 는 dev 빌드에서만)
+## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 | 이름 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
 | `interstitial-today` | 전면 | 홈 '오늘 기록 보기' → today 전환 | 하루 1회 · 오늘 체크 1개 이상일 때만 · 사전 로딩 · 실패 시 건너뜀 |

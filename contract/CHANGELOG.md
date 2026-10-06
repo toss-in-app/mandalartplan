@@ -29,3 +29,8 @@
 - `apps-in-toss.config.ts` `permissions` 에 `{ name: 'photos', access: 'write' }` 선언(이미지 저장). 누를 때 `requestPermission` 으로 묻고 거부하면 글·링크 공유만.
 - 고화질(2160×2700, 워터마크 없음)은 같은 렌더러의 옵션(`HD_CARD`)으로 준비만 — 리워드 광고(기능 5)에서 연결.
 
+## 2026-10-06 v4 [client] 기능 5 광고
+- `state.schema.json` settings 에 `ads { lastInterstitialDate }` 추가(필드 추가만, 없으면 null) — 전면 광고 하루 1회 상한.
+- 광고 그룹 ID 는 `client/src/ads/config.ts`: 비어 있으면 공식 테스트 ID(`ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id`), 라이브 ID 는 `.env.production` 의 `VITE_AD_GROUP_INTERSTITIAL_TODAY`·`VITE_AD_GROUP_REWARDED_HD_IMAGE`·`VITE_AD_GROUP_REWARDED_EXTRA_BOARD`·`VITE_AD_GROUP_BANNER_TODAY`.
+- 지점: 전면 = 홈 '오늘 기록 보기'(오늘 체크 1개 이상·하루 1회·사전 로딩·실패 시 건너뜀) · 리워드 = 공유 '고화질로 저장'(`userEarnedReward` 에서만, 보상은 2160×2700 워터마크 없는 저장 1회) · 배너 = 오늘 기록 목록 하단 1개(카드형, 실패 시 숨김). 설정 '두 번째 판' 리워드는 기능 7 에서 같은 훅으로.
+

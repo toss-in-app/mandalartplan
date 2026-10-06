@@ -43,6 +43,11 @@ export interface BackupSettings {
   lastBackupAt: number | null;
 }
 
+export interface AdsSettings {
+  /** 전면 광고를 마지막으로 보여준 날 'YYYY-MM-DD' (하루 1회 상한) */
+  lastInterstitialDate: string | null;
+}
+
 export interface SettingsState {
   version: 1;
   notification: NotificationStatus;
@@ -50,6 +55,7 @@ export interface SettingsState {
   seenContentVersion: number;
   firstCheckinAt: number | null;
   backup: BackupSettings;
+  ads: AdsSettings;
 }
 
 const BACKUP_KEY_RE = /^k[0-9a-f]{64}$/;
@@ -118,6 +124,7 @@ export function createDefaultSettings(): SettingsState {
     seenContentVersion: 0,
     firstCheckinAt: null,
     backup: { enabled: false, key: null, lastBackupAt: null },
+    ads: { lastInterstitialDate: null },
   };
 }
 
@@ -138,6 +145,8 @@ export function normalizeSettings(input: unknown): SettingsState | null {
     key,
     lastBackupAt: typeof backup.lastBackupAt === 'number' && backup.lastBackupAt >= 0 ? Math.floor(backup.lastBackupAt) : null,
   };
+  const ads = raw.ads && typeof raw.ads === 'object' ? (raw.ads as Record<string, unknown>) : {};
+  s.ads.lastInterstitialDate = typeof ads.lastInterstitialDate === 'string' && DATE_RE.test(ads.lastInterstitialDate) ? ads.lastInterstitialDate : null;
   return s;
 }
 

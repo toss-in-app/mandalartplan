@@ -145,6 +145,9 @@
       "extraBoard": false
     },
     "seenContentVersion": 1,
-    "firstCheckinAt": 1758891600000
+    "firstCheckinAt": 1758891600000,
+    "ads": {
+      "lastInterstitialDate": null
+    }
   }
 }

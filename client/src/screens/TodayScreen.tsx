@@ -1,6 +1,8 @@
 import { colors } from '@toss/tds-colors';
 import { List, ListHeader, ListRow, Result, Text, Top } from '@toss/tds-mobile';
 
+import { AD_GROUPS } from '../ads/config';
+import { AdBanner } from '../components/AdBanner';
 import { cheerFor, type Content } from '../content';
 import { checkinGroups, formatDateLabel, todaySet } from '../lib/checkin';
 import type { Board } from '../lib/mandalart';
@@ -15,7 +17,7 @@ interface TodayScreenProps {
 
 /**
  * 오늘 기록 (홈 '오늘 기록 보기'). 오늘 체크한 실천을 세부 목표별로 보여줘요.
- * 전면 광고(기능 4)는 홈 → 이 화면 전환에, 배너(기능 4)는 목록 하단에, 알림 동의 버튼(기능 5)은 위에 붙어요.
+ * 전면 광고는 홈 → 이 화면 전환에(App), 배너 1개는 목록 하단에(버튼과 24px 이상 띄움), 알림 동의 버튼(기능 6)은 위에 붙어요.
  */
 export function TodayScreen({ board, record, content, onDone }: TodayScreenProps) {
   const today = dateKey();
@@ -53,7 +55,7 @@ export function TodayScreen({ board, record, content, onDone }: TodayScreenProps
           {cheerFor(content, today)}
         </Text>
       </div>
-      <div style={{ paddingBottom: 40 }}>
+      <div style={{ paddingBottom: 8 }}>
         {groups.map((group) => (
           <section key={group.subIndex}>
             <ListHeader
@@ -70,6 +72,9 @@ export function TodayScreen({ board, record, content, onDone }: TodayScreenProps
             </List>
           </section>
         ))}
+      </div>
+      <div style={{ padding: '24px 0 40px' }}>
+        <AdBanner adGroupId={AD_GROUPS.bannerToday} />
       </div>
     </>
   );

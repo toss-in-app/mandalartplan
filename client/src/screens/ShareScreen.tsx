@@ -14,6 +14,8 @@ interface ShareScreenProps {
   canSave: boolean;
   busy: boolean;
   onSaveImage: (card: RenderedCard) => void;
+  /** 리워드 광고를 보고 고화질(워터마크 없음)로 저장. 광고를 지원하지 않는 환경이면 undefined → 행을 숨겨요 */
+  onSaveHd?: () => void;
   onShareText: () => void;
   onShareLink: () => void;
   /** 빈 판일 때 '홈으로' */
@@ -21,10 +23,9 @@ interface ShareScreenProps {
 }
 
 /**
- * 공유 (주요 기능 3). 9×9 이미지 카드 미리보기 + 이미지 저장(사진첩) · 글로 공유 · 링크 공유.
- * '고화질로 저장'(워터마크 없음)은 리워드 광고(기능 5)와 함께 열려요.
+ * 공유 (주요 기능 3). 9×9 이미지 카드 미리보기 + 이미지 저장(사진첩) · 고화질로 저장(리워드 광고) · 글로 공유 · 링크 공유.
  */
-export function ShareScreen({ board, checkin, canSave, busy, onSaveImage, onShareText, onShareLink, onDone }: ShareScreenProps) {
+export function ShareScreen({ board, checkin, canSave, busy, onSaveImage, onSaveHd, onShareText, onShareLink, onDone }: ShareScreenProps) {
   const today = dateKey();
   const card = useMemo(
     () => renderCard({ board, checked: todaySet(checkin, today), today, streakDays: streak(checkin, today) }, BASIC_CARD),
@@ -83,15 +84,18 @@ export function ShareScreen({ board, checkin, canSave, busy, onSaveImage, onShar
           onClick={onShareLink}
           contents={<ListRow.Texts type="2RowTypeA" top="링크 공유하기" bottom="토스에서 만다라트를 여는 링크를 보내요" />}
         />
-        <ListRow
-          disabled
-          contents={<ListRow.Texts type="2RowTypeA" top="고화질로 저장" bottom="워터마크 없이 2배 크기로 저장해요" />}
-          right={
-            <Text typography="t7" color={colors.grey500}>
-              준비 중
-            </Text>
-          }
-        />
+        {canSave && onSaveHd && (
+          <ListRow
+            disabled={busy}
+            onClick={onSaveHd}
+            contents={<ListRow.Texts type="2RowTypeA" top="고화질로 저장" bottom="광고를 보면 워터마크 없이 2배 크기로 저장해요" />}
+            right={
+              <Text typography="t7" color={colors.grey500}>
+                광고 보기
+              </Text>
+            }
+          />
+        )}
       </List>
 
       <div style={{ padding: '8px 20px 120px' }}>

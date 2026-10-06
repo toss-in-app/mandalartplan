@@ -75,6 +75,7 @@ describe('settings', () => {
       seenContentVersion: 3,
       firstCheckinAt: 5,
       backup: { enabled: false, key: null, lastBackupAt: null },
+      ads: { lastInterstitialDate: null },
     });
     expect(normalizeSettings({ version: 0 })).toBeNull();
   });

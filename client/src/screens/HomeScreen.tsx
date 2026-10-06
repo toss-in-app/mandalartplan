@@ -13,6 +13,8 @@ interface HomeScreenProps {
   content: Content;
   checkin: CheckinRecord | undefined;
   notificationVisible: boolean;
+  /** 전면 광고가 뜨는 동안 '오늘 기록 보기' 를 잠가요 */
+  todayBusy?: boolean;
   onEditCore: () => void;
   onSelectSub: (subIndex: number) => void;
   onToday: () => void;
@@ -31,6 +33,7 @@ export function HomeScreen({
   content,
   checkin,
   notificationVisible,
+  todayBusy = false,
   onEditCore,
   onSelectSub,
   onToday,
@@ -112,7 +115,7 @@ export function HomeScreen({
 
       <div style={{ display: 'flex', gap: 8, padding: '24px 20px 8px' }}>
         <div style={{ flex: 1 }}>
-          <Button display="full" size="large" disabled={progress.actionsFilled === 0} onClick={onToday}>
+          <Button display="full" size="large" disabled={progress.actionsFilled === 0 || todayBusy} loading={todayBusy} onClick={onToday}>
             오늘 기록 보기
           </Button>
         </div>

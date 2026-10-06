@@ -79,6 +79,7 @@ describe('App (설정·예시 템플릿)', () => {
 describe('App (공유)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(saveImageToPhotos).mockClear();
   });
 
   it('홈의 공유 버튼으로 공유 화면에 가고, 저장을 누르면 PNG 본문과 날짜 파일명으로 사진첩 저장 브릿지를 불러요', async () => {
@@ -128,6 +129,55 @@ describe('App (공유)', () => {
     );
     await screen.findByText('미리보기를 만들 수 없어요');
     expect(screen.getByText('이미지 저장하기').closest('button')).toBeDisabled();
+    window.location.hash = '';
+  });
+});
+
+describe('App (광고)', () => {
+  const boards = JSON.stringify({
+    version: 1,
+    active: 0,
+    boards: [
+      {
+        id: 'b1759000000000',
+        goal: '건강한 한 해',
+        subs: Array.from({ length: 8 }, (_, i) => ({ title: i === 0 ? '운동' : '', actions: i === 0 ? ['아침 스트레칭', ...Array(7).fill('')] : Array(8).fill('') })),
+        templateId: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ],
+  });
+
+  it("오늘 체크가 있으면 '오늘 기록 보기' 에서 전면 광고를 보여준 뒤 오늘 기록으로 가고, 날짜를 남겨 하루 1회만", async () => {
+    window.localStorage.setItem('__ait_storage:mandalart.boards.v1', boards);
+    window.localStorage.setItem('__ait_storage:mandalart.checkins.v1', JSON.stringify({ version: 1, byBoard: { b1759000000000: { days: { [dateKey()]: [0] }, lastCompletedAt: 1 } } }));
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: '건강한 한 해' });
+    // 전면 광고 사전 로딩(Devtools mock: 200ms 뒤 loaded)
+    await new Promise((r) => setTimeout(r, 400));
+    fireEvent.click(screen.getByText('오늘 기록 보기'));
+    // mock: 1.5초 뒤 dismissed → today
+    await screen.findByText('오늘 기록', {}, { timeout: 4000 });
+    await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).ads.lastInterstitialDate).toBe(dateKey()));
+    // 오늘 기록 하단 배너(mock 자리표시)
+    await waitFor(() => expect(screen.getByTestId('ad-banner').querySelector('[data-ait-slot-id]')).not.toBeNull());
+  });
+
+  it("공유 '고화질로 저장' 은 안내 → 광고 → 보상이 없으면 저장하지 않아요", async () => {
+    window.localStorage.setItem('__ait_storage:mandalart.boards.v1', boards);
+    window.location.hash = '#/share';
+    render(
+      <TDSMobileAITProvider brandPrimaryColor="#6B5CFF">
+        <App />
+      </TDSMobileAITProvider>,
+    );
+    fireEvent.click(await screen.findByText('고화질로 저장'));
+    await screen.findByText('광고를 보고 고화질로 저장할까요?');
+    fireEvent.click(screen.getByRole('button', { name: '광고 보기' })); // 행의 오른쪽 글에도 '광고 보기' 가 있어요
+    // Devtools mock 은 userEarnedReward 를 주지 않아요 → 끝까지 보라는 안내, 저장 브릿지 호출 없음
+    await waitFor(() => expect(screen.getAllByText('광고를 끝까지 보면 고화질로 저장할 수 있어요').length).toBeGreaterThan(0), { timeout: 6000 });
+    expect(saveImageToPhotos).not.toHaveBeenCalled();
     window.location.hash = '';
   });
 });

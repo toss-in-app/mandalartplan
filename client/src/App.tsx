@@ -1,6 +1,10 @@
 import { useDialog, useToast } from '@toss/tds-mobile';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { AD_GROUPS } from './ads/config';
+import { interstitialEligible } from './ads/rules';
+import { useInterstitial } from './ads/useInterstitial';
+import { useRewardedAd } from './ads/useRewardedAd';
 import { OG_IMAGE_URL, fetchRemoteContent, getBundledContent, type Content, type ContentTemplate } from './content';
 import { BackupApiError } from './backup/api';
 import { BackupKeyError } from './backup/key';
@@ -9,12 +13,12 @@ import { useBackup } from './backup/useBackup';
 import { useAppState } from './hooks/useAppState';
 import { useTemplatePicker } from './hooks/useTemplatePicker';
 import { canSaveImage, createShareLink, haptic, saveImageToPhotos, shareText } from './lib/bridge';
-import { cardFileName, type RenderedCard } from './lib/card';
+import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
 import { todaySet, toggleCheck } from './lib/checkin';
 import { CENTER, boardToText, cellOfRing, getProgress } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
 import { goBack, navigate, useRoute } from './lib/router';
-import { dateKey } from './lib/state';
+import { dateKey, streak } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OverviewScreen } from './screens/OverviewScreen';
@@ -28,8 +32,12 @@ function App() {
   const route = useRoute();
   const app = useAppState();
   const [content, setContent] = useState<Content>(getBundledContent);
-  /** 공유 화면에서 저장·링크 브릿지가 진행 중인지 (버튼 중복 탭 방지) */
+  /** 공유 화면에서 저장·링크·광고 브릿지가 진행 중인지 (버튼 중복 탭 방지) */
   const [shareBusy, setShareBusy] = useState(false);
+  /** 전면 광고가 뜨는 동안 홈 '오늘 기록 보기' 잠금 */
+  const [todayBusy, setTodayBusy] = useState(false);
+  /** 리워드 광고를 끝까지 봤지만 아직 저장하지 못한 고화질 1회분 (권한 거부 등으로 실패하면 광고를 다시 보지 않게) */
+  const hdCredit = useRef(false);
   const { openConfirm } = useDialog();
   const toast = useToast();
 
@@ -56,6 +64,14 @@ function App() {
   const openTemplatePicker = useTemplatePicker(content, pickTemplate);
 
   const backup = useBackup(app);
+
+  // 광고: 전면은 오늘 체크가 생기면 미리 불러오고(하루 1회), 리워드는 공유 화면에 있는 동안만 미리 불러와요(동시 로딩 금지).
+  const today = dateKey();
+  const activeBoard = app.board;
+  const todayChecks = app.state && activeBoard ? todaySet(app.state.checkins.byBoard[activeBoard.id], today).size : 0;
+  const interstitialReady = app.state ? interstitialEligible(app.state.settings, today, todayChecks) : false;
+  const interstitial = useInterstitial(AD_GROUPS.interstitialToday, interstitialReady);
+  const hdReward = useRewardedAd(AD_GROUPS.rewardedHdImage, route.name === 'share');
   const backupErrorToast = useCallback(
     (error: unknown) => {
       if (error instanceof BackupKeyError) toast.openToast(error.message);
@@ -233,6 +249,65 @@ function App() {
     }
   };
 
+  /** 홈 '오늘 기록 보기': 오늘 체크가 있고 오늘 아직 안 봤으면 전면 광고(미리 불러온 것만) → 닫히면 today. 광고가 없으면 바로 today. */
+  const openToday = async () => {
+    if (interstitialReady) {
+      setTodayBusy(true);
+      try {
+        const result = await interstitial.show();
+        if (result === 'shown') {
+          app.updateSettings((settings) => ({ ...settings, ads: { ...settings.ads, lastInterstitialDate: today } }));
+        }
+      } finally {
+        setTodayBusy(false);
+      }
+    }
+    navigate({ name: 'today' });
+  };
+
+  /** 공유 '고화질로 저장': 안내 → 리워드 광고 → userEarnedReward 일 때만 2160×2700(워터마크 없음) 저장. 저장이 실패하면 보상은 남겨 둬요. */
+  const saveHdImage = async () => {
+    setShareBusy(true);
+    try {
+      if (!hdCredit.current) {
+        const ok = await openConfirm({
+          title: '광고를 보고 고화질로 저장할까요?',
+          description: '광고를 끝까지 보면 워터마크 없는 2배 크기(2160×2700) 이미지를 사진에 저장해요.',
+          confirmButton: '광고 보기',
+          cancelButton: '닫기',
+        });
+        if (!ok) return;
+        const outcome = await hdReward.watch();
+        if (outcome === 'unavailable') {
+          toast.openToast('지금은 광고를 불러올 수 없어요');
+          return;
+        }
+        if (outcome === 'dismissed') {
+          toast.openToast('광고를 끝까지 보면 고화질로 저장할 수 있어요');
+          return;
+        }
+        hdCredit.current = true;
+      }
+      const card = renderCard({ board, checked: todaySet(record, today), today, streakDays: streak(record, today) }, HD_CARD);
+      if (!card) {
+        toast.openToast('지금은 이미지를 만들 수 없어요. 광고를 다시 보지 않아도 돼요');
+        return;
+      }
+      const result = await saveImageToPhotos(card.base64, cardFileName(today, HD_CARD));
+      if (result === 'saved') {
+        hdCredit.current = false;
+        void haptic('success');
+        toast.openToast('고화질 이미지를 저장했어요');
+      } else if (result === 'denied') {
+        toast.openToast('사진 접근을 허용하면 저장할 수 있어요. 광고를 다시 보지 않아도 돼요');
+      } else {
+        toast.openToast('지금은 이미지를 저장할 수 없어요. 광고를 다시 보지 않아도 돼요');
+      }
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
   switch (route.name) {
     case 'sub':
       return (
@@ -267,6 +342,7 @@ function App() {
           canSave={canSaveImage()}
           busy={shareBusy}
           onSaveImage={(card) => void saveShareImage(card)}
+          onSaveHd={hdReward.supported ? () => void saveHdImage() : undefined}
           onShareText={() => void shareBoardText()}
           onShareLink={() => void shareBoardLink()}
           onDone={goBack}
@@ -301,7 +377,8 @@ function App() {
           notificationVisible={state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown'}
           onEditCore={editCore}
           onSelectSub={openSub}
-          onToday={() => navigate({ name: 'today' })}
+          todayBusy={todayBusy}
+          onToday={() => void openToday()}
           onOverview={() => navigate({ name: 'overview' })}
           onShare={() => navigate({ name: 'share' })}
           onSettings={() => navigate({ name: 'settings' })}
