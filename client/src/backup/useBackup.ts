@@ -26,7 +26,7 @@ export function useBackup(app: AppStateApi) {
 
   const runBackup = useCallback(async (): Promise<number> => {
     const current = appRef.current;
-    const state = current.state;
+    const state = current.getState(); // 방금 켠 직후에도 최신 키를 읽도록 ref 기준
     const key = state?.settings.backup.key;
     if (!state || !key) throw new Error('backup is off');
     const payload = buildPayload(state);
@@ -36,9 +36,18 @@ export function useBackup(app: AppStateApi) {
     return at;
   }, []);
 
-  // 자동 백업: 판·체크 기록이 바뀌면 5초 뒤 1회
+  // 처음 불러온 상태는 "이미 동기화된 것" 으로 봐요 — 앱을 켤 때마다 백업하지 않고,
+  // 새 폰의 빈 로컬 상태가 서버 본을 덮어쓰지 않게.
   const boards = app.state?.boards;
   const checkins = app.state?.checkins;
+  const loadedOnceRef = useRef(false);
+  useEffect(() => {
+    if (!boards || !checkins || loadedOnceRef.current) return;
+    loadedOnceRef.current = true;
+    lastSyncedRef.current = { boards, checkins };
+  }, [boards, checkins]);
+
+  // 자동 백업: 판·체크 기록이 바뀌면 5초 뒤 1회
   useEffect(() => {
     if (!enabled || !boards || !checkins) return;
     const last = lastSyncedRef.current;
@@ -79,7 +88,7 @@ export function useBackup(app: AppStateApi) {
   }, [runBackup]);
 
   const fetchRemote = useCallback(async (): Promise<RemoteBackup | null> => {
-    const key = appRef.current.state?.settings.backup.key;
+    const key = appRef.current.getState()?.settings.backup.key;
     if (!key) return null;
     setBusy(true);
     try {
@@ -96,7 +105,7 @@ export function useBackup(app: AppStateApi) {
 
   /** 백업 끄고 서버 본 삭제 */
   const disable = useCallback(async (): Promise<void> => {
-    const key = appRef.current.state?.settings.backup.key;
+    const key = appRef.current.getState()?.settings.backup.key;
     setBusy(true);
     try {
       if (key) await backupDelete(key);

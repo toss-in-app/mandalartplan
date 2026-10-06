@@ -176,5 +176,8 @@ export function useAppState() {
 
   const board = state ? state.boards.boards[state.boards.active] : null;
 
-  return { state, board, setGoal, setSubTitle, setAction, applyTemplate, importBackup, updateSettings, updateCheckins, reset, createEmptyBoard };
+  /** 렌더와 무관하게 지금 이 순간의 상태(방금 patch 한 값 포함). 비동기 흐름에서 써요. */
+  const getState = useCallback(() => stateRef.current, []);
+
+  return { state, board, getState, setGoal, setSubTitle, setAction, applyTemplate, importBackup, updateSettings, updateCheckins, reset, createEmptyBoard };
 }
