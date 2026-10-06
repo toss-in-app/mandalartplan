@@ -55,3 +55,8 @@ for (const proto of [Document.prototype, Element.prototype, DocumentFragment.pro
 if (!globalThis.crypto?.subtle) {
   Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 }
+
+// jsdom 은 캔버스 2D 를 지원하지 않아요(getContext 가 null + 'Not implemented' 오류 출력). 조용히 null 을 돌려주고,
+// 캔버스가 필요한 테스트는 자기 파일에서 가짜 컨텍스트로 덮어써요.
+// (vi.fn 이 아니라 보통 함수로 — vi.spyOn 이 겹쳐 쓰면 restoreAllMocks 뒤에도 가짜 컨텍스트가 남아요)
+HTMLCanvasElement.prototype.getContext = (() => null) as unknown as typeof HTMLCanvasElement.prototype.getContext;

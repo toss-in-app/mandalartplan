@@ -1,24 +1,25 @@
 import { useDialog, useToast } from '@toss/tds-mobile';
 import { useCallback, useEffect, useState } from 'react';
 
-import { fetchRemoteContent, getBundledContent, type Content, type ContentTemplate } from './content';
+import { OG_IMAGE_URL, fetchRemoteContent, getBundledContent, type Content, type ContentTemplate } from './content';
 import { BackupApiError } from './backup/api';
 import { BackupKeyError } from './backup/key';
 import { cellsFilled } from './backup/payload';
 import { useBackup } from './backup/useBackup';
 import { useAppState } from './hooks/useAppState';
 import { useTemplatePicker } from './hooks/useTemplatePicker';
-import { haptic } from './lib/bridge';
-import { toggleCheck } from './lib/checkin';
-import { CENTER, cellOfRing, getProgress } from './lib/mandalart';
+import { canSaveImage, createShareLink, haptic, saveImageToPhotos, shareText } from './lib/bridge';
+import { cardFileName, type RenderedCard } from './lib/card';
+import { todaySet, toggleCheck } from './lib/checkin';
+import { CENTER, boardToText, cellOfRing, getProgress } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
 import { goBack, navigate, useRoute } from './lib/router';
 import { dateKey } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OverviewScreen } from './screens/OverviewScreen';
-import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { ShareScreen } from './screens/ShareScreen';
 import { SubScreen } from './screens/SubScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import './App.css';
@@ -27,6 +28,8 @@ function App() {
   const route = useRoute();
   const app = useAppState();
   const [content, setContent] = useState<Content>(getBundledContent);
+  /** 공유 화면에서 저장·링크 브릿지가 진행 중인지 (버튼 중복 탭 방지) */
+  const [shareBusy, setShareBusy] = useState(false);
   const { openConfirm } = useDialog();
   const toast = useToast();
 
@@ -189,6 +192,47 @@ function App() {
     }
   };
 
+  /** 공유 화면: 9×9 PNG 를 사진첩에 저장. 누른 뒤에만 photos 권한을 묻고, 거부해도 글·링크 공유는 그대로예요. */
+  const saveShareImage = async (card: RenderedCard) => {
+    setShareBusy(true);
+    try {
+      const result = await saveImageToPhotos(card.base64, cardFileName(dateKey()));
+      if (result === 'saved') {
+        void haptic('success');
+        toast.openToast('사진에 저장했어요');
+      } else if (result === 'denied') {
+        toast.openToast('사진 접근을 허용하면 저장할 수 있어요');
+      } else {
+        toast.openToast('지금은 이미지를 저장할 수 없어요');
+      }
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const shareBoardText = async () => {
+    const result = await shareText(boardToText(board, todaySet(record, dateKey())));
+    if (result === 'copied') toast.openToast('글을 복사했어요');
+    else if (result === 'failed') toast.openToast('지금은 공유할 수 없어요');
+  };
+
+  const shareBoardLink = async () => {
+    setShareBusy(true);
+    try {
+      const link = await createShareLink(OG_IMAGE_URL);
+      if (!link) {
+        toast.openToast('지금은 링크를 만들 수 없어요');
+        return;
+      }
+      const goal = board.goal.trim() || '만다라트';
+      const result = await shareText(`[만다라트] ${goal}\n토스 앱에서 만다라트로 목표를 함께 실천해요\n${link}`);
+      if (result === 'copied') toast.openToast('링크를 복사했어요');
+      else if (result === 'failed') toast.openToast('지금은 공유할 수 없어요');
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
   switch (route.name) {
     case 'sub':
       return (
@@ -216,7 +260,18 @@ function App() {
     case 'today':
       return <TodayScreen board={board} record={record} content={content} onDone={goBack} />;
     case 'share':
-      return <PlaceholderScreen title="만다라트 공유" description="주요 기능 3 — 이미지로 저장하거나 글로 보내요" onDone={goBack} />;
+      return (
+        <ShareScreen
+          board={board}
+          checkin={record}
+          canSave={canSaveImage()}
+          busy={shareBusy}
+          onSaveImage={(card) => void saveShareImage(card)}
+          onShareText={() => void shareBoardText()}
+          onShareLink={() => void shareBoardLink()}
+          onDone={goBack}
+        />
+      );
     case 'settings':
       return (
         <SettingsScreen

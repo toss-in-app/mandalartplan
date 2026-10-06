@@ -13,6 +13,8 @@ export const STATIC_BASE_URL = 'https://toss-in-app.github.io/mandalartplan';
 export const CONTENT_URL = `${STATIC_BASE_URL}/content.json`;
 export const TERMS_URL = `${STATIC_BASE_URL}/terms/`;
 export const PRIVACY_URL = `${STATIC_BASE_URL}/privacy/`;
+/** 공유 링크 미리보기 이미지 1200×600 (9단계에 제작·배포, 없으면 토스 기본 미리보기) */
+export const OG_IMAGE_URL = `${STATIC_BASE_URL}/og.png`;
 const FETCH_TIMEOUT_MS = 3000;
 
 export interface ContentTemplateSub {

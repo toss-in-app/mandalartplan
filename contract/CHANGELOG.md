@@ -23,3 +23,9 @@
 - `backup.schema.json` 신설: 서버 페이로드 = boards + checkins + unlocks + exportedAt.
 - `supabase/schema.sql`: 테이블 `mandalart_backups`(RLS, 정책 없음) + RPC get/upsert/delete(security definer, anon 실행 허용).
 - `events.md` 백업 이벤트 5개.
+
+## 2026-10-06 [client] 기능 4 공유 화면
+- 계약 변경 없음. `events.md` 공유 절대로: 이미지 1080×1350 PNG(워터마크 "만다라트 · 토스 앱에서 만다라트 검색", 오늘 체크 표시), 텍스트는 `boardToText`, 링크는 `Share.createLink({ path: 'intoss://mandalartplan', ogImageUrl })`.
+- `apps-in-toss.config.ts` `permissions` 에 `{ name: 'photos', access: 'write' }` 선언(이미지 저장). 누를 때 `requestPermission` 으로 묻고 거부하면 글·링크 공유만.
+- 고화질(2160×2700, 워터마크 없음)은 같은 렌더러의 옵션(`HD_CARD`)으로 준비만 — 리워드 광고(기능 5)에서 연결.
+

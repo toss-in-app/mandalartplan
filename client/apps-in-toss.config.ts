@@ -16,6 +16,7 @@ export default defineConfig({
     pullToRefreshEnabled: false,
     bounces: false,
   },
-  permissions: [],
+  // 공유 화면 '이미지 저장하기'(File.saveBase64)가 사진첩에 쓰기 위해 필요해요. 누를 때 requestPermission 으로 물어요.
+  permissions: [{ name: 'photos', access: 'write' }],
   webBundleDir: 'dist',
 });

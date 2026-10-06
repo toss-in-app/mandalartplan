@@ -29,7 +29,7 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
 ├── apps-in-toss.config.ts   #   appName·브랜드 색·네비게이션 바·웹뷰 옵션 (콘솔 appName 과 같아야 함)
 └── src/
     ├── main.tsx             #   TDSMobileAITProvider
-    ├── App.tsx              #   라우트: home · block/:n · checkin · share · settings (뒤 셋은 5단계)
+    ├── App.tsx              #   라우트: home · sub/:s · block/:n · overview · today · share · settings
     ├── content/             #   bundled.json(생성) + 로더(원격 content.json 시도, 실패 시 번들)
     ├── backup/              #   Supabase 백업·복원: config(URL·publishable 키) · key(익명 키 sha256) · api(RPC fetch) · useBackup
     ├── lib/
@@ -38,15 +38,18 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
     │   ├── storage.ts       #   Storage 브릿지 → localStorage 대체, 선행 프로토타입 키 이전
     │   ├── router.ts        #   pushState 라우터 + Environment.initialURL 딥링크
     │   ├── cells.ts         #   블록·칸 index → 보드의 어느 글인지
-    │   └── bridge.ts        #   햅틱·공유 브릿지 래퍼
+    │   ├── checkin.ts       #   오늘 체크 토글·세부 목표별 묶기
+    │   ├── card.ts          #   공유 이미지 카드(1080×1350 캔버스): 레이아웃·줄바꿈·그리기
+    │   └── bridge.ts        #   햅틱·공유·사진첩 저장(photos 권한)·공유 링크 브릿지 래퍼
     ├── hooks/useAppState.ts #   상태 하나 + 부분별 디바운스 저장
     ├── components/          #   9×9 격자(TDS 에 없는 영역이라 직접 그림)
-    └── screens/             #   HomeScreen · BlockScreen · PlaceholderScreen(5단계 자리)
+    └── screens/             #   Home · Sub · Block · Overview · Today · Share · Settings
 ```
 
 ## 단계 현황
-- 1~3단계 완료(2026-09-28), 4단계 진행 중: 콘솔 앱 등록은 사용자, 골격은 이 상태.
-- 5단계에서 만들 것: `checkin`(체크인·전면 광고·배너·알림 동의), `share`(이미지 카드·리워드 광고·링크), `settings`(템플릿·두 번째 판·초기화·약관), 광고 그룹 ID·`photos` 권한.
+- 1~4단계 완료(콘솔 등록 2026-09-29, appName `mandalartplan`). 5단계 진행 중 — 카드 체크리스트(`apps/mandalartplan.md`) 순서대로.
+- 끝난 기능: 체크인(홈 3×3·세부 3×3 탭 체크·전체 보기·오늘 기록), 설정·예시 템플릿·초기화, Supabase 백업·복원, 공유(이미지 저장·글·링크).
+- 남은 기능: 광고(전면·리워드·배너, 테스트 ID), 알림 동의, 두 번째 판, 분석 이벤트, 홈 마무리.
 
 ## 앱인토스 규칙 대응
 - 네비게이션 바: `navigationBar.withBackButton` + 브라우저 히스토리 → 뒤로가기·시스템 백버튼 동작, 첫 화면에서 뒤로가기 = 종료
