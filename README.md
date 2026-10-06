@@ -31,7 +31,7 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
     ├── main.tsx             #   TDSMobileAITProvider
     ├── App.tsx              #   라우트: home · block/:n · checkin · share · settings (뒤 셋은 5단계)
     ├── content/             #   bundled.json(생성) + 로더(원격 content.json 시도, 실패 시 번들)
-    ├── backup/              #   Supabase 백업·복원: config(URL·anon 키) · key(익명 키 sha256) · api(RPC fetch) · useBackup
+    ├── backup/              #   Supabase 백업·복원: config(URL·publishable 키) · key(익명 키 sha256) · api(RPC fetch) · useBackup
     ├── lib/
     │   ├── mandalart.ts     #   판 모델·검증·진행률·공유 텍스트
     │   ├── state.ts         #   boards · checkins · settings 정규화, 날짜 키, 연속 일수

@@ -1,5 +1,5 @@
 import { withTimeout } from '../lib/async';
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './config';
 import { normalizePayload, type BackupPayload } from './payload';
 
 const RPC_TIMEOUT_MS = 8000;
@@ -32,9 +32,9 @@ async function rpc<T>(stage: BackupStage, fn: string, args: Record<string, unkno
     response = await withTimeout(
       fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
         method: 'POST',
+        // publishable key 는 JWT 가 아니라 `apikey` 헤더로만 보내요(Authorization: Bearer 에 넣지 말 것 — Supabase 문서).
         headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(args),

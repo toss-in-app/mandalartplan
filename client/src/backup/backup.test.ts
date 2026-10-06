@@ -8,7 +8,7 @@ import { buildPayload, cellsFilled, normalizePayload } from './payload';
 
 vi.mock('./config', () => ({
   SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_ANON_KEY: 'anon-key-for-tests-0123456789',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_0123456789',
   isBackupConfigured: () => true,
 }));
 
@@ -71,7 +71,8 @@ describe('Supabase RPC 호출', () => {
     expect(remote?.payload).toEqual(payload);
     expect(calls[0].url).toBe('https://example.supabase.co/rest/v1/rpc/backup_get');
     expect(calls[0].body).toEqual({ p_key: key });
-    expect(calls[0].headers.apikey).toBe('anon-key-for-tests-0123456789');
+    expect(calls[0].headers.apikey).toBe('sb_publishable_test_0123456789');
+    expect(calls[0].headers.Authorization).toBeUndefined();
   });
 
   it('upsert 는 서버 시각을 돌려주고, 실패는 BackupApiError 예요', async () => {
