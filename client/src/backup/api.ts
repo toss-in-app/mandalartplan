@@ -38,6 +38,8 @@ async function rpc<T>(stage: BackupStage, fn: string, args: Record<string, unkno
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(args),
+        // 화면이 닫히는 중에도 요청이 끝까지 가도록(본문 64KB 이하, 백업 본은 20KB 안팎)
+        keepalive: true,
       }),
       RPC_TIMEOUT_MS,
     );

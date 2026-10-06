@@ -47,19 +47,28 @@ export function useBackup(app: AppStateApi) {
     lastSyncedRef.current = { boards, checkins };
   }, [boards, checkins]);
 
-  // 자동 백업: 판·체크 기록이 바뀌면 5초 뒤 1회
+  // 자동 백업: 판·체크 기록이 바뀌면 5초 뒤 1회. 5초가 되기 전에 화면이 가려지거나(다른 앱·종료) 닫히면 바로.
   useEffect(() => {
     if (!enabled || !boards || !checkins) return;
     const last = lastSyncedRef.current;
     if (last && last.boards === boards && last.checkins === checkins) return;
-    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => {
+    const fire = () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
       timerRef.current = null;
       runBackup().catch(() => {
         /* 다음 변경 때 다시 시도 */
       });
-    }, AUTO_BACKUP_DELAY_MS);
+    };
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(fire, AUTO_BACKUP_DELAY_MS);
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden' && timerRef.current !== null) fire();
+    };
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', onHidden);
     return () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      window.removeEventListener('pagehide', onHidden);
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     };
   }, [enabled, boards, checkins, runBackup]);
