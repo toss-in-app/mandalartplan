@@ -16,6 +16,8 @@ interface ImportMetaEnv {
   readonly VITE_AD_GROUP_REWARDED_HD_IMAGE?: string;
   readonly VITE_AD_GROUP_REWARDED_EXTRA_BOARD?: string;
   readonly VITE_AD_GROUP_BANNER_TODAY?: string;
+  /** 콘솔 스마트 발송 기능성 템플릿의 발송 코드(알림 동의문). 비어 있으면 알림 기능 숨김(개발 빌드는 설계 코드) */
+  readonly VITE_NOTIFICATION_TEMPLATE_CODE?: string;
 }
 
 interface ImportMeta {

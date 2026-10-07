@@ -181,3 +181,45 @@ describe('App (광고)', () => {
     window.location.hash = '';
   });
 });
+
+describe('App (알림 동의)', () => {
+  it('첫 체크 뒤 홈 행을 누르면 동의 화면(mock: newAgreement) → 받는 중으로 저장되고 행이 사라져요', async () => {
+    window.localStorage.setItem(
+      '__ait_storage:mandalart.boards.v1',
+      JSON.stringify({
+        version: 1,
+        active: 0,
+        boards: [
+          {
+            id: 'b1759000000000',
+            goal: '건강한 한 해',
+            subs: Array.from({ length: 8 }, (_, i) => ({ title: i === 0 ? '운동' : '', actions: i === 0 ? ['아침 스트레칭', ...Array(7).fill('')] : Array(8).fill('') })),
+            templateId: null,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      }),
+    );
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: '건강한 한 해' });
+    expect(screen.queryByText('매일 저녁 알림 받기')).not.toBeInTheDocument(); // 아직 체크 전
+
+    // 세부 목표 1 → 실천 탭(첫 체크) → 홈으로
+    fireEvent.click(screen.getByRole('button', { name: '운동' }));
+    fireEvent.click(await screen.findByRole('button', { name: '아침 스트레칭, 오늘 아직' }));
+    window.history.back();
+    await screen.findByText('매일 저녁 알림 받기');
+
+    fireEvent.click(screen.getByText('매일 저녁 알림 받기'));
+    await waitFor(() => expect(screen.getAllByText('매일 저녁 9시에 알림을 보내요').length).toBeGreaterThan(0));
+    await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).notification).toBe('agreed'));
+    expect(screen.queryByText('매일 저녁 알림 받기')).not.toBeInTheDocument();
+
+    // 설정 행은 '받는 중', 다시 누르면 끄는 길 안내
+    fireEvent.click(screen.getByText('설정'));
+    await screen.findByText('받는 중');
+    fireEvent.click(screen.getByText('매일 저녁 알림'));
+    await waitFor(() => expect(screen.getAllByText('알림은 토스 앱의 알림 설정에서 끌 수 있어요').length).toBeGreaterThan(0));
+  });
+});

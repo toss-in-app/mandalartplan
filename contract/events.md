@@ -27,9 +27,12 @@
 | `banner-today` | 배너 | 오늘 기록 목록 하단 | 1개, refresh 없음, 버튼과 24px 이상 |
 
 ## 알림 템플릿 (콘솔 정기 발송, 기능성)
-| id | 발송 | 문구(해요체, 느낌표·이모지 없음) | 링크 |
+| 발송 코드(templateCode) | 발송 | 제목(7자, 명사형) / 내용(25자, ~요.) | 링크 |
 |----|------|----------------------------------|------|
-| `daily-checkin` | 매일 21:00 | "오늘 실천을 체크할 시간이에요" / "만다라트에서 오늘 한 일을 눌러 보세요" | `intoss://mandalartplan` |
+| `mandalartplan-daily-checkin` | 매일 21:00 (정기 발송) | "실천 체크 시간" / "오늘 한 실천을 만다라트에 체크해요." | `intoss://mandalartplan` |
+
+- 발송 코드는 공식 규칙대로 `{appName}-` 로 시작. 콘솔에서 만든 뒤 `client/.env` 의 `VITE_NOTIFICATION_TEMPLATE_CODE` 에 넣는다(비어 있으면 출시 번들에서 알림 기능 숨김, 개발 빌드는 이 코드로 대신). 알림 동의문(발송 시점 "매일 저녁 9시", 철회 경로 "토스 앱 알림 설정")이 연결돼 있어야 저장된다.
+- 클라 호출: `Notification.requestAgreement({ options: { templateCode } })` — 홈 행·오늘 기록 버튼·설정 행에서 사용자가 누른 뒤에만. 결과 `newAgreement`/`alreadyAgreed` → `settings.notification = agreed`, `agreementRejected` → `declined`.
 
 ## 공유
 - 링크: `Share.createLink({ path: 'intoss://mandalartplan', ogImageUrl: 'https://toss-in-app.github.io/mandalartplan/og.png' })`. 개인 데이터는 링크에 싣지 않는다.

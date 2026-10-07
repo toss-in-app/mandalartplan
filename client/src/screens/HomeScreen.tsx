@@ -21,6 +21,8 @@ interface HomeScreenProps {
   onOverview: () => void;
   onShare: () => void;
   onSettings: () => void;
+  /** '매일 저녁 알림 받기' 행 — 누르면 바로 알림 동의 화면(사용자가 누른 뒤에만) */
+  onNotification: () => void;
   onStartWithTemplate: () => void;
 }
 
@@ -40,6 +42,7 @@ export function HomeScreen({
   onOverview,
   onShare,
   onSettings,
+  onNotification,
   onStartWithTemplate,
 }: HomeScreenProps) {
   const today = dateKey();
@@ -131,7 +134,11 @@ export function HomeScreen({
           <ListRow onClick={onStartWithTemplate} withArrow contents={<ListRow.Texts type="1RowTypeA" top="예시로 시작하기" />} />
         )}
         {notificationVisible && (
-          <ListRow onClick={onSettings} withArrow contents={<ListRow.Texts type="1RowTypeA" top="매일 저녁 알림 받기" />} />
+          <ListRow
+            onClick={onNotification}
+            withArrow
+            contents={<ListRow.Texts type="2RowTypeA" top="매일 저녁 알림 받기" bottom="저녁 9시에 오늘 실천을 체크하라고 알려요" />}
+          />
         )}
         <ListRow onClick={onSettings} withArrow contents={<ListRow.Texts type="1RowTypeA" top="설정" />} />
       </List>

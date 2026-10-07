@@ -1,5 +1,5 @@
 import { colors } from '@toss/tds-colors';
-import { List, ListHeader, ListRow, Result, Text, Top } from '@toss/tds-mobile';
+import { Button, List, ListHeader, ListRow, Result, Text, Top } from '@toss/tds-mobile';
 
 import { AD_GROUPS } from '../ads/config';
 import { AdBanner } from '../components/AdBanner';
@@ -12,6 +12,8 @@ interface TodayScreenProps {
   board: Board;
   record: CheckinRecord | undefined;
   content: Content;
+  /** 알림 상태가 unknown 이고 쓸 수 있을 때만 — 위에 '매일 저녁 알림 받기' 버튼 */
+  onNotification?: () => void;
   onDone: () => void;
 }
 
@@ -19,7 +21,7 @@ interface TodayScreenProps {
  * 오늘 기록 (홈 '오늘 기록 보기'). 오늘 체크한 실천을 세부 목표별로 보여줘요.
  * 전면 광고는 홈 → 이 화면 전환에(App), 배너 1개는 목록 하단에(버튼과 24px 이상 띄움), 알림 동의 버튼(기능 6)은 위에 붙어요.
  */
-export function TodayScreen({ board, record, content, onDone }: TodayScreenProps) {
+export function TodayScreen({ board, record, content, onNotification, onDone }: TodayScreenProps) {
   const today = dateKey();
   const checked = todaySet(record, today);
   const groups = checkinGroups(board)
@@ -55,6 +57,13 @@ export function TodayScreen({ board, record, content, onDone }: TodayScreenProps
           {cheerFor(content, today)}
         </Text>
       </div>
+      {onNotification && (
+        <div style={{ padding: '0 20px 16px' }}>
+          <Button display="full" size="medium" color="dark" variant="weak" onClick={onNotification}>
+            매일 저녁 알림 받기
+          </Button>
+        </div>
+      )}
       <div style={{ paddingBottom: 8 }}>
         {groups.map((group) => (
           <section key={group.subIndex}>

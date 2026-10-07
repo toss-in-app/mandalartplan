@@ -14,6 +14,7 @@ import { useAppState } from './hooks/useAppState';
 import { useTemplatePicker } from './hooks/useTemplatePicker';
 import { canSaveImage, createShareLink, haptic, saveImageToPhotos, shareText } from './lib/bridge';
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
+import { notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { todaySet, toggleCheck } from './lib/checkin';
 import { CENTER, boardToText, cellOfRing, getProgress } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
@@ -249,6 +250,32 @@ function App() {
     }
   };
 
+  /**
+   * 알림 동의 (홈 행 · 오늘 기록 버튼 · 설정 행에서 사용자가 누른 뒤에만). 결과를 settings.notification 에 남겨요.
+   * 이미 동의한 상태에서 설정 행을 누르면 끄는 길(토스 앱 알림 설정)을 안내해요.
+   */
+  const askNotification = async () => {
+    if (state.settings.notification === 'agreed') {
+      toast.openToast('알림은 토스 앱의 알림 설정에서 끌 수 있어요');
+      return;
+    }
+    const result = await requestNotificationAgreement();
+    if (result === 'agreed' || result === 'alreadyAgreed') {
+      app.updateSettings((settings) => ({ ...settings, notification: 'agreed' }));
+      toast.openToast(result === 'agreed' ? '매일 저녁 9시에 알림을 보내요' : '이미 알림을 받고 있어요');
+    } else if (result === 'declined') {
+      app.updateSettings((settings) => ({ ...settings, notification: 'declined' }));
+      toast.openToast('알림을 받지 않아요. 설정에서 다시 켤 수 있어요');
+    } else if (result === 'unsupported') {
+      toast.openToast('알림은 토스앱을 업데이트하면 설정할 수 있어요');
+    } else {
+      toast.openToast('지금은 알림을 설정할 수 없어요');
+    }
+  };
+  const notificationReady = notificationAvailable();
+  /** 홈 행·오늘 기록 버튼은 첫 체크 뒤, 아직 묻지 않았을 때만. 거부했으면 설정에서만 */
+  const notificationPrompt = notificationReady && state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown';
+
   /** 홈 '오늘 기록 보기': 오늘 체크가 있고 오늘 아직 안 봤으면 전면 광고(미리 불러온 것만) → 닫히면 today. 광고가 없으면 바로 today. */
   const openToday = async () => {
     if (interstitialReady) {
@@ -333,7 +360,15 @@ function App() {
     case 'overview':
       return <OverviewScreen board={board} checkin={record} onSelectSub={openSub} onEditCore={editCore} />;
     case 'today':
-      return <TodayScreen board={board} record={record} content={content} onDone={goBack} />;
+      return (
+        <TodayScreen
+          board={board}
+          record={record}
+          content={content}
+          onNotification={notificationPrompt ? () => void askNotification() : undefined}
+          onDone={goBack}
+        />
+      );
     case 'share':
       return (
         <ShareScreen
@@ -353,6 +388,8 @@ function App() {
         <SettingsScreen
           content={content}
           notification={state.settings.notification}
+          notificationAvailable={notificationReady}
+          onNotification={() => void askNotification()}
           hasAnyText={getProgress(board).filled > 0}
           backup={{
             configured: backup.configured,
@@ -374,7 +411,7 @@ function App() {
           board={board}
           content={content}
           checkin={record}
-          notificationVisible={state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown'}
+          notificationVisible={notificationPrompt}
           onEditCore={editCore}
           onSelectSub={openSub}
           todayBusy={todayBusy}
@@ -382,6 +419,7 @@ function App() {
           onOverview={() => navigate({ name: 'overview' })}
           onShare={() => navigate({ name: 'share' })}
           onSettings={() => navigate({ name: 'settings' })}
+          onNotification={() => void askNotification()}
           onStartWithTemplate={openTemplatePicker}
         />
       );

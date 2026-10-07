@@ -20,6 +20,9 @@ export interface BackupPanelProps {
 interface SettingsScreenProps {
   content: Content;
   notification: NotificationStatus;
+  /** 템플릿 코드가 있고 토스앱이 지원할 때만 알림 행이 눌려요 */
+  notificationAvailable: boolean;
+  onNotification: () => void;
   hasAnyText: boolean;
   backup: BackupPanelProps;
   onPickTemplate: () => void;
@@ -27,15 +30,24 @@ interface SettingsScreenProps {
 }
 
 const NOTIFICATION_LABEL: Record<NotificationStatus, string> = {
-  unknown: '준비 중',
+  unknown: '받기',
   agreed: '받는 중',
-  declined: '꺼짐',
+  declined: '꺼짐 · 다시 받기',
 };
 
 /**
- * 설정. 알림(기능 5)·두 번째 판(기능 6)은 자리만 두고, 지금은 예시 템플릿·초기화·약관·버전.
+ * 설정. 매일 저녁 알림(동의 요청·상태) · 예시 템플릿 · 두 번째 판(기능 7 자리) · 초기화 · 백업 · 약관 · 버전.
  */
-export function SettingsScreen({ content, notification, hasAnyText, backup, onPickTemplate, onReset }: SettingsScreenProps) {
+export function SettingsScreen({
+  content,
+  notification,
+  notificationAvailable,
+  onNotification,
+  hasAnyText,
+  backup,
+  onPickTemplate,
+  onReset,
+}: SettingsScreenProps) {
   const rightText = (text: string) => (
     <Text typography="t7" color={colors.grey500}>
       {text}
@@ -47,7 +59,12 @@ export function SettingsScreen({ content, notification, hasAnyText, backup, onPi
       <Top title={<Top.TitleParagraph size={22}>설정</Top.TitleParagraph>} />
 
       <List>
-        <ListRow contents={<ListRow.Texts type="1RowTypeA" top="매일 저녁 알림" />} right={rightText(NOTIFICATION_LABEL[notification])} />
+        <ListRow
+          onClick={notificationAvailable ? onNotification : undefined}
+          disabled={!notificationAvailable}
+          contents={<ListRow.Texts type="2RowTypeA" top="매일 저녁 알림" bottom="저녁 9시에 오늘 실천을 체크하라고 알려요" />}
+          right={rightText(notificationAvailable ? NOTIFICATION_LABEL[notification] : '준비 중')}
+        />
         <ListRow withArrow onClick={onPickTemplate} contents={<ListRow.Texts type="1RowTypeA" top="예시 템플릿 불러오기" />} />
         <ListRow contents={<ListRow.Texts type="1RowTypeA" top="두 번째 만다라트 판" />} right={rightText('준비 중')} />
         <ListRow

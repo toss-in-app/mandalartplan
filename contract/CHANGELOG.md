@@ -34,3 +34,7 @@
 - 광고 그룹 ID 는 `client/src/ads/config.ts`: 비어 있으면 공식 테스트 ID(`ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id`), 라이브 ID 는 `.env.production` 의 `VITE_AD_GROUP_INTERSTITIAL_TODAY`·`VITE_AD_GROUP_REWARDED_HD_IMAGE`·`VITE_AD_GROUP_REWARDED_EXTRA_BOARD`·`VITE_AD_GROUP_BANNER_TODAY`.
 - 지점: 전면 = 홈 '오늘 기록 보기'(오늘 체크 1개 이상·하루 1회·사전 로딩·실패 시 건너뜀) · 리워드 = 공유 '고화질로 저장'(`userEarnedReward` 에서만, 보상은 2160×2700 워터마크 없는 저장 1회) · 배너 = 오늘 기록 목록 하단 1개(카드형, 실패 시 숨김). 설정 '두 번째 판' 리워드는 기능 7 에서 같은 훅으로.
 
+## 2026-10-07 [client] 기능 6 알림 동의
+- 계약 변경 없음(`settings.notification` 은 v1 부터). `events.md` 알림 템플릿의 발송 코드를 공식 규칙(`{appName}-` 접두)에 맞춰 `mandalartplan-daily-checkin` 으로, 제목·내용을 콘솔 글자 수 규칙(7자·25자)에 맞춰 고침. 템플릿 코드는 `.env` 의 `VITE_NOTIFICATION_TEMPLATE_CODE`.
+- 흐름: 홈 "매일 저녁 알림 받기" 행은 설정으로 보내지 않고 바로 동의 화면을 띄움(설계는 홈→설정이었음, 한 번 덜 누르게). 오늘 기록 위 버튼·설정 행도 같은 호출. 거부하면 홈·오늘 기록에서는 숨기고 설정에서만 다시 켬. 동의한 뒤 끄는 건 토스 앱 알림 설정(철회 경로).
+

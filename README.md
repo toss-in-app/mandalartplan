@@ -33,6 +33,7 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
     ├── content/             #   bundled.json(생성) + 로더(원격 content.json 시도, 실패 시 번들)
     ├── backup/              #   Supabase 백업·복원: config(URL·publishable 키) · key(익명 키 sha256) · api(RPC fetch) · useBackup
     ├── ads/                 #   광고: config(그룹 ID, 비면 테스트 ID) · fullScreen(load/show 약속) · useInterstitial · useRewardedAd · banner(TossAds 초기화) · rules(하루 1회)
+    ├── notification/        #   알림 동의: Notification.requestAgreement 약속 래퍼, 템플릿 코드(.env)
     ├── lib/
     │   ├── mandalart.ts     #   판 모델·검증·진행률·공유 텍스트
     │   ├── state.ts         #   boards · checkins · settings 정규화, 날짜 키, 연속 일수
@@ -49,8 +50,8 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
 
 ## 단계 현황
 - 1~4단계 완료(콘솔 등록 2026-09-29, appName `mandalartplan`). 5단계 진행 중 — 카드 체크리스트(`apps/mandalartplan.md`) 순서대로.
-- 끝난 기능: 체크인(홈 3×3·세부 3×3 탭 체크·전체 보기·오늘 기록), 설정·예시 템플릿·초기화, Supabase 백업·복원, 공유(이미지 저장·글·링크), 광고(전면·리워드·배너, 테스트 ID).
-- 남은 기능: 알림 동의, 두 번째 판, 분석 이벤트, 홈 마무리.
+- 끝난 기능: 체크인(홈 3×3·세부 3×3 탭 체크·전체 보기·오늘 기록), 설정·예시 템플릿·초기화, Supabase 백업·복원, 공유(이미지 저장·글·링크), 광고(전면·리워드·배너, 테스트 ID), 알림 동의(템플릿 코드는 `.env`).
+- 남은 기능: 두 번째 판, 분석 이벤트, 홈 마무리.
 
 ## 앱인토스 규칙 대응
 - 네비게이션 바: `navigationBar.withBackButton` + 브라우저 히스토리 → 뒤로가기·시스템 백버튼 동작, 첫 화면에서 뒤로가기 = 종료
