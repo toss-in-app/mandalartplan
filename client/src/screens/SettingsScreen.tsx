@@ -17,6 +17,19 @@ export interface BackupPanelProps {
   onDisable: () => void;
 }
 
+export interface ExtraBoardPanelProps {
+  /** 리워드로 열렸거나(settings.unlocks.extraBoard) 이미 판이 2개 */
+  unlocked: boolean;
+  /** 지금 판 수(1~2) */
+  count: number;
+  /** 리워드 광고가 뜨는 동안 행 잠금 */
+  busy: boolean;
+  /** 잠겨 있을 때: 안내 → 리워드 광고 → 잠금 해제 + 판 추가 */
+  onUnlock: () => void;
+  /** 열렸는데 판이 하나일 때(처음부터 다시 만든 뒤 등): 빈 판 추가 */
+  onAdd: () => void;
+}
+
 interface SettingsScreenProps {
   content: Content;
   notification: NotificationStatus;
@@ -24,6 +37,7 @@ interface SettingsScreenProps {
   notificationAvailable: boolean;
   onNotification: () => void;
   hasAnyText: boolean;
+  extraBoard: ExtraBoardPanelProps;
   backup: BackupPanelProps;
   onPickTemplate: () => void;
   onReset: () => void;
@@ -36,7 +50,7 @@ const NOTIFICATION_LABEL: Record<NotificationStatus, string> = {
 };
 
 /**
- * 설정. 매일 저녁 알림(동의 요청·상태) · 예시 템플릿 · 두 번째 판(기능 7 자리) · 초기화 · 백업 · 약관 · 버전.
+ * 설정. 매일 저녁 알림(동의 요청·상태) · 예시 템플릿 · 두 번째 판(리워드 잠금) · 초기화 · 백업 · 약관 · 버전.
  */
 export function SettingsScreen({
   content,
@@ -44,6 +58,7 @@ export function SettingsScreen({
   notificationAvailable,
   onNotification,
   hasAnyText,
+  extraBoard,
   backup,
   onPickTemplate,
   onReset,
@@ -66,7 +81,27 @@ export function SettingsScreen({
           right={rightText(notificationAvailable ? NOTIFICATION_LABEL[notification] : '준비 중')}
         />
         <ListRow withArrow onClick={onPickTemplate} contents={<ListRow.Texts type="1RowTypeA" top="예시 템플릿 불러오기" />} />
-        <ListRow contents={<ListRow.Texts type="1RowTypeA" top="두 번째 만다라트 판" />} right={rightText('준비 중')} />
+        {!extraBoard.unlocked && (
+          <ListRow
+            disabled={extraBoard.busy}
+            onClick={extraBoard.onUnlock}
+            contents={<ListRow.Texts type="2RowTypeA" top="두 번째 만다라트 판" bottom="광고를 보면 판을 하나 더 만들 수 있어요" />}
+            right={rightText('광고 보기')}
+          />
+        )}
+        {extraBoard.unlocked && extraBoard.count < 2 && (
+          <ListRow
+            withArrow
+            onClick={extraBoard.onAdd}
+            contents={<ListRow.Texts type="2RowTypeA" top="두 번째 만다라트 판" bottom="빈 판을 하나 더 만들어요" />}
+          />
+        )}
+        {extraBoard.unlocked && extraBoard.count >= 2 && (
+          <ListRow
+            contents={<ListRow.Texts type="2RowTypeA" top="두 번째 만다라트 판" bottom="홈 제목을 누르면 판을 바꿀 수 있어요" />}
+            right={rightText('사용 중')}
+          />
+        )}
         <ListRow
           onClick={hasAnyText ? onReset : undefined}
           disabled={!hasAnyText}

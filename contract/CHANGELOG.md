@@ -38,3 +38,9 @@
 - 계약 변경 없음(`settings.notification` 은 v1 부터). `events.md` 알림 템플릿의 발송 코드를 공식 규칙(`{appName}-` 접두)에 맞춰 `mandalartplan-daily-checkin` 으로, 제목·내용을 콘솔 글자 수 규칙(7자·25자)에 맞춰 고침. 템플릿 코드는 `.env` 의 `VITE_NOTIFICATION_TEMPLATE_CODE`.
 - 흐름: 홈 "매일 저녁 알림 받기" 행은 설정으로 보내지 않고 바로 동의 화면을 띄움(설계는 홈→설정이었음, 한 번 덜 누르게). 오늘 기록 위 버튼·설정 행도 같은 호출. 거부하면 홈·오늘 기록에서는 숨기고 설정에서만 다시 켬. 동의한 뒤 끄는 건 토스 앱 알림 설정(철회 경로).
 
+## 2026-10-07 [client] 기능 7 두 번째 판
+- 계약 변경 없음(`boards.boards` 1~2개·`active`·`settings.unlocks.extraBoard` 는 v1 부터). `events.md` 에 `board_add`·`board_switch` 이벤트 2개 추가(기능 8 에서 로깅).
+- 흐름: 설정 '두 번째 만다라트 판'(잠김, 오른쪽 '광고 보기') → 안내 다이얼로그(왼쪽 '닫기') → 리워드 광고(`rewarded-extra-board`) → `userEarnedReward` 일 때만 `unlocks.extraBoard = true`(영구) + 빈 판 추가(`active` 는 새 판) → 홈. 끝까지 안 봤거나 못 불러오면 잠금 그대로 + 토스트.
+- 잠금이 풀렸는데 판이 하나면(처음부터 다시 만든 뒤 등) 광고 없이 '빈 판을 하나 더 만들어요' 로 추가. 판이 2개면 홈 제목이 `Top.TitleSelector` 가 되어 '판 바꾸기' 바텀시트(버튼으로만)로 전환. 체크 기록은 `checkins.byBoard[판 id]` 그대로 판별.
+- 백업 복원 등으로 판이 이미 2개면 잠금이 풀린 것으로 봄. '처음부터 다시 만들기' 는 두 판을 모두 지우고 빈 판 하나로(잠금 해제는 남음).
+

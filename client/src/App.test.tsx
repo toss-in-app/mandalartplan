@@ -1,8 +1,9 @@
 import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
+import type { useRewardedAd } from './ads/useRewardedAd';
 import { getBundledContent } from './content';
 import { saveImageToPhotos } from './lib/bridge';
 import { dateKey } from './lib/state';
@@ -13,6 +14,13 @@ vi.mock('./lib/bridge', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./lib/bridge')>()),
   saveImageToPhotos: vi.fn(async () => 'saved' as const),
 }));
+
+// 리워드 광고 훅: 기본은 진짜(Devtools mock 은 끝까지 봐도 userEarnedReward 를 주지 않아요). 보상 경로를 보려는 테스트만 impl 을 바꿔요.
+const rewarded = vi.hoisted(() => ({ impl: null as null | typeof useRewardedAd }));
+vi.mock('./ads/useRewardedAd', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./ads/useRewardedAd')>();
+  return { ...actual, useRewardedAd: (adGroupId: string, active: boolean) => (rewarded.impl ?? actual.useRewardedAd)(adGroupId, active) };
+});
 
 /** 브라우저(jsdom)에는 앱인토스 브릿지가 없어요 → Storage 는 localStorage 로 대체돼요. */
 function renderApp() {
@@ -221,5 +229,114 @@ describe('App (알림 동의)', () => {
     await screen.findByText('받는 중');
     fireEvent.click(screen.getByText('매일 저녁 알림'));
     await waitFor(() => expect(screen.getAllByText('알림은 토스 앱의 알림 설정에서 끌 수 있어요').length).toBeGreaterThan(0));
+  });
+});
+
+describe('App (두 번째 판)', () => {
+  const boards = JSON.stringify({
+    version: 1,
+    active: 0,
+    boards: [
+      {
+        id: 'b1759000000000',
+        goal: '건강한 한 해',
+        subs: Array.from({ length: 8 }, (_, i) => ({ title: i === 0 ? '운동' : '', actions: i === 0 ? ['아침 스트레칭', ...Array(7).fill('')] : Array(8).fill('') })),
+        templateId: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ],
+  });
+  const settings = (extraBoard: boolean) =>
+    JSON.stringify({ version: 1, notification: 'unknown', unlocks: { extraBoard }, seenContentVersion: 0, firstCheckinAt: null, backup: { enabled: false, key: null, lastBackupAt: null }, ads: { lastInterstitialDate: null } });
+
+  afterEach(() => {
+    rewarded.impl = null;
+  });
+  /** 홈 제목 셀렉터(Top.TitleSelector). 3×3 가운데 칸 버튼도 핵심 목표를 이름으로 가져서 제목 영역 안에서만 찾아요 */
+  const titleSelector = () => within(screen.getByRole('heading', { level: 1 })).getByRole('button');
+
+  it('설정 행 → 안내 → 리워드 보상(userEarnedReward)이면 잠금 해제 + 빈 두 번째 판 → 홈 제목이 셀렉터, 판을 바꾸면 체크 기록도 판별', async () => {
+    rewarded.impl = () => ({ watch: async () => 'rewarded' as const, supported: true });
+    window.localStorage.setItem('__ait_storage:mandalart.boards.v1', boards);
+    window.localStorage.setItem('__ait_storage:mandalart.checkins.v1', JSON.stringify({ version: 1, byBoard: { b1759000000000: { days: { [dateKey()]: [0] }, lastCompletedAt: 1 } } }));
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: '건강한 한 해' });
+    expect(screen.getByText('1 / 1')).toBeInTheDocument(); // 첫 판: 오늘 1개 / 실천 1개
+
+    fireEvent.click(screen.getByText('설정'));
+    await screen.findByText('광고를 보면 판을 하나 더 만들 수 있어요');
+    fireEvent.click(screen.getByText('두 번째 만다라트 판'));
+    await screen.findByText('광고를 보고 두 번째 판을 열까요?');
+    expect(screen.getByText('닫기')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '광고 보기' }));
+
+    // 보상 → 잠금 해제 저장, 판 2개(두 번째가 보이는 판), 홈으로
+    await waitFor(() => expect(screen.getAllByText('두 번째 판을 열었어요').length).toBeGreaterThan(0));
+    await waitFor(() => expect(titleSelector()).toHaveTextContent('두 번째 판'));
+    expect(screen.getByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).unlocks.extraBoard).toBe(true);
+      const saved = JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.boards.v1')!);
+      expect(saved.boards).toHaveLength(2);
+      expect(saved.active).toBe(1);
+    });
+
+    // 제목 → 판 바꾸기 시트 → 첫 판으로. 체크 기록(오늘 1개)은 첫 판의 것
+    fireEvent.click(titleSelector());
+    await screen.findByText('판 바꾸기');
+    expect(screen.getByText('보는 중')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('건강한 한 해'));
+    await waitFor(() => expect(titleSelector()).toHaveTextContent('건강한 한 해'));
+    expect(screen.getByText('1 / 1')).toBeInTheDocument();
+
+    // 설정 행은 '사용 중'
+    fireEvent.click(screen.getByText('설정'));
+    await screen.findByText('사용 중');
+    expect(screen.queryByText('광고 보기')).not.toBeInTheDocument();
+  });
+
+  it('광고를 끝까지 보지 않으면(Devtools mock: dismissed) 잠금 그대로예요', async () => {
+    window.localStorage.setItem('__ait_storage:mandalart.boards.v1', boards);
+    window.location.hash = '#/settings';
+    render(
+      <TDSMobileAITProvider brandPrimaryColor="#6B5CFF">
+        <App />
+      </TDSMobileAITProvider>,
+    );
+    fireEvent.click(await screen.findByText('두 번째 만다라트 판'));
+    await screen.findByText('광고를 보고 두 번째 판을 열까요?');
+    fireEvent.click(screen.getByRole('button', { name: '광고 보기' }));
+    await waitFor(() => expect(screen.getAllByText('광고를 끝까지 보면 두 번째 판을 열 수 있어요').length).toBeGreaterThan(0), { timeout: 6000 });
+    expect(screen.getByText('광고 보기')).toBeInTheDocument(); // 행 그대로
+    const saved = window.localStorage.getItem('__ait_storage:mandalart.settings.v1');
+    expect(saved === null || JSON.parse(saved).unlocks.extraBoard === false).toBe(true);
+    expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.boards.v1')!).boards).toHaveLength(1);
+    window.location.hash = '';
+  });
+
+  it('이미 열렸는데 판이 하나면(처음부터 다시 만든 뒤) 광고 없이 빈 판을 더하고, 초기화 안내는 두 판을 말해요', async () => {
+    window.localStorage.setItem('__ait_storage:mandalart.boards.v1', boards);
+    window.localStorage.setItem('__ait_storage:mandalart.settings.v1', settings(true));
+    window.location.hash = '#/settings';
+    render(
+      <TDSMobileAITProvider brandPrimaryColor="#6B5CFF">
+        <App />
+      </TDSMobileAITProvider>,
+    );
+    await screen.findByText('빈 판을 하나 더 만들어요');
+    fireEvent.click(screen.getByText('두 번째 만다라트 판'));
+    await waitFor(() => expect(screen.getAllByText('두 번째 판을 만들었어요').length).toBeGreaterThan(0));
+    await waitFor(() => expect(titleSelector()).toHaveTextContent('두 번째 판'));
+
+    fireEvent.click(screen.getByText('설정'));
+    fireEvent.click(await screen.findByText('처음부터 다시 만들기'));
+    await screen.findByText('두 판에 적은 목표·실천과 체크 기록이 모두 지워져요. 되돌릴 수 없어요.');
+    fireEvent.click(screen.getByText('지우기'));
+    await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
+    expect(screen.getByRole('heading', { level: 1, name: '만다라트' })).toBeInTheDocument(); // 판 하나 → 제목은 다시 문단
+    await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.boards.v1')!).boards).toHaveLength(1));
+    expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).unlocks.extraBoard).toBe(true); // 잠금 해제는 남아요
+    window.location.hash = '';
   });
 });

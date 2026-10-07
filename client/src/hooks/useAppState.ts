@@ -4,7 +4,15 @@ import type { BackupPayload } from '../backup/payload';
 import type { ContentTemplate } from '../content';
 import { clampText, createEmptyBoard, type Board } from '../lib/mandalart';
 import { boardFromTemplate } from '../lib/template';
-import { createEmptyBoards, type AppState, type BoardsState, type CheckinsState, type SettingsState } from '../lib/state';
+import {
+  addBoard as addBoardTo,
+  createEmptyBoards,
+  switchBoard,
+  type AppState,
+  type BoardsState,
+  type CheckinsState,
+  type SettingsState,
+} from '../lib/state';
 import { clearAll, loadState, saveBoards, saveCheckins, saveSettings } from '../lib/storage';
 
 const SAVE_DELAY_MS = 400;
@@ -112,6 +120,27 @@ export function useAppState() {
     [updateBoard],
   );
 
+  /** 빈 판을 하나 더 만들고 그 판을 보여줘요(두 번째 판 잠금 해제 뒤). 이미 2개면 false. */
+  const addBoard = useCallback((): boolean => {
+    const prev = stateRef.current;
+    if (!prev) return false;
+    const next = addBoardTo(prev.boards);
+    if (next === prev.boards) return false;
+    patch('boards', next);
+    return true;
+  }, [patch]);
+
+  /** 보고 있는 판을 바꿔요. 체크 기록은 판별이라 화면이 그 판의 기록으로 바뀌어요. */
+  const setActiveBoard = useCallback(
+    (index: number) => {
+      const prev = stateRef.current;
+      if (!prev) return;
+      const next = switchBoard(prev.boards, index);
+      if (next !== prev.boards) patch('boards', next);
+    },
+    [patch],
+  );
+
   const updateSettings = useCallback(
     (updater: (settings: SettingsState) => SettingsState) => {
       const prev = stateRef.current;
@@ -179,5 +208,20 @@ export function useAppState() {
   /** 렌더와 무관하게 지금 이 순간의 상태(방금 patch 한 값 포함). 비동기 흐름에서 써요. */
   const getState = useCallback(() => stateRef.current, []);
 
-  return { state, board, getState, setGoal, setSubTitle, setAction, applyTemplate, importBackup, updateSettings, updateCheckins, reset, createEmptyBoard };
+  return {
+    state,
+    board,
+    getState,
+    setGoal,
+    setSubTitle,
+    setAction,
+    applyTemplate,
+    importBackup,
+    updateSettings,
+    updateCheckins,
+    addBoard,
+    setActiveBoard,
+    reset,
+    createEmptyBoard,
+  };
 }

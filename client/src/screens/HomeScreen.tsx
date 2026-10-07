@@ -5,13 +5,17 @@ import { Block } from '../components/Block';
 import { activeSeason, type Content } from '../content';
 import { checkedInSub, formatDateLabel, todaySet } from '../lib/checkin';
 import { CENTER, getProgress, type Board } from '../lib/mandalart';
-import { dateKey, streak, type CheckinRecord } from '../lib/state';
+import { boardLabel, dateKey, streak, type CheckinRecord } from '../lib/state';
 import { brandColor } from '../theme';
 
 interface HomeScreenProps {
   board: Board;
   content: Content;
   checkin: CheckinRecord | undefined;
+  /** 판 수(1~2). 2개면 제목이 셀렉터가 되어 판을 바꿀 수 있어요 */
+  boardCount: number;
+  /** 보고 있는 판의 순번(0~1) */
+  activeIndex: number;
   notificationVisible: boolean;
   /** 전면 광고가 뜨는 동안 '오늘 기록 보기' 를 잠가요 */
   todayBusy?: boolean;
@@ -21,6 +25,8 @@ interface HomeScreenProps {
   onOverview: () => void;
   onShare: () => void;
   onSettings: () => void;
+  /** 제목(판이 2개일 때만 셀렉터)을 누르면 판 바꾸기 바텀시트 */
+  onSwitchBoard: () => void;
   /** '매일 저녁 알림 받기' 행 — 누르면 바로 알림 동의 화면(사용자가 누른 뒤에만) */
   onNotification: () => void;
   onStartWithTemplate: () => void;
@@ -34,6 +40,8 @@ export function HomeScreen({
   board,
   content,
   checkin,
+  boardCount,
+  activeIndex,
   notificationVisible,
   todayBusy = false,
   onEditCore,
@@ -42,6 +50,7 @@ export function HomeScreen({
   onOverview,
   onShare,
   onSettings,
+  onSwitchBoard,
   onNotification,
   onStartWithTemplate,
 }: HomeScreenProps) {
@@ -52,6 +61,7 @@ export function HomeScreen({
   const isEmpty = progress.filled === 0;
   const days = streak(checkin, today);
   const season = activeSeason(content, today);
+  const titleText = hasGoal ? board.goal : boardCount > 1 ? boardLabel(activeIndex) : '만다라트';
 
   const subtitle = isEmpty
     ? '가운데 칸을 눌러 핵심 목표부터 정해 보세요'
@@ -64,7 +74,15 @@ export function HomeScreen({
   return (
     <>
       <Top
-        title={<Top.TitleParagraph size={22}>{hasGoal ? board.goal : '만다라트'}</Top.TitleParagraph>}
+        title={
+          boardCount > 1 ? (
+            <Top.TitleSelector size={22} onClick={onSwitchBoard}>
+              {titleText}
+            </Top.TitleSelector>
+          ) : (
+            <Top.TitleParagraph size={22}>{titleText}</Top.TitleParagraph>
+          )
+        }
         subtitleBottom={<Top.SubtitleParagraph size={17}>{subtitle}</Top.SubtitleParagraph>}
         right={
           <Top.RightButton color="dark" variant="weak" disabled={isEmpty} onClick={onShare}>

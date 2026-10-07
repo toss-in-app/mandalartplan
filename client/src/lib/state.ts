@@ -85,6 +85,29 @@ export function normalizeBoards(input: unknown, now: number = Date.now()): Board
   return { version: 1, active, boards };
 }
 
+/** 판 순서 이름. 판은 최대 2개예요(두 번째 판은 리워드로 열어요). */
+export function boardLabel(index: number): string {
+  return index === 0 ? '첫 번째 판' : '두 번째 판';
+}
+
+/** 빈 판을 하나 더 만들고 그 판을 보게 해요. 이미 최대(MAX_BOARDS)면 그대로 돌려줘요. */
+export function addBoard(boards: BoardsState, now: number = Date.now()): BoardsState {
+  if (boards.boards.length >= MAX_BOARDS) return boards;
+  let board = createEmptyBoard(now);
+  // 같은 ms 에 만든 판과 id(b + 생성 시각)가 겹치지 않게
+  while (boards.boards.some((b) => b.id === board.id)) {
+    now += 1;
+    board = createEmptyBoard(now);
+  }
+  return { ...boards, active: boards.boards.length, boards: [...boards.boards, board] };
+}
+
+/** 보고 있는 판을 바꿔요. 범위 밖이거나 이미 보고 있는 판이면 그대로 돌려줘요. */
+export function switchBoard(boards: BoardsState, index: number): BoardsState {
+  if (!Number.isInteger(index) || index < 0 || index >= boards.boards.length || index === boards.active) return boards;
+  return { ...boards, active: index };
+}
+
 export function createEmptyCheckins(): CheckinsState {
   return { version: 1, byBoard: {} };
 }

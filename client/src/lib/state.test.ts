@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { createEmptyBoard } from './mandalart';
 import {
   MAX_CHECKIN_DAYS,
+  addBoard,
+  boardLabel,
   createDefaultSettings,
   createEmptyBoards,
   dateKey,
@@ -10,6 +12,7 @@ import {
   normalizeCheckins,
   normalizeSettings,
   streak,
+  switchBoard,
 } from './state';
 
 const NOW = 1759000000000;
@@ -31,6 +34,33 @@ describe('boards', () => {
   it('버전이 다르거나 판이 하나도 없으면 null', () => {
     expect(normalizeBoards({ version: 2, active: 0, boards: [createEmptyBoard(NOW)] })).toBeNull();
     expect(normalizeBoards({ version: 1, active: 0, boards: ['x'] })).toBeNull();
+  });
+});
+
+describe('boards 추가·전환 (두 번째 판)', () => {
+  it('판을 더하면 새 빈 판이 뒤에 붙고 그 판을 보게 돼요. 같은 ms 라도 id 가 겹치지 않아요', () => {
+    const one = createEmptyBoards(NOW);
+    const two = addBoard(one, NOW);
+    expect(two.boards).toHaveLength(2);
+    expect(two.active).toBe(1);
+    expect(two.boards[1].id).not.toBe(two.boards[0].id);
+    expect(two.boards[1].goal).toBe('');
+    expect(one.boards).toHaveLength(1); // 원본은 그대로
+  });
+
+  it('이미 2개면 더하지 않고 같은 객체를 돌려줘요', () => {
+    const two = addBoard(createEmptyBoards(NOW), NOW + 1);
+    expect(addBoard(two, NOW + 2)).toBe(two);
+  });
+
+  it('판 전환은 범위 안에서만, 같은 판이면 그대로', () => {
+    const two = addBoard(createEmptyBoards(NOW), NOW + 1);
+    expect(switchBoard(two, 0).active).toBe(0);
+    expect(switchBoard(two, 1)).toBe(two);
+    expect(switchBoard(two, 2)).toBe(two);
+    expect(switchBoard(two, -1)).toBe(two);
+    expect(switchBoard(two, 0.5)).toBe(two);
+    expect([boardLabel(0), boardLabel(1)]).toEqual(['첫 번째 판', '두 번째 판']);
   });
 });
 

@@ -10,6 +10,8 @@
 | `today_view` | '오늘 기록 보기' 진입 | `todayCount`, `streak` |
 | `ad_interstitial` | 전면 결과 | `result`(shown/skipped/failed) |
 | `reward_unlock` | `userEarnedReward` | `type`(hdImage/extraBoard) |
+| `board_add` | 두 번째 판 추가(리워드 직후 또는 설정 '빈 판 추가') | `boards`(2) |
+| `board_switch` | 홈 제목 셀렉터 → 판 바꾸기 시트에서 다른 판 선택 | `to`(0~1) |
 | `share_image_save` | 이미지 저장 성공 | `hd`(true/false) |
 | `share_text` · `share_link` | 공유 시트 호출 | |
 | `notification_agree` | 동의 요청 결과 | `result`(agreed/declined), `from`(home/today/settings) |

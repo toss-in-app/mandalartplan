@@ -11,6 +11,7 @@ import { BackupKeyError } from './backup/key';
 import { cellsFilled } from './backup/payload';
 import { useBackup } from './backup/useBackup';
 import { useAppState } from './hooks/useAppState';
+import { useBoardPicker } from './hooks/useBoardPicker';
 import { useTemplatePicker } from './hooks/useTemplatePicker';
 import { canSaveImage, createShareLink, haptic, saveImageToPhotos, shareText } from './lib/bridge';
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
@@ -19,7 +20,7 @@ import { todaySet, toggleCheck } from './lib/checkin';
 import { CENTER, boardToText, cellOfRing, getProgress } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
 import { goBack, navigate, useRoute } from './lib/router';
-import { dateKey, streak } from './lib/state';
+import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OverviewScreen } from './screens/OverviewScreen';
@@ -29,6 +30,9 @@ import { SubScreen } from './screens/SubScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import './App.css';
 
+/** 상태를 읽기 전(첫 렌더)의 자리 — 판 바꾸기 시트는 판이 2개일 때만 열리니 비어 있어도 돼요 */
+const NO_BOARDS: BoardsState = { version: 1, active: 0, boards: [] };
+
 function App() {
   const route = useRoute();
   const app = useAppState();
@@ -37,6 +41,8 @@ function App() {
   const [shareBusy, setShareBusy] = useState(false);
   /** 전면 광고가 뜨는 동안 홈 '오늘 기록 보기' 잠금 */
   const [todayBusy, setTodayBusy] = useState(false);
+  /** 두 번째 판 리워드 광고가 뜨는 동안 설정 행 잠금 */
+  const [extraBoardBusy, setExtraBoardBusy] = useState(false);
   /** 리워드 광고를 끝까지 봤지만 아직 저장하지 못한 고화질 1회분 (권한 거부 등으로 실패하면 광고를 다시 보지 않게) */
   const hdCredit = useRef(false);
   const { openConfirm } = useDialog();
@@ -73,6 +79,17 @@ function App() {
   const interstitialReady = app.state ? interstitialEligible(app.state.settings, today, todayChecks) : false;
   const interstitial = useInterstitial(AD_GROUPS.interstitialToday, interstitialReady);
   const hdReward = useRewardedAd(AD_GROUPS.rewardedHdImage, route.name === 'share');
+  // 두 번째 판: 리워드로 한 번 열면 영구. (백업 복원 등으로) 판이 이미 2개면 열린 것으로 봐요.
+  const extraBoardOpen = app.state ? app.state.settings.unlocks.extraBoard || app.state.boards.boards.length >= MAX_BOARDS : false;
+  const extraBoardReward = useRewardedAd(AD_GROUPS.rewardedExtraBoard, route.name === 'settings' && !extraBoardOpen);
+  const switchBoard = useCallback(
+    (index: number) => {
+      app.setActiveBoard(index);
+      void haptic('tap');
+    },
+    [app],
+  );
+  const openBoardPicker = useBoardPicker(app.state?.boards ?? NO_BOARDS, switchBoard);
   const backupErrorToast = useCallback(
     (error: unknown) => {
       if (error instanceof BackupKeyError) toast.openToast(error.message);
@@ -164,9 +181,12 @@ function App() {
   }, [backup, backupErrorToast, openConfirm, toast]);
 
   const resetAll = useCallback(async () => {
+    const twoBoards = (app.state?.boards.boards.length ?? 1) > 1;
     const ok = await openConfirm({
       title: '처음부터 다시 만들까요?',
-      description: '적은 목표·실천과 체크 기록이 모두 지워져요. 되돌릴 수 없어요.',
+      description: twoBoards
+        ? '두 판에 적은 목표·실천과 체크 기록이 모두 지워져요. 되돌릴 수 없어요.'
+        : '적은 목표·실천과 체크 기록이 모두 지워져요. 되돌릴 수 없어요.',
       confirmButton: '지우기',
       cancelButton: '닫기',
     });
@@ -275,6 +295,50 @@ function App() {
   const notificationReady = notificationAvailable();
   /** 홈 행·오늘 기록 버튼은 첫 체크 뒤, 아직 묻지 않았을 때만. 거부했으면 설정에서만 */
   const notificationPrompt = notificationReady && state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown';
+
+  /**
+   * 설정 '두 번째 만다라트 판'(잠김): 안내 → 리워드 광고 → userEarnedReward 일 때만 잠금 해제(영구) + 빈 판 추가 → 홈.
+   * 광고를 끝까지 안 봤거나 못 불러오면 잠금 그대로.
+   */
+  const unlockExtraBoard = async () => {
+    if (!extraBoardReward.supported) {
+      toast.openToast('광고는 토스앱을 업데이트하면 볼 수 있어요');
+      return;
+    }
+    const ok = await openConfirm({
+      title: '광고를 보고 두 번째 판을 열까요?',
+      description: '광고를 끝까지 보면 만다라트 판을 하나 더 만들 수 있어요. 한 번 열면 계속 쓸 수 있어요.',
+      confirmButton: '광고 보기',
+      cancelButton: '닫기',
+    });
+    if (!ok) return;
+    setExtraBoardBusy(true);
+    try {
+      const outcome = await extraBoardReward.watch();
+      if (outcome === 'unavailable') {
+        toast.openToast('지금은 광고를 불러올 수 없어요');
+        return;
+      }
+      if (outcome === 'dismissed') {
+        toast.openToast('광고를 끝까지 보면 두 번째 판을 열 수 있어요');
+        return;
+      }
+      app.updateSettings((settings) => ({ ...settings, unlocks: { ...settings.unlocks, extraBoard: true } }));
+      app.addBoard();
+      void haptic('success');
+      toast.openToast('두 번째 판을 열었어요');
+      navigate({ name: 'home' });
+    } finally {
+      setExtraBoardBusy(false);
+    }
+  };
+
+  /** 설정 '두 번째 만다라트 판'(열렸는데 판이 하나): 빈 판을 추가하고 그 판을 보여줘요. */
+  const addExtraBoard = () => {
+    if (!app.addBoard()) return;
+    toast.openToast('두 번째 판을 만들었어요');
+    navigate({ name: 'home' });
+  };
 
   /** 홈 '오늘 기록 보기': 오늘 체크가 있고 오늘 아직 안 봤으면 전면 광고(미리 불러온 것만) → 닫히면 today. 광고가 없으면 바로 today. */
   const openToday = async () => {
@@ -390,7 +454,14 @@ function App() {
           notification={state.settings.notification}
           notificationAvailable={notificationReady}
           onNotification={() => void askNotification()}
-          hasAnyText={getProgress(board).filled > 0}
+          hasAnyText={state.boards.boards.some((b) => getProgress(b).filled > 0)}
+          extraBoard={{
+            unlocked: extraBoardOpen,
+            count: state.boards.boards.length,
+            busy: extraBoardBusy,
+            onUnlock: () => void unlockExtraBoard(),
+            onAdd: addExtraBoard,
+          }}
           backup={{
             configured: backup.configured,
             enabled: backup.enabled,
@@ -411,6 +482,8 @@ function App() {
           board={board}
           content={content}
           checkin={record}
+          boardCount={state.boards.boards.length}
+          activeIndex={state.boards.active}
           notificationVisible={notificationPrompt}
           onEditCore={editCore}
           onSelectSub={openSub}
@@ -419,6 +492,7 @@ function App() {
           onOverview={() => navigate({ name: 'overview' })}
           onShare={() => navigate({ name: 'share' })}
           onSettings={() => navigate({ name: 'settings' })}
+          onSwitchBoard={openBoardPicker}
           onNotification={() => void askNotification()}
           onStartWithTemplate={openTemplatePicker}
         />
