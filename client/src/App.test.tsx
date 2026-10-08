@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import type { useRewardedAd } from './ads/useRewardedAd';
 import { getBundledContent } from './content';
+import { logEvent } from './lib/analytics';
 import { saveImageToPhotos } from './lib/bridge';
 import { dateKey } from './lib/state';
 import { fakeCanvasContext } from './test/fakeCanvas';
@@ -14,6 +15,12 @@ vi.mock('./lib/bridge', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./lib/bridge')>()),
   saveImageToPhotos: vi.fn(async () => 'saved' as const),
 }));
+
+// 분석 이벤트는 브릿지 대신 가짜로 받아서 이름표·파라미터(events.md)를 확인해요.
+vi.mock('./lib/analytics', () => ({ logEvent: vi.fn() }));
+afterEach(() => {
+  vi.mocked(logEvent).mockClear();
+});
 
 // 리워드 광고 훅: 기본은 진짜(Devtools mock 은 끝까지 봐도 userEarnedReward 를 주지 않아요). 보상 경로를 보려는 테스트만 impl 을 바꿔요.
 const rewarded = vi.hoisted(() => ({ impl: null as null | typeof useRewardedAd }));
@@ -39,11 +46,13 @@ describe('App (설정·예시 템플릿)', () => {
 
     // 빈 판: 홈 안내 + '예시로 시작하기'
     await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
+    await waitFor(() => expect(logEvent).toHaveBeenCalledWith('home_view', { filled: 0, boards: 1 }));
     fireEvent.click(screen.getByText('예시로 시작하기'));
 
     // 바텀시트에서 템플릿 선택 → 빈 판이라 확인 없이 바로 적용
     fireEvent.click(await screen.findByText(template.title));
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(template.goal));
+    expect(logEvent).toHaveBeenCalledWith('template_apply', { templateId: template.id });
     expect(screen.getAllByText(`${template.title} 예시를 넣었어요`).length).toBeGreaterThan(0); // 토스트는 읽기용 사본이 하나 더 있어요
 
     // 설정 → 처음부터 다시 만들기 → 확인 다이얼로그(왼쪽 '닫기') → '지우기'
@@ -57,6 +66,7 @@ describe('App (설정·예시 템플릿)', () => {
 
     await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
     expect(window.localStorage.getItem('mandalart.boards.v1')).toContain('"goal":""');
+    expect(logEvent).toHaveBeenCalledWith('reset');
   });
 
   it('글이 있는 판에 예시를 넣으려 하면 먼저 물어보고, 닫기를 누르면 그대로예요', async () => {
@@ -114,10 +124,12 @@ describe('App (공유)', () => {
     fireEvent.click(screen.getByText('이미지 저장하기'));
     await waitFor(() => expect(screen.getAllByText('사진에 저장했어요').length).toBeGreaterThan(0));
     expect(saveImageToPhotos).toHaveBeenCalledWith('QUJD', `mandalart-${dateKey()}.png`);
+    expect(logEvent).toHaveBeenCalledWith('share_image_save', { hd: false });
 
     // 글로 공유: Devtools mock 의 Share.sendMessage 가 받아요(jsdom 은 navigator.share 없음 → 콘솔 출력)
     fireEvent.click(screen.getByText('글로 공유하기'));
     await waitFor(() => expect(screen.queryByText('지금은 공유할 수 없어요')).not.toBeInTheDocument());
+    expect(logEvent).toHaveBeenCalledWith('share_text');
   });
 
   it('캔버스가 없는 환경에서는 미리보기 안내만 보이고 저장은 비활성이에요', async () => {
@@ -168,6 +180,8 @@ describe('App (광고)', () => {
     // mock: 1.5초 뒤 dismissed → today
     await screen.findByText('오늘 기록', {}, { timeout: 4000 });
     await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).ads.lastInterstitialDate).toBe(dateKey()));
+    expect(logEvent).toHaveBeenCalledWith('ad_interstitial', { result: 'shown' });
+    await waitFor(() => expect(logEvent).toHaveBeenCalledWith('today_view', { todayCount: 1, streak: 1 }));
     // 오늘 기록 하단 배너(mock 자리표시)
     await waitFor(() => expect(screen.getByTestId('ad-banner').querySelector('[data-ait-slot-id]')).not.toBeNull());
   });
@@ -216,11 +230,13 @@ describe('App (알림 동의)', () => {
     // 세부 목표 1 → 실천 탭(첫 체크) → 홈으로
     fireEvent.click(screen.getByRole('button', { name: '운동' }));
     fireEvent.click(await screen.findByRole('button', { name: '아침 스트레칭, 오늘 아직' }));
+    expect(logEvent).toHaveBeenCalledWith('action_check', { index: 0, checked: true, todayCount: 1, streak: 1, first: true });
     window.history.back();
     await screen.findByText('매일 저녁 알림 받기');
 
     fireEvent.click(screen.getByText('매일 저녁 알림 받기'));
     await waitFor(() => expect(screen.getAllByText('매일 저녁 9시에 알림을 보내요').length).toBeGreaterThan(0));
+    expect(logEvent).toHaveBeenCalledWith('notification_agree', { result: 'agreed', from: 'home' });
     await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).notification).toBe('agreed'));
     expect(screen.queryByText('매일 저녁 알림 받기')).not.toBeInTheDocument();
 
@@ -273,6 +289,8 @@ describe('App (두 번째 판)', () => {
 
     // 보상 → 잠금 해제 저장, 판 2개(두 번째가 보이는 판), 홈으로
     await waitFor(() => expect(screen.getAllByText('두 번째 판을 열었어요').length).toBeGreaterThan(0));
+    expect(logEvent).toHaveBeenCalledWith('reward_unlock', { type: 'extraBoard' });
+    expect(logEvent).toHaveBeenCalledWith('board_add', { boards: 2 });
     await waitFor(() => expect(titleSelector()).toHaveTextContent('두 번째 판'));
     expect(screen.getByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요')).toBeInTheDocument();
     await waitFor(() => {
@@ -289,6 +307,7 @@ describe('App (두 번째 판)', () => {
     fireEvent.click(screen.getByText('건강한 한 해'));
     await waitFor(() => expect(titleSelector()).toHaveTextContent('건강한 한 해'));
     expect(screen.getByText('1 / 1')).toBeInTheDocument();
+    expect(logEvent).toHaveBeenCalledWith('board_switch', { to: 0 });
 
     // 설정 행은 '사용 중'
     fireEvent.click(screen.getByText('설정'));

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { useAppState } from '../hooks/useAppState';
+import { logEvent } from '../lib/analytics';
 import { backupDelete, backupGet, backupUpsert, type RemoteBackup } from './api';
 import { isBackupConfigured } from './config';
+import { describeBackupError } from './errors';
 import { deriveBackupKey, fetchAnonymousHash } from './key';
 import { buildPayload, cellsFilled, type BackupPayload } from './payload';
 
@@ -24,15 +26,17 @@ export function useBackup(app: AppStateApi) {
   const timerRef = useRef<number | null>(null);
   const lastSyncedRef = useRef<{ boards: unknown; checkins: unknown } | null>(null);
 
-  const runBackup = useCallback(async (): Promise<number> => {
+  const runBackup = useCallback(async (auto: boolean): Promise<number> => {
     const current = appRef.current;
     const state = current.getState(); // 방금 켠 직후에도 최신 키를 읽도록 ref 기준
     const key = state?.settings.backup.key;
     if (!state || !key) throw new Error('backup is off');
     const payload = buildPayload(state);
-    const at = await backupUpsert(key, payload, __APP_VERSION__, cellsFilled(state.boards));
+    const cells = cellsFilled(state.boards);
+    const at = await backupUpsert(key, payload, __APP_VERSION__, cells);
     lastSyncedRef.current = { boards: state.boards, checkins: state.checkins };
     current.updateSettings((s) => ({ ...s, backup: { ...s.backup, lastBackupAt: at } }));
+    logEvent('backup_run', { auto, cells });
     return at;
   }, []);
 
@@ -55,8 +59,8 @@ export function useBackup(app: AppStateApi) {
     const fire = () => {
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
       timerRef.current = null;
-      runBackup().catch(() => {
-        /* 다음 변경 때 다시 시도 */
+      runBackup(true).catch((error: unknown) => {
+        logEvent('backup_error', describeBackupError(error)); // 다음 변경 때 다시 시도
       });
     };
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
@@ -90,7 +94,7 @@ export function useBackup(app: AppStateApi) {
   const backupNow = useCallback(async (): Promise<number> => {
     setBusy(true);
     try {
-      return await runBackup();
+      return await runBackup(false);
     } finally {
       setBusy(false);
     }

@@ -18,7 +18,10 @@
 | `template_apply` | 예시 템플릿 적용 | `templateId` |
 | `reset` | 처음부터 다시 만들기 확인 | |
 
-핵심 지표(콘솔 9단계): 활성 `action_check` · 전환 `board_filled`, `share_image_save`, `notification_agree`.
+핵심 지표(콘솔 9단계): 활성 `action_check` · 전환 `board_filled`(대표), `share_image_save`, `notification_agree`.
+
+- 구현(2026-10-08, `client/src/lib/analytics.ts`): `Analytics.log({ log_name, log_type, params })`. `log_type` 은 `home_view`·`today_view` 만 `screen`, 나머지 `event`. 값은 문자열, null·undefined 제외, 개인정보 없음(`anonymous_key` 는 SDK 가 붙임). 토스앱 5.208.0 미만·브라우저는 조용히 무시.
+- 보충: `board_filled` 는 채운 칸이 73 미만 → 73 이 되는 순간(`templateId` 없으면 `none`). `board_edit` 는 block 에 들어올 때와 나갈 때 `updatedAt` 이 다르면 1회. `ad_interstitial` 은 전면 조건이 맞아 시도했을 때만(shown / skipped = 미로딩 / failed = 띄우기 실패).
 
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 | 이름 | 유형 | 지점 | 규칙 |

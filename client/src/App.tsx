@@ -7,17 +7,19 @@ import { useInterstitial } from './ads/useInterstitial';
 import { useRewardedAd } from './ads/useRewardedAd';
 import { OG_IMAGE_URL, fetchRemoteContent, getBundledContent, type Content, type ContentTemplate } from './content';
 import { BackupApiError } from './backup/api';
+import { describeBackupError } from './backup/errors';
 import { BackupKeyError } from './backup/key';
 import { cellsFilled } from './backup/payload';
 import { useBackup } from './backup/useBackup';
 import { useAppState } from './hooks/useAppState';
 import { useBoardPicker } from './hooks/useBoardPicker';
 import { useTemplatePicker } from './hooks/useTemplatePicker';
+import { logEvent } from './lib/analytics';
 import { canSaveImage, createShareLink, haptic, saveImageToPhotos, shareText } from './lib/bridge';
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
 import { notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { todaySet, toggleCheck } from './lib/checkin';
-import { CENTER, boardToText, cellOfRing, getProgress } from './lib/mandalart';
+import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
 import { goBack, navigate, useRoute } from './lib/router';
 import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
@@ -63,6 +65,7 @@ function App() {
         if (!ok) return;
       }
       app.applyTemplate(template);
+      logEvent('template_apply', { templateId: template.id });
       toast.openToast(`${template.title} 예시를 넣었어요`);
       navigate({ name: 'home' });
     },
@@ -85,6 +88,7 @@ function App() {
   const switchBoard = useCallback(
     (index: number) => {
       app.setActiveBoard(index);
+      logEvent('board_switch', { to: index });
       void haptic('tap');
     },
     [app],
@@ -92,6 +96,7 @@ function App() {
   const openBoardPicker = useBoardPicker(app.state?.boards ?? NO_BOARDS, switchBoard);
   const backupErrorToast = useCallback(
     (error: unknown) => {
+      logEvent('backup_error', describeBackupError(error));
       if (error instanceof BackupKeyError) toast.openToast(error.message);
       else if (error instanceof BackupApiError) toast.openToast('지금은 서버에 연결할 수 없어요');
       else toast.openToast('지금은 백업할 수 없어요');
@@ -109,6 +114,7 @@ function App() {
     if (!ok) return;
     try {
       const remote = await backup.enable();
+      logEvent('backup_enable');
       const localFilled = app.board ? cellsFilled({ version: 1, active: 0, boards: [app.board] }) : 0;
       if (remote && remote.cellsFilled > 0) {
         const restore =
@@ -121,6 +127,7 @@ function App() {
           }));
         if (restore) {
           backup.restore(remote.payload);
+          logEvent('backup_restore', { cells: remote.cellsFilled });
           toast.openToast('서버 백업으로 복원했어요');
           navigate({ name: 'home' });
           return;
@@ -157,6 +164,7 @@ function App() {
       });
       if (!ok) return;
       backup.restore(remote.payload);
+      logEvent('backup_restore', { cells: remote.cellsFilled });
       toast.openToast('서버 백업으로 복원했어요');
       navigate({ name: 'home' });
     } catch (error) {
@@ -174,6 +182,7 @@ function App() {
     if (!ok) return;
     try {
       await backup.disable();
+      logEvent('backup_disable');
       toast.openToast('서버 백업을 끄고 지웠어요');
     } catch (error) {
       backupErrorToast(error);
@@ -191,6 +200,7 @@ function App() {
       cancelButton: '닫기',
     });
     if (!ok) return;
+    logEvent('reset');
     await app.reset();
     toast.openToast('새 만다라트를 시작해요');
     navigate({ name: 'home' });
@@ -211,6 +221,48 @@ function App() {
     window.scrollTo(0, 0);
   }, [route]);
 
+  // 분석(contract/events.md): 화면 진입은 라우트가 바뀔 때 1회(home_view·today_view), 편집은 block 에서 나갈 때 값이 바뀌었으면(board_edit),
+  // board_filled 는 보고 있는 판이 73칸이 되는 순간(판마다 사실상 1회). 값은 ref 로 읽어 상태가 바뀔 때마다 다시 보내지 않아요.
+  const latest = useRef({ filled: 0, boards: 0, todayCount: 0, streak: 0 });
+  latest.current = {
+    filled: activeBoard ? getProgress(activeBoard).filled : 0,
+    boards: app.state?.boards.boards.length ?? 0,
+    todayCount: todayChecks,
+    streak: app.state && activeBoard ? streak(app.state.checkins.byBoard[activeBoard.id], today) : 0,
+  };
+  const loaded = app.state !== null;
+  const screen = route.name;
+  useEffect(() => {
+    if (!loaded) return;
+    if (screen === 'home') logEvent('home_view', { filled: latest.current.filled, boards: latest.current.boards });
+    else if (screen === 'today') logEvent('today_view', { todayCount: latest.current.todayCount, streak: latest.current.streak });
+  }, [loaded, screen]);
+
+  const blockEntry = useRef<{ block: number; updatedAt: number } | null>(null);
+  const { getState } = app;
+  useEffect(() => {
+    const snapshot = getState();
+    const current = snapshot ? snapshot.boards.boards[snapshot.boards.active] : null;
+    if (route.name === 'block') {
+      blockEntry.current = current ? { block: route.block, updatedAt: current.updatedAt } : null;
+      return;
+    }
+    const entry = blockEntry.current;
+    blockEntry.current = null;
+    if (entry && current && current.updatedAt !== entry.updatedAt) logEvent('board_edit', { block: entry.block });
+  }, [route, getState]);
+
+  const filledRef = useRef<{ id: string; filled: number } | null>(null);
+  useEffect(() => {
+    if (!activeBoard) return;
+    const filled = getProgress(activeBoard).filled;
+    const prev = filledRef.current;
+    if (prev && prev.id === activeBoard.id && prev.filled < TOTAL_CELLS && filled === TOTAL_CELLS) {
+      logEvent('board_filled', { templateId: activeBoard.templateId ?? 'none' });
+    }
+    filledRef.current = { id: activeBoard.id, filled };
+  }, [activeBoard]);
+
   const { state, board } = app;
   // 저장된 상태를 읽는 동안(수십 ms)은 빈 화면. 번들 안에서 끝나는 일이라 로더는 두지 않아요.
   if (!state || !board) return null;
@@ -222,11 +274,23 @@ function App() {
   /** 실천 칸 탭 = 오늘 했어요 체크/해제. 처음 체크한 순간을 settings 에 남겨요(알림 안내용). */
   const toggleToday = (actionIndex: number) => {
     const now = Date.now();
+    const date = dateKey();
     void haptic('tap');
-    app.updateCheckins((checkins) => toggleCheck(checkins, board.id, dateKey(), actionIndex, now));
-    if (state.settings.firstCheckinAt === null) {
-      app.updateSettings((settings) => ({ ...settings, firstCheckinAt: now }));
-    }
+    const current = app.getState();
+    if (!current) return;
+    const first = current.settings.firstCheckinAt === null;
+    const next = toggleCheck(current.checkins, board.id, date, actionIndex, now);
+    app.updateCheckins(() => next);
+    if (first) app.updateSettings((settings) => ({ ...settings, firstCheckinAt: now }));
+    const nextRecord = next.byBoard[board.id];
+    const checkedNow = todaySet(nextRecord, date);
+    logEvent('action_check', {
+      index: actionIndex,
+      checked: checkedNow.has(actionIndex),
+      todayCount: checkedNow.size,
+      streak: streak(nextRecord, date),
+      first,
+    });
   };
 
   /** 공유 화면: 9×9 PNG 를 사진첩에 저장. 누른 뒤에만 photos 권한을 묻고, 거부해도 글·링크 공유는 그대로예요. */
@@ -235,6 +299,7 @@ function App() {
     try {
       const result = await saveImageToPhotos(card.base64, cardFileName(dateKey()));
       if (result === 'saved') {
+        logEvent('share_image_save', { hd: false });
         void haptic('success');
         toast.openToast('사진에 저장했어요');
       } else if (result === 'denied') {
@@ -248,6 +313,7 @@ function App() {
   };
 
   const shareBoardText = async () => {
+    logEvent('share_text');
     const result = await shareText(boardToText(board, todaySet(record, dateKey())));
     if (result === 'copied') toast.openToast('글을 복사했어요');
     else if (result === 'failed') toast.openToast('지금은 공유할 수 없어요');
@@ -261,6 +327,7 @@ function App() {
         toast.openToast('지금은 링크를 만들 수 없어요');
         return;
       }
+      logEvent('share_link');
       const goal = board.goal.trim() || '만다라트';
       const result = await shareText(`[만다라트] ${goal}\n토스 앱에서 만다라트로 목표를 함께 실천해요\n${link}`);
       if (result === 'copied') toast.openToast('링크를 복사했어요');
@@ -274,7 +341,7 @@ function App() {
    * 알림 동의 (홈 행 · 오늘 기록 버튼 · 설정 행에서 사용자가 누른 뒤에만). 결과를 settings.notification 에 남겨요.
    * 이미 동의한 상태에서 설정 행을 누르면 끄는 길(토스 앱 알림 설정)을 안내해요.
    */
-  const askNotification = async () => {
+  const askNotification = async (from: 'home' | 'today' | 'settings') => {
     if (state.settings.notification === 'agreed') {
       toast.openToast('알림은 토스 앱의 알림 설정에서 끌 수 있어요');
       return;
@@ -282,9 +349,11 @@ function App() {
     const result = await requestNotificationAgreement();
     if (result === 'agreed' || result === 'alreadyAgreed') {
       app.updateSettings((settings) => ({ ...settings, notification: 'agreed' }));
+      logEvent('notification_agree', { result: 'agreed', from });
       toast.openToast(result === 'agreed' ? '매일 저녁 9시에 알림을 보내요' : '이미 알림을 받고 있어요');
     } else if (result === 'declined') {
       app.updateSettings((settings) => ({ ...settings, notification: 'declined' }));
+      logEvent('notification_agree', { result: 'declined', from });
       toast.openToast('알림을 받지 않아요. 설정에서 다시 켤 수 있어요');
     } else if (result === 'unsupported') {
       toast.openToast('알림은 토스앱을 업데이트하면 설정할 수 있어요');
@@ -324,7 +393,8 @@ function App() {
         return;
       }
       app.updateSettings((settings) => ({ ...settings, unlocks: { ...settings.unlocks, extraBoard: true } }));
-      app.addBoard();
+      logEvent('reward_unlock', { type: 'extraBoard' });
+      if (app.addBoard()) logEvent('board_add', { boards: MAX_BOARDS });
       void haptic('success');
       toast.openToast('두 번째 판을 열었어요');
       navigate({ name: 'home' });
@@ -336,6 +406,7 @@ function App() {
   /** 설정 '두 번째 만다라트 판'(열렸는데 판이 하나): 빈 판을 추가하고 그 판을 보여줘요. */
   const addExtraBoard = () => {
     if (!app.addBoard()) return;
+    logEvent('board_add', { boards: MAX_BOARDS });
     toast.openToast('두 번째 판을 만들었어요');
     navigate({ name: 'home' });
   };
@@ -346,6 +417,7 @@ function App() {
       setTodayBusy(true);
       try {
         const result = await interstitial.show();
+        logEvent('ad_interstitial', { result });
         if (result === 'shown') {
           app.updateSettings((settings) => ({ ...settings, ads: { ...settings.ads, lastInterstitialDate: today } }));
         }
@@ -378,6 +450,7 @@ function App() {
           return;
         }
         hdCredit.current = true;
+        logEvent('reward_unlock', { type: 'hdImage' });
       }
       const card = renderCard({ board, checked: todaySet(record, today), today, streakDays: streak(record, today) }, HD_CARD);
       if (!card) {
@@ -387,6 +460,7 @@ function App() {
       const result = await saveImageToPhotos(card.base64, cardFileName(today, HD_CARD));
       if (result === 'saved') {
         hdCredit.current = false;
+        logEvent('share_image_save', { hd: true });
         void haptic('success');
         toast.openToast('고화질 이미지를 저장했어요');
       } else if (result === 'denied') {
@@ -429,7 +503,7 @@ function App() {
           board={board}
           record={record}
           content={content}
-          onNotification={notificationPrompt ? () => void askNotification() : undefined}
+          onNotification={notificationPrompt ? () => void askNotification('today') : undefined}
           onDone={goBack}
         />
       );
@@ -453,7 +527,7 @@ function App() {
           content={content}
           notification={state.settings.notification}
           notificationAvailable={notificationReady}
-          onNotification={() => void askNotification()}
+          onNotification={() => void askNotification('settings')}
           hasAnyText={state.boards.boards.some((b) => getProgress(b).filled > 0)}
           extraBoard={{
             unlocked: extraBoardOpen,
@@ -493,7 +567,7 @@ function App() {
           onShare={() => navigate({ name: 'share' })}
           onSettings={() => navigate({ name: 'settings' })}
           onSwitchBoard={openBoardPicker}
-          onNotification={() => void askNotification()}
+          onNotification={() => void askNotification('home')}
           onStartWithTemplate={openTemplatePicker}
         />
       );

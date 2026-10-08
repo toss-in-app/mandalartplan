@@ -44,3 +44,8 @@
 - 잠금이 풀렸는데 판이 하나면(처음부터 다시 만든 뒤 등) 광고 없이 '빈 판을 하나 더 만들어요' 로 추가. 판이 2개면 홈 제목이 `Top.TitleSelector` 가 되어 '판 바꾸기' 바텀시트(버튼으로만)로 전환. 체크 기록은 `checkins.byBoard[판 id]` 그대로 판별.
 - 백업 복원 등으로 판이 이미 2개면 잠금이 풀린 것으로 봄. '처음부터 다시 만들기' 는 두 판을 모두 지우고 빈 판 하나로(잠금 해제는 남음).
 
+## 2026-10-08 [client] 기능 8 분석 이벤트
+- `events.md` 의 이벤트 20개를 `Analytics.log` 로 보냄(`client/src/lib/analytics.ts` `logEvent`). `log_type` 은 화면 진입(`home_view`·`today_view`)만 `screen`, 나머지 `event`. 값은 문자열로, null·undefined 는 뺌. 실패·미지원은 무시.
+- 세부 규칙(계약 보충): `board_filled` 는 보고 있는 판의 채운 칸이 73이 되는 순간(이전 값이 73 미만일 때만 — 예시 템플릿이 73칸을 채우면 그때 1회), `templateId` 가 없으면 `none`. `board_edit` 는 block 화면에 들어올 때와 나갈 때 `updatedAt` 이 다르면 1회. `ad_interstitial` 은 전면 광고 조건(오늘 체크 있음·하루 1회)이 맞아 시도했을 때만 shown/skipped(미로딩)/failed(띄우기 실패). `backup_run.auto` 는 자동 백업 true, '지금 백업하기' false. `backup_error.stage` 는 key/get/upsert/delete(그 외 unknown).
+- 핵심 지표 후보(9단계 콘솔 입력): 활성 `action_check` · 전환 `board_filled`(대표)·`share_image_save`·`notification_agree`. 콘솔 '알림 받기 동의한 유저' 템플릿도 있으니 둘 중 하나.
+

@@ -26,13 +26,13 @@ export function useInterstitial(adGroupId: string, eligible: boolean) {
     if (eligible) preload();
   }, [eligible, preload]);
 
-  /** 준비된 광고를 보여주고 닫힐 때까지 기다려요. 준비 안 됐으면 바로 'skipped'. */
-  const show = useCallback(async (): Promise<'shown' | 'skipped'> => {
+  /** 준비된 광고를 보여주고 닫힐 때까지 기다려요. 준비 안 됐으면 바로 'skipped', 띄우다 실패하면 'failed'. */
+  const show = useCallback(async (): Promise<'shown' | 'skipped' | 'failed'> => {
     if (phase.current !== 'ready') return 'skipped';
     phase.current = 'showing';
     const result = await showAd(adGroupId);
     phase.current = 'idle';
-    return result.shown ? 'shown' : 'skipped';
+    return result.shown ? 'shown' : 'failed';
   }, [adGroupId]);
 
   return { show };
