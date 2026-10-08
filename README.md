@@ -13,6 +13,9 @@ npm run dev                 # http://localhost:5173 — AIT Devtools 가 브릿�
 npm run typecheck && npm test && npm run build   # tsc · vitest · vite build && ait build → client/mandalart.ait
 ```
 
+## 정적 배포 (8단계)
+- `static/` → GitHub Pages(`.github/workflows/pages.yml`, main 에 push 하면 계약 검증 뒤 배포, 1~2분). 주소 https://toss-in-app.github.io/mandalartplan/ — `content.json`·`og.png`·`terms/`·`privacy/`. 절차·롤백·동결 규칙은 `steps/8-server-deploy/runbooks/mandalartplan-deploy.md`.
+
 ## 검사
 - `npm run contract` — 계약 검증(콘텐츠 3벌·상태 샘플·백업 페이로드 ↔ `contract/*.schema.json`). `npm run content` 로 콘텐츠를 바꾼 뒤 꼭 돌린다.
 - `npm run check` — 계약 → 타입 → 린트 → 테스트 → 출시 번들 빌드. 워크플로우 6단계의 `steps/6-test/scripts/check-mandalartplan.sh` 가 이걸 돌리고 번들 크기까지 로그로 남긴다.
@@ -54,7 +57,7 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
 ```
 
 ## 단계 현황
-- 1~5단계 완료(콘솔 등록 2026-09-29, appName `mandalartplan`, 기능 9개 2026-10-08). 6단계 테스트: 자동 검사(계약·타입·린트·테스트 104개·빌드) 통과, Devtools 체크리스트 1차 작성(`steps/6-test/logs/`). 다음은 8단계 정적 배포·9단계 앱 정보.
+- 1~6단계 완료(콘솔 등록 2026-09-29, appName `mandalartplan`, 기능 9개·테스트 104개 2026-10-08). 8단계: `static/` 이 GitHub Pages(Actions)로 https://toss-in-app.github.io/mandalartplan/ 에 배포됨(2026-10-08). 다음은 9단계 앱 정보(콘솔 입력)·7단계 광고 그룹·10단계 QR.
 - 끝난 기능: 체크인(홈 3×3·세부 3×3 탭 체크·전체 보기·오늘 기록), 설정·예시 템플릿·초기화, Supabase 백업·복원, 공유(이미지 저장·글·링크), 광고(전면·리워드·배너, 테스트 ID), 알림 동의(템플릿 코드는 `.env`), 두 번째 판(리워드 잠금 해제·판 바꾸기 시트·판별 체크 기록), 분석 이벤트(`Analytics.log`, `contract/events.md` 20개).
 - 홈 마무리(안내 한 줄·공지·시즌 문구·문구 점검)까지 끝. 남은 기능 없음.
 
