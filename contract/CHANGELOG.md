@@ -54,3 +54,7 @@
 - 홈 안내 한 줄 규칙 확정: 빈 판 "가운데 칸을 눌러 핵심 목표부터 정해 보세요" / 목표는 있는데 실천이 0개 "세부 목표 칸을 눌러 실천을 적어 보세요"(추가) / 실천은 있는데 체크 기록 없음 "n월 n일 · 세부 목표를 눌러 실천을 체크해요" / 연속 중 "n일째 이어가는 중 · 오늘은 아직" / 오늘 체크 "n일째 · 오늘 n개 했어요".
 - 공지(`content.notice`, 60자)와 시즌 문구(`content.season.message`, 기간 안)는 Top 아래 한 줄, 공지가 우선. 원본은 `content/content.source.json` → `npm run content`(프로젝트 루트) → `static/content.json` + 번들. 문구 점검: 느낌표·이모지·습니다체 없음(콘텐츠는 검증 스크립트가 막음).
 
+## 2026-10-08 [contract] 6단계 계약 검증
+- `scripts/check-contract.mjs`(`npm run contract`): 콘텐츠 3벌(원본·번들·static)과 샘플을 `content.schema.json` 으로, `samples/state.sample.json` 을 `state.schema.json` 으로, 샘플로 조립한 백업 페이로드를 `backup.schema.json` 으로 검증. `npm run check` 는 계약 → 타입 → 린트 → 테스트 → 빌드.
+- `samples/state.sample.json` 에 v3 에서 빠졌던 `settings.backup` 추가(검증이 잡아냄). 스키마 변경 없음.
+

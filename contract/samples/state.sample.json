@@ -146,6 +146,11 @@
     },
     "seenContentVersion": 1,
     "firstCheckinAt": 1758891600000,
+    "backup": {
+      "enabled": false,
+      "key": null,
+      "lastBackupAt": null
+    },
     "ads": {
       "lastInterstitialDate": null
     }
