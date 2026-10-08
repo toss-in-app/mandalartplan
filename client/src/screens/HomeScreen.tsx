@@ -65,11 +65,13 @@ export function HomeScreen({
 
   const subtitle = isEmpty
     ? '가운데 칸을 눌러 핵심 목표부터 정해 보세요'
-    : checked.size > 0
-      ? `${days}일째 · 오늘 ${checked.size}개 했어요`
-      : days > 0
-        ? `${days}일째 이어가는 중 · 오늘은 아직`
-        : `${formatDateLabel(today)} · 세부 목표를 눌러 실천을 체크해요`;
+    : progress.actionsFilled === 0
+      ? '세부 목표 칸을 눌러 실천을 적어 보세요'
+      : checked.size > 0
+        ? `${days}일째 · 오늘 ${checked.size}개 했어요`
+        : days > 0
+          ? `${days}일째 이어가는 중 · 오늘은 아직`
+          : `${formatDateLabel(today)} · 세부 목표를 눌러 실천을 체크해요`;
 
   return (
     <>

@@ -47,6 +47,8 @@ describe('App (설정·예시 템플릿)', () => {
     // 빈 판: 홈 안내 + '예시로 시작하기'
     await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
     await waitFor(() => expect(logEvent).toHaveBeenCalledWith('home_view', { filled: 0, boards: 1 }));
+    // 본 콘텐츠 버전은 번들 콘텐츠 버전으로 남아요
+    await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).seenContentVersion).toBe(getBundledContent().contentVersion));
     fireEvent.click(screen.getByText('예시로 시작하기'));
 
     // 바텀시트에서 템플릿 선택 → 빈 판이라 확인 없이 바로 적용

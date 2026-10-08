@@ -49,3 +49,8 @@
 - 세부 규칙(계약 보충): `board_filled` 는 보고 있는 판의 채운 칸이 73이 되는 순간(이전 값이 73 미만일 때만 — 예시 템플릿이 73칸을 채우면 그때 1회), `templateId` 가 없으면 `none`. `board_edit` 는 block 화면에 들어올 때와 나갈 때 `updatedAt` 이 다르면 1회. `ad_interstitial` 은 전면 광고 조건(오늘 체크 있음·하루 1회)이 맞아 시도했을 때만 shown/skipped(미로딩)/failed(띄우기 실패). `backup_run.auto` 는 자동 백업 true, '지금 백업하기' false. `backup_error.stage` 는 key/get/upsert/delete(그 외 unknown).
 - 핵심 지표 후보(9단계 콘솔 입력): 활성 `action_check` · 전환 `board_filled`(대표)·`share_image_save`·`notification_agree`. 콘솔 '알림 받기 동의한 유저' 템플릿도 있으니 둘 중 하나.
 
+## 2026-10-08 [client] 기능 9 홈 마무리
+- 계약 변경 없음. `settings.seenContentVersion`(v1 부터 있던 '본 콘텐츠 버전')을 이제 씀: 홈이 그리는 콘텐츠(번들 또는 원격)의 `contentVersion` 을 상태를 읽은 뒤 1회 저장(더 큰 값일 때만).
+- 홈 안내 한 줄 규칙 확정: 빈 판 "가운데 칸을 눌러 핵심 목표부터 정해 보세요" / 목표는 있는데 실천이 0개 "세부 목표 칸을 눌러 실천을 적어 보세요"(추가) / 실천은 있는데 체크 기록 없음 "n월 n일 · 세부 목표를 눌러 실천을 체크해요" / 연속 중 "n일째 이어가는 중 · 오늘은 아직" / 오늘 체크 "n일째 · 오늘 n개 했어요".
+- 공지(`content.notice`, 60자)와 시즌 문구(`content.season.message`, 기간 안)는 Top 아래 한 줄, 공지가 우선. 원본은 `content/content.source.json` → `npm run content`(프로젝트 루트) → `static/content.json` + 번들. 문구 점검: 느낌표·이모지·습니다체 없음(콘텐츠는 검증 스크립트가 막음).
+

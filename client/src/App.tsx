@@ -221,6 +221,15 @@ function App() {
     window.scrollTo(0, 0);
   }, [route]);
 
+  // 본 콘텐츠 버전(계약 settings.seenContentVersion): 지금 그리는 콘텐츠(번들 또는 원격)의 버전을 남겨요. 콘텐츠가 갱신됐을 때만 저장.
+  const contentVersion = content.contentVersion;
+  const stateLoaded = app.state !== null;
+  const { updateSettings } = app;
+  useEffect(() => {
+    if (!stateLoaded) return;
+    updateSettings((settings) => (settings.seenContentVersion >= contentVersion ? settings : { ...settings, seenContentVersion: contentVersion }));
+  }, [stateLoaded, contentVersion, updateSettings]);
+
   // 분석(contract/events.md): 화면 진입은 라우트가 바뀔 때 1회(home_view·today_view), 편집은 block 에서 나갈 때 값이 바뀌었으면(board_edit),
   // board_filled 는 보고 있는 판이 73칸이 되는 순간(판마다 사실상 1회). 값은 ref 로 읽어 상태가 바뀔 때마다 다시 보내지 않아요.
   const latest = useRef({ filled: 0, boards: 0, todayCount: 0, streak: 0 });
