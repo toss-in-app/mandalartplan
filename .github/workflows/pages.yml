@@ -1,0 +1,43 @@
+# static/ 을 GitHub Pages 로 배포 (8단계). 콘텐츠 JSON 은 검증을 통과해야 올라가요.
+# 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 두면 main 에 push 할 때마다 반영돼요(수 분).
+name: Deploy static to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'static/**'
+      - 'content/**'
+      - 'contract/**'
+      - 'scripts/check-contract.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 계약 검증 (콘텐츠 3벌이 같고 스키마를 통과해야 배포)
+        run: npm ci --ignore-scripts && npm run contract
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: static
+      - id: deployment
+        uses: actions/deploy-pages@v4
