@@ -6,6 +6,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 화면 제목(TDS Top 의 h1)이 "건강한 / 한 해" 처럼 끝말만 다음 줄로 넘어가지 않게 줄 길이를 고르게 나눠요 */
+h1 {
+  text-wrap: balance;
+}
+
 body {
   margin: 0;
   min-width: 320px;

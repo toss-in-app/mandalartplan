@@ -87,14 +87,17 @@ export function HomeScreen({
         }
         subtitleBottom={<Top.SubtitleParagraph size={17}>{subtitle}</Top.SubtitleParagraph>}
         right={
-          <Top.RightButton color="dark" variant="weak" disabled={isEmpty} onClick={onShare}>
-            공유
-          </Top.RightButton>
+          // 빈 판에서는 잠긴 버튼을 늘어놓지 않고 숨겨요
+          isEmpty ? undefined : (
+            <Top.RightButton color="dark" variant="weak" onClick={onShare}>
+              공유
+            </Top.RightButton>
+          )
         }
       />
 
       {(content.notice || season) && (
-        <div style={{ padding: '0 20px 16px' }}>
+        <div style={{ padding: '0 24px 16px' }}>
           <Text typography="t7" color={colors.grey700}>
             {content.notice ?? season?.message}
           </Text>
@@ -119,40 +122,44 @@ export function HomeScreen({
         />
       </div>
 
-      <div style={{ padding: '20px 20px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <Text typography="t7" color={colors.grey600}>
-            오늘 실천
-          </Text>
-          <Text typography="t7" color={colors.grey800} fontWeight="semibold">
-            {checked.size} / {progress.actionsFilled}
-          </Text>
+      {/* 실천을 하나라도 적은 뒤에만 진행률을 보여요 (0 / 0 은 뜻이 없어요) */}
+      {progress.actionsFilled > 0 && (
+        <div style={{ padding: '20px 20px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text typography="t7" color={colors.grey600}>
+              오늘 실천
+            </Text>
+            <Text typography="t7" color={colors.grey800} fontWeight="semibold">
+              {checked.size} / {progress.actionsFilled}
+            </Text>
+          </div>
+          <ProgressBar size="normal" color={brandColor} progress={checked.size / progress.actionsFilled} animate />
         </div>
-        <ProgressBar
-          size="normal"
-          color={brandColor}
-          progress={progress.actionsFilled === 0 ? 0 : checked.size / progress.actionsFilled}
-          animate
-        />
-      </div>
+      )}
 
-      <div style={{ display: 'flex', gap: 8, padding: '24px 20px 8px' }}>
-        <div style={{ flex: 1 }}>
-          <Button display="full" size="large" disabled={progress.actionsFilled === 0 || todayBusy} loading={todayBusy} onClick={onToday}>
-            오늘 기록 보기
+      {isEmpty ? (
+        // 빈 판: 가운데 칸(직접 쓰기) 말고 다른 시작 길은 예시 하나만 버튼으로 둬요
+        <div style={{ padding: '24px 20px 8px' }}>
+          <Button display="block" size="large" color="dark" variant="weak" onClick={onStartWithTemplate}>
+            예시로 시작하기
           </Button>
         </div>
-        <div style={{ flex: 1 }}>
-          <Button display="full" size="large" color="dark" variant="weak" disabled={isEmpty} onClick={onOverview}>
-            전체 보기
-          </Button>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, padding: '24px 20px 8px' }}>
+          <div style={{ flex: 1 }}>
+            <Button display="block" size="large" disabled={progress.actionsFilled === 0 || todayBusy} loading={todayBusy} onClick={onToday}>
+              오늘 기록 보기
+            </Button>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Button display="block" size="large" color="dark" variant="weak" onClick={onOverview}>
+              전체 보기
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       <List>
-        {isEmpty && (
-          <ListRow onClick={onStartWithTemplate} withArrow contents={<ListRow.Texts type="1RowTypeA" top="예시로 시작하기" />} />
-        )}
         {notificationVisible && (
           <ListRow
             onClick={onNotification}

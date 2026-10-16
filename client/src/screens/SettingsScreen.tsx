@@ -1,5 +1,5 @@
 import { colors } from '@toss/tds-colors';
-import { List, ListRow, Text, Top } from '@toss/tds-mobile';
+import { Border, List, ListRow, Text, Top } from '@toss/tds-mobile';
 
 import { PRIVACY_URL, TERMS_URL, type Content } from '../content';
 import { openUrl } from '../lib/bridge';
@@ -50,7 +50,8 @@ const NOTIFICATION_LABEL: Record<NotificationStatus, string> = {
 };
 
 /**
- * 설정. 매일 저녁 알림(동의 요청·상태) · 예시 템플릿 · 두 번째 판(리워드 잠금) · 초기화 · 백업 · 약관 · 버전.
+ * 설정. 매일 저녁 알림(동의 요청·상태) · 예시 템플릿 · 두 번째 판(리워드 잠금) | 백업 | 약관 | 초기화 · 버전.
+ * 묶음 사이는 TDS Border(height16)로 나누고, 되돌릴 수 없는 초기화는 맨 아래 따로 둬요.
  */
 export function SettingsScreen({
   content,
@@ -64,7 +65,7 @@ export function SettingsScreen({
   onReset,
 }: SettingsScreenProps) {
   const rightText = (text: string) => (
-    <Text typography="t7" color={colors.grey500}>
+    <Text typography="t7" color={colors.grey600}>
       {text}
     </Text>
   );
@@ -102,13 +103,9 @@ export function SettingsScreen({
             right={rightText('사용 중')}
           />
         )}
-        <ListRow
-          onClick={hasAnyText ? onReset : undefined}
-          disabled={!hasAnyText}
-          contents={<ListRow.Texts type="1RowTypeA" top="처음부터 다시 만들기" topProps={{ color: hasAnyText ? colors.red500 : colors.grey400 }} />}
-        />
       </List>
 
+      <Border variant="height16" />
       <List>
         {!backup.configured && (
           <ListRow contents={<ListRow.Texts type="1RowTypeA" top="서버 백업" />} right={rightText('준비 중')} />
@@ -138,17 +135,27 @@ export function SettingsScreen({
         )}
       </List>
 
+      <Border variant="height16" />
       <List>
         <ListRow withArrow onClick={() => void openUrl(TERMS_URL)} contents={<ListRow.Texts type="1RowTypeA" top="이용약관" />} />
         <ListRow withArrow onClick={() => void openUrl(PRIVACY_URL)} contents={<ListRow.Texts type="1RowTypeA" top="개인정보처리방침" />} />
       </List>
 
+      <Border variant="height16" />
+      <List>
+        <ListRow
+          onClick={hasAnyText ? onReset : undefined}
+          disabled={!hasAnyText}
+          contents={<ListRow.Texts type="1RowTypeA" top="처음부터 다시 만들기" topProps={{ color: hasAnyText ? colors.red500 : colors.grey400 }} />}
+        />
+      </List>
+
       <div style={{ padding: '24px 24px 40px' }}>
-        <Text typography="t7" color={colors.grey500} display="block">
+        <Text typography="t7" color={colors.grey600} display="block">
           적은 내용과 체크 기록은 이 기기에 저장돼요. 서버 백업을 켜면 토스 익명 식별값으로 만든 키와 함께 서버에도 보관해요.
         </Text>
         <div style={{ height: 8 }} />
-        <Text typography="t7" color={colors.grey400} display="block">
+        <Text typography="t7" color={colors.grey600} display="block">
           앱 {__APP_VERSION__} · 콘텐츠 {content.contentVersion} ({content.updatedAt})
         </Text>
       </div>

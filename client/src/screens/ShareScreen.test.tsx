@@ -69,7 +69,7 @@ describe('ShareScreen', () => {
 
   it('빈 판이면 Result 로 홈 이동만 안내해요', () => {
     const handlers = renderShare({ board: createEmptyBoard(1) });
-    expect(screen.getByText('아직 적은 목표가 없어요')).toBeInTheDocument();
+    expect(screen.getByText('핵심 목표를 적으면 공유할 수 있어요')).toBeInTheDocument();
     fireEvent.click(screen.getByText('홈으로'));
     expect(handlers.onDone).toHaveBeenCalledTimes(1);
   });

@@ -37,8 +37,8 @@ export function ShareScreen({ board, checkin, canSave, busy, onSaveImage, onSave
       <>
         <Top title={<Top.TitleParagraph size={22}>만다라트 공유</Top.TitleParagraph>} />
         <Result
-          title="아직 적은 목표가 없어요"
-          description="홈에서 핵심 목표부터 적으면 이미지로 저장하거나 공유할 수 있어요"
+          title="핵심 목표를 적으면 공유할 수 있어요"
+          description="홈 가운데 칸을 눌러 핵심 목표부터 적어 보세요"
           button={<Result.Button onClick={onDone}>홈으로</Result.Button>}
         />
       </>
@@ -64,7 +64,7 @@ export function ShareScreen({ board, checkin, canSave, busy, onSaveImage, onSave
             <Text typography="t6" color={colors.grey700} display="block">
               미리보기를 만들 수 없어요
             </Text>
-            <Text typography="t7" color={colors.grey500} display="block" style={{ marginTop: 6 }}>
+            <Text typography="t7" color={colors.grey600} display="block" style={{ marginTop: 6 }}>
               글이나 링크로는 공유할 수 있어요
             </Text>
           </div>
@@ -86,11 +86,12 @@ export function ShareScreen({ board, checkin, canSave, busy, onSaveImage, onSave
         />
         {canSave && onSaveHd && (
           <ListRow
+            withArrow
             disabled={busy}
             onClick={onSaveHd}
-            contents={<ListRow.Texts type="2RowTypeA" top="고화질로 저장" bottom="광고를 보면 워터마크 없이 2배 크기로 저장해요" />}
+            contents={<ListRow.Texts type="2RowTypeA" top="고화질로 저장하기" bottom="광고를 보면 워터마크 없이 2배 크기로 저장해요" />}
             right={
-              <Text typography="t7" color={colors.grey500}>
+              <Text typography="t7" color={colors.grey600}>
                 광고 보기
               </Text>
             }
@@ -98,8 +99,8 @@ export function ShareScreen({ board, checkin, canSave, busy, onSaveImage, onSave
         )}
       </List>
 
-      <div style={{ padding: '8px 20px 120px' }}>
-        <Text typography="t7" color={colors.grey500} display="block">
+      <div style={{ padding: '8px 24px 120px' }}>
+        <Text typography="t7" color={colors.grey600} display="block">
           {canSave
             ? '이미지 저장하기를 누르면 사진 접근을 한 번 물어요. 저장한 이미지에는 작은 워터마크가 들어가요.'
             : '이미지 저장은 토스앱을 업데이트하면 쓸 수 있어요. 글이나 링크로는 지금도 공유할 수 있어요.'}

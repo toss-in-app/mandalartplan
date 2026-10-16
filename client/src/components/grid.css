@@ -50,9 +50,12 @@ button.mg-block:active {
   border: 0;
   border-radius: 3px;
   font-family: inherit;
-  font-size: 9px;
+  /* 전체 보기는 확대가 막혀 있어(비게임 체크리스트) 9px 보다 키우고 두 줄까지만 보여요. 자세히는 블록을 눌러 봐요 */
+  font-size: 10px;
   line-height: 1.2;
-  word-break: break-all;
+  /* 한국어 단어 중간에서 끊지 않고 띄어쓰기에서 줄을 바꿔요. 한 단어가 칸보다 길 때만 쪼개요 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -68,8 +71,6 @@ button.mg-block:active {
   border-radius: 14px;
   font-size: 14px;
   line-height: 1.3;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
 }
 
 button.mg-cell {
@@ -83,8 +84,10 @@ button.mg-cell:active {
 .mg-cell-text {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   overflow: hidden;
+  /* "건강한 한 / 해" 처럼 끝 글자만 남지 않게 줄 길이를 고르게 나눠요 */
+  text-wrap: balance;
 }
 
 .mg-block-large .mg-cell-text {
@@ -93,10 +96,6 @@ button.mg-cell:active {
 
 .mg-block-main .mg-cell-text {
   -webkit-line-clamp: 4;
-}
-
-.mg-cell-placeholder {
-  opacity: 0.55;
 }
 
 .mg-cell-caption {

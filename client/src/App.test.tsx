@@ -130,7 +130,7 @@ describe('App (공유)', () => {
 
     // 글로 공유: Devtools mock 의 Share.sendMessage 가 받아요(jsdom 은 navigator.share 없음 → 콘솔 출력)
     fireEvent.click(screen.getByText('글로 공유하기'));
-    await waitFor(() => expect(screen.queryByText('지금은 공유할 수 없어요')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('공유하지 못했어요. 잠시 뒤에 다시 해 주세요')).not.toBeInTheDocument());
     expect(logEvent).toHaveBeenCalledWith('share_text');
   });
 
@@ -196,7 +196,7 @@ describe('App (광고)', () => {
         <App />
       </TDSMobileAITProvider>,
     );
-    fireEvent.click(await screen.findByText('고화질로 저장'));
+    fireEvent.click(await screen.findByText('고화질로 저장하기'));
     await screen.findByText('광고를 보고 고화질로 저장할까요?');
     fireEvent.click(screen.getByRole('button', { name: '광고 보기' })); // 행의 오른쪽 글에도 '광고 보기' 가 있어요
     // Devtools mock 은 userEarnedReward 를 주지 않아요 → 끝까지 보라는 안내, 저장 브릿지 호출 없음
@@ -230,7 +230,7 @@ describe('App (알림 동의)', () => {
     expect(screen.queryByText('매일 저녁 알림 받기')).not.toBeInTheDocument(); // 아직 체크 전
 
     // 세부 목표 1 → 실천 탭(첫 체크) → 홈으로
-    fireEvent.click(screen.getByRole('button', { name: '운동' }));
+    fireEvent.click(screen.getByRole('button', { name: /^운동, / }));
     fireEvent.click(await screen.findByRole('button', { name: '아침 스트레칭, 오늘 아직' }));
     expect(logEvent).toHaveBeenCalledWith('action_check', { index: 0, checked: true, todayCount: 1, streak: 1, first: true });
     window.history.back();

@@ -27,10 +27,12 @@ describe('OverviewScreen (9×9 전체 보기)', () => {
     const onEditCore = vi.fn();
     wrap(<OverviewScreen board={fullBoard} checkin={record} onSelectSub={onSelectSub} onEditCore={onEditCore} />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('전체 보기');
-    expect(screen.getAllByRole('button', { name: /열기$/ })).toHaveLength(9);
-    fireEvent.click(screen.getByRole('button', { name: '세부 목표 3 열기' }));
+    expect(screen.getAllByRole('button', { name: / 열기(, 오늘 \d+개 했어요)?$/ })).toHaveLength(9);
+    // 블록 이름에 제목과 오늘 체크 수가 들어가요 (안의 글은 aria-label 에 가려져요)
+    expect(screen.getByRole('button', { name: `${fullBoard.subs[0].title}, 세부 목표 1 열기, 오늘 2개 했어요` })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /세부 목표 3 열기$/ }));
     expect(onSelectSub).toHaveBeenCalledWith(2);
-    fireEvent.click(screen.getByRole('button', { name: '핵심 목표와 세부 목표 열기' }));
+    fireEvent.click(screen.getByRole('button', { name: /핵심 목표와 세부 목표 열기$/ }));
     expect(onEditCore).toHaveBeenCalledTimes(1);
   });
 });
@@ -103,7 +105,7 @@ describe('TodayScreen (오늘 기록)', () => {
   it('오늘 체크가 없으면 Result 안내와 홈으로 버튼만 있어요 (광고 없음)', () => {
     const onDone = vi.fn();
     wrap(<TodayScreen board={fullBoard} record={undefined} content={content} onDone={onDone} />);
-    expect(screen.getByText('아직 오늘 한 실천이 없어요')).toBeInTheDocument();
+    expect(screen.getByText('오늘 한 실천을 체크해 보세요')).toBeInTheDocument();
     fireEvent.click(screen.getByText('홈으로'));
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('ad-banner')).not.toBeInTheDocument();

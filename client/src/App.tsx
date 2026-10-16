@@ -98,8 +98,8 @@ function App() {
     (error: unknown) => {
       logEvent('backup_error', describeBackupError(error));
       if (error instanceof BackupKeyError) toast.openToast(error.message);
-      else if (error instanceof BackupApiError) toast.openToast('지금은 서버에 연결할 수 없어요');
-      else toast.openToast('지금은 백업할 수 없어요');
+      else if (error instanceof BackupApiError) toast.openToast('서버에 연결하지 못했어요. 잠시 뒤에 다시 해 주세요');
+      else toast.openToast('백업하지 못했어요. 잠시 뒤에 다시 해 주세요');
     },
     [toast],
   );
@@ -153,7 +153,7 @@ function App() {
     try {
       const remote = await backup.fetchRemote();
       if (!remote) {
-        toast.openToast('서버에 백업이 없어요');
+        toast.openToast('서버에 백업이 아직 없어요. 지금 백업하기를 누르면 올려요');
         return;
       }
       const ok = await openConfirm({
@@ -314,7 +314,7 @@ function App() {
       } else if (result === 'denied') {
         toast.openToast('사진 접근을 허용하면 저장할 수 있어요');
       } else {
-        toast.openToast('지금은 이미지를 저장할 수 없어요');
+        toast.openToast('이미지를 저장하지 못했어요. 잠시 뒤에 다시 해 주세요');
       }
     } finally {
       setShareBusy(false);
@@ -325,7 +325,7 @@ function App() {
     logEvent('share_text');
     const result = await shareText(boardToText(board, todaySet(record, dateKey())));
     if (result === 'copied') toast.openToast('글을 복사했어요');
-    else if (result === 'failed') toast.openToast('지금은 공유할 수 없어요');
+    else if (result === 'failed') toast.openToast('공유하지 못했어요. 잠시 뒤에 다시 해 주세요');
   };
 
   const shareBoardLink = async () => {
@@ -333,14 +333,14 @@ function App() {
     try {
       const link = await createShareLink(OG_IMAGE_URL);
       if (!link) {
-        toast.openToast('지금은 링크를 만들 수 없어요');
+        toast.openToast('링크를 만들지 못했어요. 잠시 뒤에 다시 해 주세요');
         return;
       }
       logEvent('share_link');
       const goal = board.goal.trim() || '만다라트';
       const result = await shareText(`[만다라트] ${goal}\n토스 앱에서 만다라트로 목표를 함께 실천해요\n${link}`);
       if (result === 'copied') toast.openToast('링크를 복사했어요');
-      else if (result === 'failed') toast.openToast('지금은 공유할 수 없어요');
+      else if (result === 'failed') toast.openToast('공유하지 못했어요. 잠시 뒤에 다시 해 주세요');
     } finally {
       setShareBusy(false);
     }
@@ -367,7 +367,7 @@ function App() {
     } else if (result === 'unsupported') {
       toast.openToast('알림은 토스앱을 업데이트하면 설정할 수 있어요');
     } else {
-      toast.openToast('지금은 알림을 설정할 수 없어요');
+      toast.openToast('알림을 설정하지 못했어요. 잠시 뒤에 다시 해 주세요');
     }
   };
   const notificationReady = notificationAvailable();
@@ -394,7 +394,7 @@ function App() {
     try {
       const outcome = await extraBoardReward.watch();
       if (outcome === 'unavailable') {
-        toast.openToast('지금은 광고를 불러올 수 없어요');
+        toast.openToast('광고를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요');
         return;
       }
       if (outcome === 'dismissed') {
@@ -451,7 +451,7 @@ function App() {
         if (!ok) return;
         const outcome = await hdReward.watch();
         if (outcome === 'unavailable') {
-          toast.openToast('지금은 광고를 불러올 수 없어요');
+          toast.openToast('광고를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요');
           return;
         }
         if (outcome === 'dismissed') {
@@ -463,7 +463,7 @@ function App() {
       }
       const card = renderCard({ board, checked: todaySet(record, today), today, streakDays: streak(record, today) }, HD_CARD);
       if (!card) {
-        toast.openToast('지금은 이미지를 만들 수 없어요. 광고를 다시 보지 않아도 돼요');
+        toast.openToast('이미지를 만들지 못했어요. 다시 누르면 광고 없이 저장해요');
         return;
       }
       const result = await saveImageToPhotos(card.base64, cardFileName(today, HD_CARD));
@@ -473,9 +473,9 @@ function App() {
         void haptic('success');
         toast.openToast('고화질 이미지를 저장했어요');
       } else if (result === 'denied') {
-        toast.openToast('사진 접근을 허용하면 저장할 수 있어요. 광고를 다시 보지 않아도 돼요');
+        toast.openToast('사진 접근을 허용한 뒤 다시 누르면 광고 없이 저장해요');
       } else {
-        toast.openToast('지금은 이미지를 저장할 수 없어요. 광고를 다시 보지 않아도 돼요');
+        toast.openToast('이미지를 저장하지 못했어요. 다시 누르면 광고 없이 저장해요');
       }
     } finally {
       setShareBusy(false);

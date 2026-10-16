@@ -42,24 +42,31 @@ function renderHome(board: Board, content: Content) {
 describe('HomeScreen (홈 마무리)', () => {
   const content = getBundledContent();
 
-  it('빈 판: 안내 한 줄 + 예시로 시작하기, 오늘 기록·전체 보기·공유는 잠겨요', () => {
+  it('빈 판: 안내 한 줄 + 예시로 시작하기 버튼만, 잠긴 버튼(오늘 기록·전체 보기·공유)과 진행률은 숨겨요', () => {
     renderHome(createEmptyBoard(1759000000000), content);
     expect(screen.getByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요')).toBeInTheDocument();
-    expect(screen.getByText('예시로 시작하기')).toBeInTheDocument();
-    expect(screen.getByText('오늘 기록 보기').closest('button')).toBeDisabled();
-    expect(screen.getByText('전체 보기').closest('button')).toBeDisabled();
-    expect(screen.getByText('공유').closest('button')).toBeDisabled();
+    expect(screen.getByText('예시로 시작하기').closest('button')).not.toBeDisabled();
+    expect(screen.queryByText('오늘 기록 보기')).not.toBeInTheDocument();
+    expect(screen.queryByText('전체 보기')).not.toBeInTheDocument();
+    expect(screen.queryByText('공유')).not.toBeInTheDocument();
+    expect(screen.queryByText('오늘 실천')).not.toBeInTheDocument();
   });
 
-  it('목표만 있고 실천이 없으면 실천을 적으라고 안내하고, 실천이 생기면 체크 안내로 바뀌어요', () => {
+  it('목표만 있고 실천이 없으면 실천을 적으라고 안내하고, 실천이 생기면 체크 안내와 진행률이 나와요', () => {
     const { unmount } = renderHome(filledBoard(false), content);
     expect(screen.getByText('세부 목표 칸을 눌러 실천을 적어 보세요')).toBeInTheDocument();
     expect(screen.queryByText('예시로 시작하기')).not.toBeInTheDocument();
     expect(screen.getByText('오늘 기록 보기').closest('button')).toBeDisabled();
+    expect(screen.queryByText('오늘 실천')).not.toBeInTheDocument();
+    // 세부 목표 칸 이름에 칸 아래 글까지 담아요
+    expect(screen.getByRole('button', { name: '운동, 실천을 적어요' })).toBeInTheDocument();
     unmount();
     renderHome(filledBoard(true), content);
     expect(screen.getByText(/세부 목표를 눌러 실천을 체크해요/)).toBeInTheDocument();
     expect(screen.getByText('오늘 기록 보기').closest('button')).not.toBeDisabled();
+    expect(screen.getByText('오늘 실천')).toBeInTheDocument();
+    // "오늘 0/1" 은 날짜처럼 읽힐 수 있어 "오늘 1개 중 0개" 로 읽혀요
+    expect(screen.getByRole('button', { name: '운동, 오늘 1개 중 0개' })).toBeInTheDocument();
   });
 
   it('공지가 있으면 Top 아래 한 줄, 없으면 기간 안의 시즌 문구만, 둘 다 없으면 아무것도 없어요', () => {

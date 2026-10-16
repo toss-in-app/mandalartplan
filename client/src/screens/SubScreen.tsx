@@ -25,7 +25,7 @@ export function SubScreen({ board, subIndex, checkin, onToggle, onEdit }: SubScr
   const total = sub.actions.filter((a) => a.trim()).length;
   const done = checkedInSub(checked, subIndex);
   const title = sub.title.trim() || `세부 목표 ${subIndex + 1}`;
-  const subtitle = total === 0 ? '실천 항목을 적어 보세요' : `오늘 ${done}/${total} · 칸을 누르면 오늘 했어요로 표시돼요`;
+  const subtitle = total === 0 ? '실천 항목을 적어 보세요' : `오늘 ${done}/${total} · 실천한 칸을 눌러 체크해요`;
 
   return (
     <>
@@ -52,8 +52,8 @@ export function SubScreen({ board, subIndex, checkin, onToggle, onEdit }: SubScr
         />
       </div>
 
-      <div style={{ padding: '20px 20px 40px' }}>
-        <Text typography="t7" color={colors.grey500} display="block">
+      <div style={{ padding: '20px 24px 40px' }}>
+        <Text typography="t7" color={colors.grey600} display="block">
           {board.goal.trim() ? `핵심 목표 · ${board.goal.trim()}` : '핵심 목표는 홈 가운데 칸에서 적어요'}
         </Text>
       </div>

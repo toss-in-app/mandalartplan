@@ -42,11 +42,11 @@ export async function fetchAnonymousHash(): Promise<string> {
   try {
     const result = await withTimeout(User.getAnonymousKey(), KEY_TIMEOUT_MS);
     if (!result || typeof result.hash !== 'string' || result.hash.length === 0) {
-      throw new BackupKeyError('failed', '사용자 키를 받지 못했어요');
+      throw new BackupKeyError('failed', '사용자 키를 받지 못했어요. 잠시 뒤에 다시 해 주세요');
     }
     return result.hash;
   } catch (error) {
     if (error instanceof BackupKeyError) throw error;
-    throw new BackupKeyError('failed', '사용자 키를 받지 못했어요');
+    throw new BackupKeyError('failed', '사용자 키를 받지 못했어요. 잠시 뒤에 다시 해 주세요');
   }
 }

@@ -8,15 +8,19 @@ import './grid.css';
 
 export type BlockSize = 'small' | 'large' | 'main';
 
+/**
+ * 칸 색. 빈 자리 글까지 글자 대비 4.5:1 이상으로 맞춰요.
+ * 오늘 체크는 틴트에 브랜드 테두리를 더해요 — 틴트만으로는 세부 목표 칸(14%)과 1.1:1 이라 전체 보기에서 구분되지 않아요.
+ */
 function cellStyle(view: CellView, size: BlockSize): CSSProperties {
   switch (view.kind) {
     case 'goal':
-      return { background: brandColor, color: colors.white, fontWeight: 700 };
+      return { background: brandColor, color: colors.white, fontWeight: view.text ? 700 : 600 };
     case 'sub':
       return {
         background: withAlpha(brandColor, 0.14),
-        color: view.text ? colors.grey900 : colors.grey600,
-        fontWeight: 600,
+        color: view.text ? colors.grey900 : colors.grey700,
+        fontWeight: view.text ? 600 : 500,
       };
     default:
       if (view.checked) {
@@ -24,11 +28,27 @@ function cellStyle(view: CellView, size: BlockSize): CSSProperties {
           background: withAlpha(brandColor, 0.22),
           color: colors.grey900,
           fontWeight: 600,
-          boxShadow: size === 'main' ? `inset 0 0 0 2px ${brandColor}` : undefined,
+          boxShadow: `inset 0 0 0 ${size === 'main' ? 2 : 1.5}px ${brandColor}`,
         };
       }
-      return { background: colors.grey100, color: view.text ? colors.grey800 : colors.grey400 };
+      if (!view.text) {
+        // 빈 실천 칸은 흰 바탕에 옅은 테두리로 '비어 있음'을 보여줘요
+        return { background: colors.white, color: colors.grey600, boxShadow: `inset 0 0 0 1px ${colors.grey200}` };
+      }
+      return { background: colors.grey100, color: colors.grey800 };
   }
+}
+
+/** 전체 보기 블록 버튼의 이름. aria-label 이 안의 글을 가리니 제목과 오늘 체크 수를 담아요. */
+function blockButtonLabel(views: CellView[], label: string): string {
+  const title = views[CENTER].text.trim();
+  const done = views.filter((view) => view.checked).length;
+  return `${title ? `${title}, ` : ''}${label} 열기${done > 0 ? `, 오늘 ${done}개 했어요` : ''}`;
+}
+
+/** 스크린리더용 칸 아래 글. "오늘 2/8" 은 날짜처럼 읽힐 수 있어 "오늘 8개 중 2개" 로 바꿔요. */
+function spokenCaption(caption: string): string {
+  return caption.replace(/(\d+)\/(\d+)/, '$2개 중 $1개');
 }
 
 interface BlockProps {
@@ -49,7 +69,7 @@ function CellContent({ view, caption, size }: { view: CellView; caption: string 
   const text = view.text || view.placeholder || (size === 'main' ? '비어 있어요' : '');
   return (
     <>
-      <span className={view.text ? 'mg-cell-text' : 'mg-cell-text mg-cell-placeholder'}>{text}</span>
+      <span className="mg-cell-text">{text}</span>
       {caption && <span className="mg-cell-caption">{caption}</span>}
       {view.checked && size === 'main' && (
         <span className="mg-cell-check" style={{ background: brandColor, color: colors.white }} aria-hidden>
@@ -67,7 +87,7 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
 
   if (onSelect) {
     return (
-      <button type="button" className={className} onClick={onSelect} aria-label={`${label} 열기`}>
+      <button type="button" className={className} onClick={onSelect} aria-label={blockButtonLabel(views, label)}>
         {views.map((view, cell) => (
           <span key={cell} className="mg-cell" style={cellStyle(view, size)}>
             <CellContent view={view} caption={caption?.(view, cell) ?? null} size={size} />
@@ -89,7 +109,11 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
             className="mg-cell"
             style={cellStyle(view, size)}
             onClick={() => onSelectCell(cell, view)}
-            aria-label={view.kind === 'action' && view.text ? `${name}, 오늘 ${view.checked ? '했어요' : '아직'}` : name}
+            aria-label={
+              view.kind === 'action' && view.text
+                ? `${name}, 오늘 ${view.checked ? '했어요' : '아직'}`
+                : `${name}${cap ? `, ${spokenCaption(cap)}` : ''}`
+            }
             aria-pressed={view.kind === 'action' && view.text ? view.checked : undefined}
           >
             <CellContent view={view} caption={cap} size={size} />

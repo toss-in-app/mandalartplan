@@ -39,7 +39,7 @@ export function useBoardPicker(boards: BoardsState, onPick: (index: number) => v
                   }
                   right={
                     active ? (
-                      <Text typography="t7" color={colors.grey500}>
+                      <Text typography="t7" color={colors.grey600}>
                         보는 중
                       </Text>
                     ) : undefined

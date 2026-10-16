@@ -34,7 +34,7 @@ export function TodayScreen({ board, record, content, onNotification, onDone }: 
       <>
         <Top title={<Top.TitleParagraph size={22}>오늘 기록</Top.TitleParagraph>} />
         <Result
-          title="아직 오늘 한 실천이 없어요"
+          title="오늘 한 실천을 체크해 보세요"
           description="세부 목표 화면에서 실천 칸을 누르면 여기에 모여요"
           button={<Result.Button onClick={onDone}>홈으로</Result.Button>}
         />
@@ -52,14 +52,14 @@ export function TodayScreen({ board, record, content, onNotification, onDone }: 
           </Top.SubtitleParagraph>
         }
       />
-      <div style={{ padding: '0 20px 16px' }}>
+      <div style={{ padding: '0 24px 16px' }}>
         <Text typography="t6" color={colors.grey800} fontWeight="semibold" display="block">
           {cheerFor(content, today)}
         </Text>
       </div>
       {onNotification && (
         <div style={{ padding: '0 20px 16px' }}>
-          <Button display="full" size="medium" color="dark" variant="weak" onClick={onNotification}>
+          <Button display="block" size="medium" color="dark" variant="weak" onClick={onNotification}>
             매일 저녁 알림 받기
           </Button>
         </div>
