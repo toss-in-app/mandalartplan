@@ -2,7 +2,7 @@ import { colors } from '@toss/tds-colors';
 import { FixedBottomCTA, List, ListRow, Result, Text, Top } from '@toss/tds-mobile';
 import { useMemo } from 'react';
 
-import { BASIC_CARD, renderCard, type RenderedCard } from '../lib/card';
+import { BASIC_CARD, CARD_HEIGHT, CARD_WIDTH, renderCard, type RenderedCard } from '../lib/card';
 import { todaySet } from '../lib/checkin';
 import { getProgress, type Board } from '../lib/mandalart';
 import { dateKey, streak, type CheckinRecord } from '../lib/state';
@@ -57,7 +57,10 @@ export function ShareScreen({ board, checkin, canSave, busy, onSaveImage, onSave
           <img
             src={card.dataUrl}
             alt="만다라트 9×9 이미지 미리보기"
-            style={{ display: 'block', width: '100%', borderRadius: 16, border: `1px solid ${colors.grey200}`, boxSizing: 'border-box' }}
+            // 크기를 미리 알려 줘서 이미지가 뜨기 전에도 자리가 잡혀요
+            width={CARD_WIDTH}
+            height={CARD_HEIGHT}
+            style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 16, border: `1px solid ${colors.grey200}`, boxSizing: 'border-box' }}
           />
         ) : (
           <div style={{ padding: '32px 20px', borderRadius: 16, background: colors.grey100, textAlign: 'center' }}>

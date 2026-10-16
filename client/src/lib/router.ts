@@ -95,6 +95,11 @@ function currentDepth(): number {
   return 0;
 }
 
+/** 지금 화면이 히스토리 바닥(첫 화면 또는 딥링크로 바로 들어온 화면)인지. 여기서 뒤로가기는 미니앱 종료예요. */
+export function atHistoryBottom(): boolean {
+  return currentDepth() === 0;
+}
+
 export function navigate(route: Route): void {
   const hash = routeToHash(route);
   if (window.location.hash === hash) return;

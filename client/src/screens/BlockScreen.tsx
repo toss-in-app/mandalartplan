@@ -1,4 +1,5 @@
 import { FixedBottomCTA, TextField, Top } from '@toss/tds-mobile';
+import type { InputHTMLAttributes } from 'react';
 
 import { Block } from '../components/Block';
 import { ACTION_COUNT, CENTER, MAX_TEXT, SUB_COUNT, cellOfRing, ringIndex, type Board } from '../lib/mandalart';
@@ -17,6 +18,23 @@ const inputId = (cell: number) => `mandalart-cell-${cell}`;
 
 function focusCell(cell: number) {
   document.getElementById(inputId(cell))?.focus();
+}
+
+/** 입력 순서: 가운데 칸(핵심 목표 또는 세부 목표 제목) → 둘레 8칸 */
+const INPUT_ORDER = [CENTER, ...Array.from({ length: ACTION_COUNT }, (_, i) => cellOfRing(i))];
+
+/** 키보드 Enter(다음/완료)로 다음 칸으로 넘어가요. 마지막 칸은 키보드를 닫아요 */
+function enterProps(cell: number): Pick<InputHTMLAttributes<HTMLInputElement>, 'enterKeyHint' | 'onKeyDown'> {
+  const next = INPUT_ORDER[INPUT_ORDER.indexOf(cell) + 1];
+  return {
+    enterKeyHint: next === undefined ? 'done' : 'next',
+    onKeyDown: (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      if (next === undefined) event.currentTarget.blur();
+      else focusCell(next);
+    },
+  };
 }
 
 export function BlockScreen(props: BlockScreenProps) {
@@ -78,6 +96,7 @@ function CenterForm({ board, onChangeGoal, onChangeSubTitle }: CenterFormProps) 
         value={board.goal}
         maxLength={MAX_TEXT}
         onChange={(event) => onChangeGoal(event.target.value)}
+        {...enterProps(CENTER)}
       />
       {Array.from({ length: SUB_COUNT }, (_, i) => (
         <TextField
@@ -90,6 +109,7 @@ function CenterForm({ board, onChangeGoal, onChangeSubTitle }: CenterFormProps) 
           value={board.subs[i].title}
           maxLength={MAX_TEXT}
           onChange={(event) => onChangeSubTitle(i, event.target.value)}
+          {...enterProps(cellOfRing(i))}
         />
       ))}
     </>
@@ -116,6 +136,7 @@ function SubForm({ subIndex, title, actions, onChangeSubTitle, onChangeAction }:
         value={title}
         maxLength={MAX_TEXT}
         onChange={(event) => onChangeSubTitle(subIndex, event.target.value)}
+        {...enterProps(CENTER)}
       />
       {Array.from({ length: ACTION_COUNT }, (_, i) => (
         <TextField
@@ -128,6 +149,7 @@ function SubForm({ subIndex, title, actions, onChangeSubTitle, onChangeAction }:
           value={actions[i]}
           maxLength={MAX_TEXT}
           onChange={(event) => onChangeAction(subIndex, i, event.target.value)}
+          {...enterProps(cellOfRing(i))}
         />
       ))}
     </>

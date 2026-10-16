@@ -171,20 +171,20 @@ describe('App (광고)', () => {
     ],
   });
 
-  it("오늘 체크가 있으면 '오늘 기록 보기' 에서 전면 광고를 보여준 뒤 오늘 기록으로 가고, 날짜를 남겨 하루 1회만", async () => {
+  it("오늘 체크가 있으면 '기록 보기' 에서 전면 광고를 보여준 뒤 기록으로 가고, 날짜를 남겨 하루 1회만", async () => {
     window.localStorage.setItem('__ait_storage:mandalart.boards.v1', boards);
     window.localStorage.setItem('__ait_storage:mandalart.checkins.v1', JSON.stringify({ version: 1, byBoard: { b1759000000000: { days: { [dateKey()]: [0] }, lastCompletedAt: 1 } } }));
     renderApp();
     await screen.findByRole('heading', { level: 1, name: '건강한 한 해' });
     // 전면 광고 사전 로딩(Devtools mock: 200ms 뒤 loaded)
     await new Promise((r) => setTimeout(r, 400));
-    fireEvent.click(screen.getByText('오늘 기록 보기'));
+    fireEvent.click(screen.getByText('기록 보기'));
     // mock: 1.5초 뒤 dismissed → today
-    await screen.findByText('오늘 기록', {}, { timeout: 4000 });
+    await screen.findByRole('heading', { level: 1, name: '기록' }, { timeout: 4000 });
     await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).ads.lastInterstitialDate).toBe(dateKey()));
     expect(logEvent).toHaveBeenCalledWith('ad_interstitial', { result: 'shown' });
     await waitFor(() => expect(logEvent).toHaveBeenCalledWith('today_view', { todayCount: 1, streak: 1 }));
-    // 오늘 기록 하단 배너(mock 자리표시)
+    // 기록 화면 하단 배너(mock 자리표시)
     await waitFor(() => expect(screen.getByTestId('ad-banner').querySelector('[data-ait-slot-id]')).not.toBeNull());
   });
 

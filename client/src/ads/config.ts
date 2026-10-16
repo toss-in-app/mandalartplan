@@ -15,13 +15,13 @@ function pick(value: string | undefined, fallback: string): string {
 }
 
 export const AD_GROUPS = {
-  /** `interstitial-today`: 홈 '오늘 기록 보기' → today 전환 (전면, 하루 1회) */
+  /** `interstitial-today`: 홈 '기록 보기' → today 전환 (전면, 하루 1회) */
   interstitialToday: pick(import.meta.env.VITE_AD_GROUP_INTERSTITIAL_TODAY, TEST_AD_GROUPS.interstitial),
   /** `rewarded-hd-image`: 공유 '고화질로 저장' (리워드) */
   rewardedHdImage: pick(import.meta.env.VITE_AD_GROUP_REWARDED_HD_IMAGE, TEST_AD_GROUPS.rewarded),
   /** `rewarded-extra-board`: 설정 '두 번째 만다라트 판' (리워드, 기능 7) */
   rewardedExtraBoard: pick(import.meta.env.VITE_AD_GROUP_REWARDED_EXTRA_BOARD, TEST_AD_GROUPS.rewarded),
-  /** `banner-today`: 오늘 기록 목록 하단 (배너 1개) */
+  /** `banner-today`: 기록 화면 맨 아래, 모든 탭 (배너 1개) */
   bannerToday: pick(import.meta.env.VITE_AD_GROUP_BANNER_TODAY, TEST_AD_GROUPS.banner),
 } as const;
 

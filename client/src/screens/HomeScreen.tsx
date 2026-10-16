@@ -17,7 +17,7 @@ interface HomeScreenProps {
   /** 보고 있는 판의 순번(0~1) */
   activeIndex: number;
   notificationVisible: boolean;
-  /** 전면 광고가 뜨는 동안 '오늘 기록 보기' 를 잠가요 */
+  /** 전면 광고가 뜨는 동안 '기록 보기' 를 잠가요 */
   todayBusy?: boolean;
   onEditCore: () => void;
   onSelectSub: (subIndex: number) => void;
@@ -148,7 +148,7 @@ export function HomeScreen({
         <div style={{ display: 'flex', gap: 8, padding: '24px 20px 8px' }}>
           <div style={{ flex: 1 }}>
             <Button display="block" size="large" disabled={progress.actionsFilled === 0 || todayBusy} loading={todayBusy} onClick={onToday}>
-              오늘 기록 보기
+              기록 보기
             </Button>
           </div>
           <div style={{ flex: 1 }}>

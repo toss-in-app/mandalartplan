@@ -7,6 +7,7 @@ export type EventName =
   | 'board_filled'
   | 'action_check'
   | 'today_view'
+  | 'stats_view'
   | 'ad_interstitial'
   | 'reward_unlock'
   | 'board_add'

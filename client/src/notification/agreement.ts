@@ -1,6 +1,6 @@
 /**
  * 알림 동의 (Notification.requestAgreement) — 콘솔 스마트 발송의 기능성 템플릿(정기 발송 "오늘 실천 체크")에 연결된 알림 동의문을 띄워요.
- * 설계(흐름 문서 '알림 동의 흐름'): 진입·뒤로가기·이탈 때는 절대 묻지 않고, 홈 행·오늘 기록 버튼·설정 행을 사용자가 누른 뒤에만.
+ * 설계(흐름 문서 '알림 동의 흐름'): 진입·뒤로가기·이탈 때는 절대 묻지 않고, 홈 행·기록 화면(오늘 탭) 버튼·설정 행을 사용자가 누른 뒤에만.
  * 결과는 settings.notification(agreed/declined)에 남기고, 거부하면 설정에서만 다시 켤 수 있어요.
  */
 import { Notification } from '@apps-in-toss/web-framework';

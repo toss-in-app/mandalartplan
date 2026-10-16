@@ -7,7 +7,8 @@
 | `board_edit` | `block` 에서 값이 바뀐 뒤 화면 이탈 | `block`(0~8) |
 | `board_filled` | 73칸이 처음 다 찼을 때(판마다 1회) | `templateId` |
 | `action_check` | 세부 목표 화면에서 실천 칸 탭 | `index`(0~63), `checked`(true/false), `todayCount`, `streak`, `first`(처음 체크한 순간이면 true) |
-| `today_view` | '오늘 기록 보기' 진입 | `todayCount`, `streak` |
+| `today_view` | 홈 '기록 보기' 진입(기록 화면, 오늘 탭) | `todayCount`, `streak` |
+| `stats_view` | 기록 화면 주간·월간 탭을 열거나 기간을 옮겼을 때 (v3, 2026-10-16) | `period`(week/month), `offset`(0 = 이번, -1 = 지난…), `activeDays`, `checks` |
 | `ad_interstitial` | 전면 결과 | `result`(shown/skipped/failed) |
 | `reward_unlock` | `userEarnedReward` | `type`(hdImage/extraBoard) |
 | `board_add` | 두 번째 판 추가(리워드 직후 또는 설정 '빈 판 추가') | `boards`(2) |
@@ -20,16 +21,16 @@
 
 핵심 지표(콘솔 9단계): 활성 `action_check` · 전환 `board_filled`(대표), `share_image_save`, `notification_agree`.
 
-- 구현(2026-10-08, `client/src/lib/analytics.ts`): `Analytics.log({ log_name, log_type, params })`. `log_type` 은 `home_view`·`today_view` 만 `screen`, 나머지 `event`. 값은 문자열, null·undefined 제외, 개인정보 없음(`anonymous_key` 는 SDK 가 붙임). 토스앱 5.208.0 미만·브라우저는 조용히 무시.
+- 구현(2026-10-08, `client/src/lib/analytics.ts`): `Analytics.log({ log_name, log_type, params })`. `log_type` 은 `home_view`·`today_view` 만 `screen`, 나머지 `event`(`stats_view` 포함). 값은 문자열, null·undefined 제외, 개인정보 없음(`anonymous_key` 는 SDK 가 붙임). 토스앱 5.208.0 미만·브라우저는 조용히 무시.
 - 보충: `board_filled` 는 채운 칸이 73 미만 → 73 이 되는 순간(`templateId` 없으면 `none`). `board_edit` 는 block 에 들어올 때와 나갈 때 `updatedAt` 이 다르면 1회. `ad_interstitial` 은 전면 조건이 맞아 시도했을 때만(shown / skipped = 미로딩 / failed = 띄우기 실패).
 
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 | 이름 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
-| `interstitial-today` | 전면 | 홈 '오늘 기록 보기' → today 전환 | 하루 1회 · 오늘 체크 1개 이상일 때만 · 사전 로딩 · 실패 시 건너뜀 |
+| `interstitial-today` | 전면 | 홈 '기록 보기' → today 전환 | 하루 1회 · 오늘 체크 1개 이상일 때만 · 사전 로딩 · 실패 시 건너뜀 |
 | `rewarded-hd-image` | 리워드 | 공유 화면 '고화질로 저장' | 보상 = 고화질 저장 1회, `userEarnedReward` 에서만 |
 | `rewarded-extra-board` | 리워드 | 설정 '두 번째 만다라트 판' | 보상 = `unlocks.extraBoard = true`(영구) |
-| `banner-today` | 배너 | 오늘 기록 목록 하단 | 1개, refresh 없음, 버튼과 24px 이상 |
+| `banner-today` | 배너 | 기록 화면 맨 아래(모든 탭) | 1개, refresh 없음, 버튼과 24px 이상 |
 
 ## 알림 템플릿 (콘솔 정기 발송, 기능성)
 | 발송 코드(templateCode) | 발송 | 제목(7자, 명사형) / 내용(25자, ~요.) | 링크 |
@@ -37,7 +38,7 @@
 | `mandalartplan-daily-checkin` | 매일 21:00 (정기 발송) | "실천 체크 시간" / "오늘 한 실천을 만다라트에 체크해요." | `intoss://mandalartplan` |
 
 - 발송 코드는 공식 규칙대로 `{appName}-` 로 시작. 콘솔에서 만든 뒤 `client/.env` 의 `VITE_NOTIFICATION_TEMPLATE_CODE` 에 넣는다(비어 있으면 출시 번들에서 알림 기능 숨김, 개발 빌드는 이 코드로 대신). 알림 동의문(발송 시점 "매일 저녁 9시", 철회 경로 "토스 앱 알림 설정")이 연결돼 있어야 저장된다.
-- 클라 호출: `Notification.requestAgreement({ options: { templateCode } })` — 홈 행·오늘 기록 버튼·설정 행에서 사용자가 누른 뒤에만. 결과 `newAgreement`/`alreadyAgreed` → `settings.notification = agreed`, `agreementRejected` → `declined`.
+- 클라 호출: `Notification.requestAgreement({ options: { templateCode } })` — 홈 행·기록 화면(오늘 탭) 버튼·설정 행에서 사용자가 누른 뒤에만. 결과 `newAgreement`/`alreadyAgreed` → `settings.notification = agreed`, `agreementRejected` → `declined`.
 
 ## 공유
 - 링크: `Share.createLink({ path: 'intoss://mandalartplan', ogImageUrl: 'https://toss-in-app.github.io/mandalartplan/og.png' })`. 개인 데이터는 링크에 싣지 않는다.

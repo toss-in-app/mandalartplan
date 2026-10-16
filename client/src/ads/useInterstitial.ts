@@ -5,7 +5,7 @@ import { fullScreenAdSupported, loadAd, showAd } from './fullScreen';
 type Phase = 'idle' | 'loading' | 'ready' | 'showing';
 
 /**
- * 전면 광고 1개 (홈 '오늘 기록 보기' → today 전환).
+ * 전면 광고 1개 (홈 '기록 보기' → today 전환).
  * eligible 이 true 가 되면 미리 불러오고, show() 는 준비된 광고가 있을 때만 보여줘요 — 없으면 바로 'skipped' 라 전환이 막히지 않아요.
  * 불러오기는 2번까지만 시도하고, 보여준 뒤에는 다시 불러오지 않아요(하루 1회는 호출한 쪽이 settings 로 막아요).
  */

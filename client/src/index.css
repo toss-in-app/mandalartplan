@@ -6,8 +6,9 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 화면 제목(TDS Top 의 h1)이 "건강한 / 한 해" 처럼 끝말만 다음 줄로 넘어가지 않게 줄 길이를 고르게 나눠요 */
-h1 {
+/* 화면 제목(TDS Top 은 h1 이 아니라 role="heading" aria-level="1" div)이 "건강한 / 한 해" 처럼
+   끝말만 다음 줄로 넘어가지 않게 줄 길이를 고르게 나눠요 */
+[role='heading'][aria-level='1'] {
   text-wrap: balance;
 }
 

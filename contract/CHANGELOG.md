@@ -58,3 +58,7 @@
 - `scripts/check-contract.mjs`(`npm run contract`): 콘텐츠 3벌(원본·번들·static)과 샘플을 `content.schema.json` 으로, `samples/state.sample.json` 을 `state.schema.json` 으로, 샘플로 조립한 백업 페이로드를 `backup.schema.json` 으로 검증. `npm run check` 는 계약 → 타입 → 린트 → 테스트 → 빌드.
 - `samples/state.sample.json` 에 v3 에서 빠졌던 `settings.backup` 추가(검증이 잡아냄). 스키마 변경 없음.
 
+## 2026-10-16 v3 [client] 기록 통계 (주간·월간 탭)
+- 상태·콘텐츠·백업 스키마 변경 없음. 기존 `checkins.v1` 날짜별 기록으로 계산(`client/src/lib/stats.ts`).
+- `events.md`: `stats_view`(period·offset·activeDays·checks) 추가.
+- 홈 버튼 라벨 '오늘 기록 보기' → '기록 보기', 화면 제목 '오늘 기록' → '기록' (2026-10-16 사용자 지적). 이벤트 이름 `today_view`·광고 그룹 이름은 그대로.

@@ -21,7 +21,7 @@ import { notificationAvailable, requestNotificationAgreement } from './notificat
 import { todaySet, toggleCheck } from './lib/checkin';
 import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
-import { goBack, navigate, useRoute } from './lib/router';
+import { atHistoryBottom, goBack, navigate, useRoute } from './lib/router';
 import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -41,7 +41,7 @@ function App() {
   const [content, setContent] = useState<Content>(getBundledContent);
   /** 공유 화면에서 저장·링크·광고 브릿지가 진행 중인지 (버튼 중복 탭 방지) */
   const [shareBusy, setShareBusy] = useState(false);
-  /** 전면 광고가 뜨는 동안 홈 '오늘 기록 보기' 잠금 */
+  /** 전면 광고가 뜨는 동안 홈 '기록 보기' 잠금 */
   const [todayBusy, setTodayBusy] = useState(false);
   /** 두 번째 판 리워드 광고가 뜨는 동안 설정 행 잠금 */
   const [extraBoardBusy, setExtraBoardBusy] = useState(false);
@@ -347,7 +347,7 @@ function App() {
   };
 
   /**
-   * 알림 동의 (홈 행 · 오늘 기록 버튼 · 설정 행에서 사용자가 누른 뒤에만). 결과를 settings.notification 에 남겨요.
+   * 알림 동의 (홈 행 · 기록 화면(오늘 탭) 버튼 · 설정 행에서 사용자가 누른 뒤에만). 결과를 settings.notification 에 남겨요.
    * 이미 동의한 상태에서 설정 행을 누르면 끄는 길(토스 앱 알림 설정)을 안내해요.
    */
   const askNotification = async (from: 'home' | 'today' | 'settings') => {
@@ -371,7 +371,7 @@ function App() {
     }
   };
   const notificationReady = notificationAvailable();
-  /** 홈 행·오늘 기록 버튼은 첫 체크 뒤, 아직 묻지 않았을 때만. 거부했으면 설정에서만 */
+  /** 홈 행·기록 화면(오늘 탭) 버튼은 첫 체크 뒤, 아직 묻지 않았을 때만. 거부했으면 설정에서만 */
   const notificationPrompt = notificationReady && state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown';
 
   /**
@@ -420,7 +420,7 @@ function App() {
     navigate({ name: 'home' });
   };
 
-  /** 홈 '오늘 기록 보기': 오늘 체크가 있고 오늘 아직 안 봤으면 전면 광고(미리 불러온 것만) → 닫히면 today. 광고가 없으면 바로 today. */
+  /** 홈 '기록 보기': 오늘 체크가 있고 오늘 아직 안 봤으면 전면 광고(미리 불러온 것만) → 닫히면 today. 광고가 없으면 바로 today. */
   const openToday = async () => {
     if (interstitialReady) {
       setTodayBusy(true);
@@ -514,6 +514,8 @@ function App() {
           content={content}
           onNotification={notificationPrompt ? () => void askNotification('today') : undefined}
           onDone={goBack}
+          showHome={atHistoryBottom()}
+          onStatsView={(info) => logEvent('stats_view', { ...info })}
         />
       );
     case 'share':
