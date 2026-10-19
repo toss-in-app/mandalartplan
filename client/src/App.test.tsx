@@ -178,6 +178,9 @@ describe('App (광고)', () => {
     window.localStorage.setItem('__ait_storage:mandalart.checkins.v1', JSON.stringify({ version: 1, byBoard: { b1759000000000: { days: { [dateKey()]: [0] }, lastCompletedAt: 1 } } }));
     renderApp();
     await screen.findByRole('heading', { level: 1, name: '건강한 한 해' });
+    // 전면 광고 사전 안내: 버튼 AD 표시 + 안내 한 줄(노출 정책 UX 원칙 2)
+    expect(screen.getByRole('button', { name: '광고 보고 기록 보기' })).toBeInTheDocument();
+    expect(screen.getByText('기록 보기를 누르면 광고가 한 번 나와요. 오늘은 그 뒤로 광고 없이 볼 수 있어요.')).toBeInTheDocument();
     // 전면 광고 사전 로딩(Devtools mock: 200ms 뒤 loaded)
     await new Promise((r) => setTimeout(r, 400));
     fireEvent.click(screen.getByText('기록 보기'));

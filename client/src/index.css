@@ -12,6 +12,11 @@
   text-wrap: balance;
 }
 
+/* 두 줄로 넘칠 때 문장 끝이 아니라 중간 단어에서 끊기지 않게 줄 길이를 고르게 나눠요 (홈 전면 광고 안내 등) */
+.text-balance {
+  text-wrap: balance;
+}
+
 body {
   margin: 0;
   min-width: 320px;

@@ -574,6 +574,7 @@ function App() {
           onEditCore={editCore}
           onSelectSub={openSub}
           todayBusy={todayBusy}
+          todayAdNotice={interstitial.upcoming}
           onToday={() => void openToday()}
           onOverview={() => navigate({ name: 'overview' })}
           onSettings={() => navigate({ name: 'settings' })}

@@ -53,6 +53,36 @@ describe('useInterstitial (전면: 미리 불러오고, 준비된 것만 보여�
     expect(ad.load).toHaveBeenCalledTimes(2); // 3번째는 없어요
   });
 
+  it('upcoming: 광고가 나올 차례면 불러오는 중에도 true, 한 번 보여준 뒤에는 false (사전 안내용)', async () => {
+    let finishLoad: (ok: boolean) => void = () => {};
+    ad.load.mockImplementation(() => new Promise<boolean>((resolve) => (finishLoad = resolve)));
+    ad.show.mockResolvedValue({ shown: true, rewarded: false });
+    const { result, rerender } = renderHook(({ eligible }) => useInterstitial('g', eligible), { initialProps: { eligible: false } });
+    expect(result.current.upcoming).toBe(false);
+    rerender({ eligible: true });
+    expect(result.current.upcoming).toBe(true); // 불러오는 중에도 미리 알려요
+    await act(async () => finishLoad(true));
+    expect(result.current.upcoming).toBe(true);
+    await act(async () => {
+      expect(await result.current.show()).toBe('shown');
+    });
+    expect(result.current.upcoming).toBe(false); // 다음 탭에는 광고가 없어요
+  });
+
+  it('upcoming: 불러오기에 실패하면 false, 다시 조건이 맞아 재시도하면 true, 미지원이면 처음부터 false', async () => {
+    ad.load.mockResolvedValueOnce(false).mockResolvedValue(true);
+    const { result, rerender } = renderHook(({ eligible }) => useInterstitial('g', eligible), { initialProps: { eligible: true } });
+    expect(result.current.upcoming).toBe(true);
+    await act(async () => {});
+    expect(result.current.upcoming).toBe(false); // 실패 → 다음 탭은 광고 없이 넘어가요
+    rerender({ eligible: false });
+    rerender({ eligible: true });
+    expect(result.current.upcoming).toBe(true);
+    ad.supported = false;
+    const unsupported = renderHook(() => useInterstitial('g', true));
+    expect(unsupported.result.current.upcoming).toBe(false);
+  });
+
   it('토스앱이 전면 광고를 지원하지 않으면 아무것도 하지 않아요', async () => {
     ad.supported = false;
     const { result } = renderHook(() => useInterstitial('g', true));

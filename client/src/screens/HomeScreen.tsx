@@ -19,6 +19,8 @@ interface HomeScreenProps {
   notificationVisible: boolean;
   /** 전면 광고가 뜨는 동안 '기록 보기' 를 잠가요 */
   todayBusy?: boolean;
+  /** 다음 '기록 보기' 탭에 전면 광고가 나올 수 있으면 true → 버튼에 AD 표시, 아래에 안내 한 줄(노출 정책 UX 원칙 2) */
+  todayAdNotice?: boolean;
   onEditCore: () => void;
   onSelectSub: (subIndex: number) => void;
   onToday: () => void;
@@ -44,6 +46,7 @@ export function HomeScreen({
   activeIndex,
   notificationVisible,
   todayBusy = false,
+  todayAdNotice = false,
   onEditCore,
   onSelectSub,
   onToday,
@@ -148,8 +151,28 @@ export function HomeScreen({
       ) : (
         <div style={{ display: 'flex', gap: 8, padding: '24px 20px 8px' }}>
           <div style={{ flex: 1 }}>
-            <Button display="block" size="large" disabled={progress.actionsFilled === 0 || todayBusy} loading={todayBusy} onClick={onToday}>
-              기록 보기
+            <Button
+              display="block"
+              size="large"
+              disabled={progress.actionsFilled === 0 || todayBusy}
+              loading={todayBusy}
+              onClick={onToday}
+              aria-label={todayAdNotice ? '광고 보고 기록 보기' : undefined}
+            >
+              {todayAdNotice ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {/* 공식 예시처럼 버튼 안의 밝은 AD 표시. TDS Badge 색(blue·teal·green·red·yellow·elephant)은 브랜드 보라 버튼 위에서 묻혀 직접 그려요 */}
+                  <span
+                    aria-hidden
+                    style={{ padding: '1px 5px', borderRadius: 4, background: colors.white, color: brandColor, fontSize: 11, fontWeight: 700, lineHeight: '16px' }}
+                  >
+                    AD
+                  </span>
+                  <span>기록 보기</span>
+                </span>
+              ) : (
+                '기록 보기'
+              )}
             </Button>
           </div>
           <div style={{ flex: 1 }}>
@@ -157,6 +180,15 @@ export function HomeScreen({
               전체 보기
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* 전면 광고 사전 안내: 언제 나오는지(기록 보기를 누르면), 반복하지 않는다는 것(오늘은 그 뒤로 없음)을 미리 알려요 */}
+      {!isEmpty && todayAdNotice && progress.actionsFilled > 0 && (
+        <div className="text-balance" style={{ padding: '0 24px 8px' }}>
+          <Text typography="t7" color={colors.grey600} display="block">
+            기록 보기를 누르면 광고가 한 번 나와요. 오늘은 그 뒤로 광고 없이 볼 수 있어요.
+          </Text>
         </div>
       )}
 

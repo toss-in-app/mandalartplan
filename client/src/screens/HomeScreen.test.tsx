@@ -18,6 +18,7 @@ function filledBoard(actions: boolean): Board {
 interface Handlers {
   onEditCore?: () => void;
   onOverview?: () => void;
+  todayAdNotice?: boolean;
 }
 
 function renderHome(board: Board, content: Content, checkin?: CheckinRecord, handlers: Handlers = {}) {
@@ -31,6 +32,7 @@ function renderHome(board: Board, content: Content, checkin?: CheckinRecord, han
         boardCount={1}
         activeIndex={0}
         notificationVisible={false}
+        todayAdNotice={handlers.todayAdNotice}
         onEditCore={handlers.onEditCore ?? noop}
         onSelectSub={noop}
         onToday={noop}
@@ -73,6 +75,18 @@ describe('HomeScreen (홈 마무리)', () => {
     expect(onEditCore).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('편집'));
     expect(onEditCore).toHaveBeenCalledTimes(1);
+  });
+
+  it('전면 광고가 나올 차례면 기록 보기 버튼에 AD 표시와 안내 한 줄, 아니면 둘 다 없어요', () => {
+    const notice = '기록 보기를 누르면 광고가 한 번 나와요. 오늘은 그 뒤로 광고 없이 볼 수 있어요.';
+    const { unmount } = renderHome(filledBoard(true), content, undefined, { todayAdNotice: true });
+    const withAd = screen.getByRole('button', { name: '광고 보고 기록 보기' });
+    expect(withAd).toHaveTextContent('AD');
+    expect(screen.getByText(notice)).toBeInTheDocument();
+    unmount();
+    renderHome(filledBoard(true), content);
+    expect(screen.getByRole('button', { name: '기록 보기' })).not.toHaveTextContent('AD');
+    expect(screen.queryByText(notice)).not.toBeInTheDocument();
   });
 
   it('세부 목표의 실천을 오늘 전부 체크하면 그 칸에 체크 표시가 붙고 안내도 바뀌어요', () => {
