@@ -1,5 +1,5 @@
 import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { cheerFor, getBundledContent } from '../content';
@@ -46,34 +46,80 @@ describe('OverviewScreen (9×9 전체 보기)', () => {
   });
 });
 
-describe('BlockScreen (편집 폼)', () => {
-  it('가운데 블록은 핵심 목표 1 + 세부 목표 8 입력이고, 바꾸면 바로 저장 콜백이 와요', () => {
+describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => {
+  const sheetInput = (placeholder: string) => screen.getByPlaceholderText(placeholder) as HTMLInputElement;
+  /** 시트 안의 '완료' (화면 아래 '완료' 와 구분) */
+  const sheetDone = () => {
+    const input = document.getElementById('mandalart-cell-editor');
+    let node: HTMLElement | null = input;
+    while (node && !within(node).queryByText('완료')) node = node.parentElement;
+    return within(node!).getByText('완료');
+  };
+
+  it('가운데 블록: 처음엔 입력칸이 없고, 칸을 누르면 그 칸의 입력창이 떠요. 완료를 눌러야 반영돼요', async () => {
     const onChangeGoal = vi.fn();
     const onChangeSubTitle = vi.fn();
     const onDone = vi.fn();
     wrap(<BlockScreen board={fullBoard} block={4} onChangeGoal={onChangeGoal} onChangeSubTitle={onChangeSubTitle} onChangeAction={vi.fn()} onDone={onDone} />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('핵심 목표와 세부 목표');
-    const goal = screen.getByPlaceholderText('예: 올해 안에 책 한 권 쓰기') as HTMLInputElement;
+    expect(screen.queryByPlaceholderText('예: 올해 안에 책 한 권 쓰기')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: fullBoard.goal }));
+    const goal = sheetInput('예: 올해 안에 책 한 권 쓰기');
     expect(goal.value).toBe(fullBoard.goal);
     expect(goal.maxLength).toBe(40);
-    expect(screen.getAllByPlaceholderText('핵심 목표를 이루는 데 필요한 것')).toHaveLength(8);
-    fireEvent.change(goal, { target: { value: '새 목표' } });
-    expect(onChangeGoal).toHaveBeenCalledWith('새 목표');
-    fireEvent.change(screen.getAllByPlaceholderText('핵심 목표를 이루는 데 필요한 것')[2], { target: { value: '세 번째' } });
+    expect(document.activeElement).toBe(goal); // 누른 순간 포커스 → 키보드
+    fireEvent.change(goal, { target: { value: '  새 목표 ' } });
+    expect(onChangeGoal).not.toHaveBeenCalled(); // 적는 중에는 반영하지 않아요
+    fireEvent.click(sheetDone());
+    expect(onChangeGoal).toHaveBeenCalledWith('새 목표'); // 앞뒤 공백은 지워요
+    await waitFor(() => expect(screen.queryByPlaceholderText('예: 올해 안에 책 한 권 쓰기')).not.toBeInTheDocument());
+
+    // 세부 목표 칸: 시트 제목은 칸 이름, 부제는 핵심 목표. 키보드 '완료'(Enter)로도 반영
+    fireEvent.click(screen.getByRole('button', { name: fullBoard.subs[2].title }));
+    expect(screen.getByText('세부 목표 3')).toBeInTheDocument();
+    expect(screen.getByText(`핵심 목표 · ${fullBoard.goal}`)).toBeInTheDocument();
+    const third = sheetInput('핵심 목표를 이루는 데 필요한 것');
+    fireEvent.change(third, { target: { value: '세 번째' } });
+    fireEvent.keyDown(third, { key: 'Enter' });
     expect(onChangeSubTitle).toHaveBeenCalledWith(2, '세 번째');
+    await waitFor(() => expect(screen.queryByPlaceholderText('핵심 목표를 이루는 데 필요한 것')).not.toBeInTheDocument());
+
     fireEvent.click(screen.getByText('완료'));
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
-  it('둘레 블록은 세부 목표 1 + 실천 8 입력이에요', () => {
+  it('한글을 조합하는 중의 Enter 는 반영하지 않아요', () => {
+    const onChangeGoal = vi.fn();
+    wrap(<BlockScreen board={fullBoard} block={4} onChangeGoal={onChangeGoal} onChangeSubTitle={vi.fn()} onChangeAction={vi.fn()} onDone={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: fullBoard.goal }));
+    const goal = sheetInput('예: 올해 안에 책 한 권 쓰기');
+    fireEvent.change(goal, { target: { value: '새 목ㅍ' } });
+    fireEvent.keyDown(goal, { key: 'Enter', isComposing: true });
+    expect(onChangeGoal).not.toHaveBeenCalled();
+  });
+
+  it('둘레 블록: 실천 칸을 눌러 적고 완료하면 그 칸에만 반영돼요', () => {
     const onChangeAction = vi.fn();
     wrap(<BlockScreen board={fullBoard} block={0} onChangeGoal={vi.fn()} onChangeSubTitle={vi.fn()} onChangeAction={onChangeAction} onDone={vi.fn()} />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(fullBoard.subs[0].title);
-    const actions = screen.getAllByPlaceholderText('구체적인 행동 한 가지') as HTMLInputElement[];
-    expect(actions).toHaveLength(8);
-    expect(actions[7].value).toBe(fullBoard.subs[0].actions[7]);
-    fireEvent.change(actions[7], { target: { value: '바꾼 실천' } });
+    fireEvent.click(screen.getByRole('button', { name: fullBoard.subs[0].actions[7] }));
+    expect(screen.getByText('실천 8')).toBeInTheDocument();
+    expect(screen.getByText(`세부 목표 · ${fullBoard.subs[0].title}`)).toBeInTheDocument();
+    const action = sheetInput('구체적인 행동 한 가지');
+    expect(action.value).toBe(fullBoard.subs[0].actions[7]);
+    fireEvent.change(action, { target: { value: '바꾼 실천' } });
+    fireEvent.click(sheetDone());
+    expect(onChangeAction).toHaveBeenCalledTimes(1);
     expect(onChangeAction).toHaveBeenCalledWith(0, 7, '바꾼 실천');
+  });
+
+  it('세부 목표 화면에서 빈 칸을 눌러 왔으면(initialCell) 그 칸 입력창이 바로 열려요', () => {
+    const board = createEmptyBoard(NOW);
+    board.subs[1].title = '독서';
+    wrap(<BlockScreen board={board} block={cellOfRing(1)} initialCell={cellOfRing(2)} onChangeGoal={vi.fn()} onChangeSubTitle={vi.fn()} onChangeAction={vi.fn()} onDone={vi.fn()} />);
+    expect(screen.getByText('실천 3')).toBeInTheDocument();
+    expect(sheetInput('구체적인 행동 한 가지').value).toBe('');
   });
 });
 

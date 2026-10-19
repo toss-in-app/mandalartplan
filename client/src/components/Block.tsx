@@ -95,6 +95,8 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
   const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
   const className = `mg-block mg-block-${size}`;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
+  // 오늘 체크를 넘긴 화면(홈·세부 목표)만 실천 칸을 '오늘 했어요/아직' 토글로 읽어요. 편집 화면은 칸 글만
+  const checkMode = checked !== undefined;
 
   if (onSelect) {
     return (
@@ -121,11 +123,11 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
             style={cellStyle(view, size)}
             onClick={() => onSelectCell(cell, view)}
             aria-label={
-              view.kind === 'action' && view.text
+              checkMode && view.kind === 'action' && view.text
                 ? `${name}, 오늘 ${view.checked ? '했어요' : '아직'}`
                 : `${name}${cap ? `, ${spokenCaption(cap)}` : ''}`
             }
-            aria-pressed={view.kind === 'action' && view.text ? view.checked : undefined}
+            aria-pressed={checkMode && view.kind === 'action' && view.text ? view.checked : undefined}
           >
             <CellContent view={view} caption={cap} size={size} />
           </button>
