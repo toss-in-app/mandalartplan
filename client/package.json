@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && ait build",
+    "build": "vite build && node scripts/check-release-bundle.mjs && ait build",
+    "build:test-ads": "vite build --mode test-ads && ait build",
     "lint": "eslint .",
     "format": "prettier --write .",
     "deploy": "ait deploy",
