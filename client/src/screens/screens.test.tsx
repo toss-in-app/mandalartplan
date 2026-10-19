@@ -47,7 +47,7 @@ describe('OverviewScreen (9×9 전체 보기)', () => {
 });
 
 describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => {
-  const sheetInput = (placeholder: string) => screen.getByPlaceholderText(placeholder) as HTMLInputElement;
+  const sheetInput = (placeholder: string) => screen.getByPlaceholderText(placeholder) as HTMLTextAreaElement;
   /** 시트 안의 '완료' (화면 아래 '완료' 와 구분) */
   const sheetDone = () => {
     const input = document.getElementById('mandalart-cell-editor');
@@ -69,21 +69,23 @@ describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => 
     expect(goal.value).toBe(fullBoard.goal);
     expect(goal.maxLength).toBe(40);
     expect(document.activeElement).toBe(goal); // 누른 순간 포커스 → 키보드
-    fireEvent.change(goal, { target: { value: '  새 목표 ' } });
+    expect(goal.selectionStart).toBe(fullBoard.goal.length); // 커서는 글 끝
+    expect(screen.getByText('어떤 목표를 이루고 싶나요?')).toBeInTheDocument(); // 질문형 제목
+    fireEvent.change(goal, { target: { value: '  새\n목표 ' } }); // 붙여넣은 줄바꿈은 공백으로
     expect(onChangeGoal).not.toHaveBeenCalled(); // 적는 중에는 반영하지 않아요
     fireEvent.click(sheetDone());
-    expect(onChangeGoal).toHaveBeenCalledWith('새 목표'); // 앞뒤 공백은 지워요
+    expect(onChangeGoal).toHaveBeenCalledWith('새 목표'); // 줄바꿈은 공백, 앞뒤 공백은 지워요
     await waitFor(() => expect(screen.queryByPlaceholderText('예: 올해 안에 책 한 권 쓰기')).not.toBeInTheDocument());
 
     // 세부 목표 칸: 시트 제목은 칸 이름, 부제는 핵심 목표. 키보드 '완료'(Enter)로도 반영
     fireEvent.click(screen.getByRole('button', { name: fullBoard.subs[2].title }));
     expect(screen.getByText('세부 목표 3')).toBeInTheDocument();
     expect(screen.getByText(`핵심 목표 · ${fullBoard.goal}`)).toBeInTheDocument();
-    const third = sheetInput('핵심 목표를 이루는 데 필요한 것');
+    const third = sheetInput('예: 꾸준한 운동');
     fireEvent.change(third, { target: { value: '세 번째' } });
     fireEvent.keyDown(third, { key: 'Enter' });
     expect(onChangeSubTitle).toHaveBeenCalledWith(2, '세 번째');
-    await waitFor(() => expect(screen.queryByPlaceholderText('핵심 목표를 이루는 데 필요한 것')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByPlaceholderText('예: 꾸준한 운동')).not.toBeInTheDocument());
 
     fireEvent.click(screen.getByText('완료'));
     expect(onDone).toHaveBeenCalledTimes(1);
@@ -106,7 +108,7 @@ describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => 
     fireEvent.click(screen.getByRole('button', { name: fullBoard.subs[0].actions[7] }));
     expect(screen.getByText('실천 8')).toBeInTheDocument();
     expect(screen.getByText(`세부 목표 · ${fullBoard.subs[0].title}`)).toBeInTheDocument();
-    const action = sheetInput('구체적인 행동 한 가지');
+    const action = sheetInput('예: 아침 스트레칭 10분');
     expect(action.value).toBe(fullBoard.subs[0].actions[7]);
     fireEvent.change(action, { target: { value: '바꾼 실천' } });
     fireEvent.click(sheetDone());
@@ -119,7 +121,7 @@ describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => 
     board.subs[1].title = '독서';
     wrap(<BlockScreen board={board} block={cellOfRing(1)} initialCell={cellOfRing(2)} onChangeGoal={vi.fn()} onChangeSubTitle={vi.fn()} onChangeAction={vi.fn()} onDone={vi.fn()} />);
     expect(screen.getByText('실천 3')).toBeInTheDocument();
-    expect(sheetInput('구체적인 행동 한 가지').value).toBe('');
+    expect(sheetInput('예: 아침 스트레칭 10분').value).toBe('');
   });
 });
 

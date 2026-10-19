@@ -31,3 +31,11 @@ body {
     background-color: #f5f5f5 !important;
   }
 }
+
+/* 편집 시트 입력칸: TDS 기본 파랑 대신 브랜드 색으로 커서·밑줄(--mg-brand 는 시트가 넣어요) */
+.mg-cell-editor textarea {
+  caret-color: var(--mg-brand);
+}
+.mg-cell-editor :has(> textarea:focus) {
+  border-bottom-color: var(--mg-brand) !important;
+}

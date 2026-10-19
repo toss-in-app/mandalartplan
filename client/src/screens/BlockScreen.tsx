@@ -1,10 +1,11 @@
 import { colors } from '@toss/tds-colors';
-import { BottomSheet, FixedBottomCTA, Text, TextField, Top } from '@toss/tds-mobile';
+import { BottomSheet, FixedBottomCTA, Text, TextArea, Top } from '@toss/tds-mobile';
 import { useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { Block } from '../components/Block';
 import { CENTER, MAX_TEXT, ringIndex, type Board } from '../lib/mandalart';
+import { brandColor, withAlpha } from '../theme';
 
 interface BlockScreenProps {
   board: Board;
@@ -20,29 +21,42 @@ interface BlockScreenProps {
 
 const EDITOR_INPUT_ID = 'mandalart-cell-editor';
 
+/** 입력칸에 포커스하고 커서를 글 끝에 둬요(이미 적힌 글을 이어서 고치기 쉽게) */
+function focusEditor() {
+  const el = document.getElementById(EDITOR_INPUT_ID) as HTMLTextAreaElement | null;
+  if (!el) return;
+  el.focus();
+  const end = el.value.length;
+  el.setSelectionRange(end, end);
+}
+
 interface CellSpec {
-  /** 시트 제목: 어느 칸인지 */
-  label: string;
-  /** 시트 부제: 무엇을 위한 칸인지(위 칸의 글). 없으면 생략 */
-  context: string | null;
+  /** 시트 제목(질문형) */
+  question: string;
+  /** 칸 위치 이름: 핵심 목표 · 세부 목표 n · 실천 n (위치 아이콘 옆, 입력칸 이름) */
+  position: string;
+  /** 위 칸의 글(알약 표시). 없으면 생략 */
+  parent: { label: string; text: string } | null;
   placeholder: string;
   value: string;
   save: (text: string) => void;
 }
 
-/** 블록·칸 번호 → 그 칸의 이름, 지금 글, 저장 콜백 */
+/** 블록·칸 번호 → 그 칸의 질문, 위치 이름, 지금 글, 저장 콜백 */
 function cellSpec(props: BlockScreenProps, cell: number): CellSpec {
   const { board, block } = props;
   const goal = board.goal.trim();
+  const goalParent = goal ? { label: '핵심 목표', text: goal } : null;
   if (block === CENTER) {
     if (cell === CENTER) {
-      return { label: '핵심 목표', context: null, placeholder: '예: 올해 안에 책 한 권 쓰기', value: board.goal, save: props.onChangeGoal };
+      return { question: '어떤 목표를 이루고 싶나요?', position: '핵심 목표', parent: null, placeholder: '예: 올해 안에 책 한 권 쓰기', value: board.goal, save: props.onChangeGoal };
     }
     const s = ringIndex(cell);
     return {
-      label: `세부 목표 ${s + 1}`,
-      context: goal ? `핵심 목표 · ${goal}` : null,
-      placeholder: '핵심 목표를 이루는 데 필요한 것',
+      question: '목표를 이루려면 무엇이 필요할까요?',
+      position: `세부 목표 ${s + 1}`,
+      parent: goalParent,
+      placeholder: '예: 꾸준한 운동',
       value: board.subs[s].title,
       save: (text) => props.onChangeSubTitle(s, text),
     };
@@ -51,8 +65,9 @@ function cellSpec(props: BlockScreenProps, cell: number): CellSpec {
   const title = board.subs[s].title.trim();
   if (cell === CENTER) {
     return {
-      label: '세부 목표',
-      context: goal ? `핵심 목표 · ${goal}` : null,
+      question: '이 칸의 세부 목표는 무엇인가요?',
+      position: `세부 목표 ${s + 1}`,
+      parent: goalParent,
       placeholder: '예: 매일 글쓰기 습관',
       value: board.subs[s].title,
       save: (text) => props.onChangeSubTitle(s, text),
@@ -60,12 +75,32 @@ function cellSpec(props: BlockScreenProps, cell: number): CellSpec {
   }
   const a = ringIndex(cell);
   return {
-    label: `실천 ${a + 1}`,
-    context: title ? `세부 목표 · ${title}` : null,
-    placeholder: '구체적인 행동 한 가지',
+    question: '매일 체크할 행동을 적어 주세요',
+    position: `실천 ${a + 1}`,
+    parent: title ? { label: '세부 목표', text: title } : goalParent,
+    placeholder: '예: 아침 스트레칭 10분',
     value: board.subs[s].actions[a],
     save: (text) => props.onChangeAction(s, a, text),
   };
+}
+
+/** 지금 적는 칸이 3×3 의 어디인지 보여주는 작은 아이콘(장식, 읽지 않음) */
+function CellPositionIcon({ cell }: { cell: number }) {
+  return (
+    <span aria-hidden style={{ display: 'inline-grid', gridTemplateColumns: 'repeat(3, 6px)', gap: 2, flexShrink: 0 }}>
+      {Array.from({ length: 9 }, (_, i) => (
+        <span
+          key={i}
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 1.5,
+            background: i === cell ? brandColor : i === CENTER ? withAlpha(brandColor, 0.35) : colors.grey200,
+          }}
+        />
+      ))}
+    </span>
+  );
 }
 
 /**
@@ -92,7 +127,7 @@ export function BlockScreen(props: BlockScreenProps) {
       setDraft(cellSpec(props, cell).value);
       setEditing(cell);
     });
-    document.getElementById(EDITOR_INPUT_ID)?.focus();
+    focusEditor();
   };
 
   const close = () => setEditing(null);
@@ -134,29 +169,69 @@ export function BlockScreen(props: BlockScreenProps) {
         open={spec !== null}
         onClose={close}
         // 시트의 포커스 잠금이 컨테이너로 포커스를 옮겨도 입력칸으로 돌려놔요(다른 화면에서 들어와 바로 열린 경우 포함)
-        onEntered={() => document.getElementById(EDITOR_INPUT_ID)?.focus()}
+        onEntered={focusEditor}
         hasTextField
-        header={<BottomSheet.Header>{spec?.label ?? ''}</BottomSheet.Header>}
-        headerDescription={spec?.context ? <BottomSheet.HeaderDescription>{spec.context}</BottomSheet.HeaderDescription> : undefined}
+        ctaContentGap={20}
+        header={<BottomSheet.Header>{spec?.question ?? ''}</BottomSheet.Header>}
         cta={<BottomSheet.CTA onClick={commit}>완료</BottomSheet.CTA>}
       >
         {spec && (
-          <div style={{ padding: '8px 0 0' }}>
-            <TextField
-              id={EDITOR_INPUT_ID}
-              variant="box"
-              placeholder={spec.placeholder}
-              value={draft}
-              maxLength={MAX_TEXT}
-              aria-label={spec.label}
-              enterKeyHint="done"
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
-                event.preventDefault();
-                commit();
-              }}
-            />
+          <div className="mg-cell-editor" style={{ padding: '4px 24px 0', ['--mg-brand' as string]: brandColor }}>
+            {/* 어느 칸인지: 3×3 위치 아이콘 + 이 칸이 속한 위 칸의 글(알약) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <CellPositionIcon cell={editing ?? CENTER} />
+              {spec.parent ? (
+                <span
+                  style={{
+                    minWidth: 0,
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    background: withAlpha(brandColor, 0.1),
+                    color: brandColor,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    lineHeight: '18px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {spec.parent.label} · {spec.parent.text}
+                </span>
+              ) : (
+                <Text typography="t7" color={colors.grey600}>
+                  만다라트 한가운데 칸이에요
+                </Text>
+              )}
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <Text typography="t7" color={colors.grey600} fontWeight="semibold">
+                {spec.position}
+              </Text>
+            </div>
+            <div style={{ margin: '0 -24px' }}>
+              {/* 칸 글은 짧은 한 줄이지만 40자까지라 큰 글씨가 잘리지 않게 여러 줄로 보여요. 줄바꿈은 넣지 않아요(Enter = 완료) */}
+              <TextArea
+                id={EDITOR_INPUT_ID}
+                variant="big"
+                aria-label={spec.position}
+                placeholder={spec.placeholder}
+                value={draft}
+                maxLength={MAX_TEXT}
+                enterKeyHint="done"
+                onChange={(event) => setDraft(event.target.value.replace(/[\r\n]+/g, ' '))}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+                  event.preventDefault();
+                  commit();
+                }}
+              />
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <Text typography="t7" color={draft.length >= MAX_TEXT ? colors.red500 : colors.grey500}>
+                {draft.length}/{MAX_TEXT}
+              </Text>
+            </div>
           </div>
         )}
       </BottomSheet>
