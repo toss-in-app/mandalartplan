@@ -32,6 +32,7 @@ content/content.source.json  # 콘텐츠 원본(사람이 검수). scripts/build
 scripts/build-content.mjs    # 검증 통과한 것만 static/ 과 번들 동봉본으로
 static/                      # GitHub Pages 에 올릴 것: content.json · index · terms · privacy · og.png(예정)
 console/                     # 콘솔 앱 정보 자료(9·11단계 입력값): logo.png · app-info.md · features.md · policies/ · release-notes.md — 앱 자료는 steps/ 가 아니라 여기
+releases/                    # 출시 기록(12단계): 버전별 태그·라이브 번들·검토·광고·알려진 제한. 1.0.0.md = 첫 출시
 supabase/schema.sql          # 백업·복원용 Supabase 테이블·RLS·RPC (2026-10-04, 사용자가 SQL Editor 에서 실행)
 client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/web-framework 3.x)
 ├── apps-in-toss.config.ts   #   appName·브랜드 색·네비게이션 바·웹뷰 옵션 (콘솔 appName 과 같아야 함)
@@ -58,6 +59,7 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
 ```
 
 ## 단계 현황
+- **1.0.0 출시 2026-10-19 18:00** — 태그 `v1.0.0`(커밋 `5588715`), 콘솔 라이브 번들 `20261019-5`, 검토 승인 17:31. 기록은 `releases/1.0.0.md`, GitHub 릴리즈 v1.0.0.
 - 1~6단계 완료(콘솔 등록 2026-09-29, appName `mandalartplan`, 기능 9개·테스트 104개 2026-10-08). 8단계: `static/` 이 GitHub Pages(Actions)로 https://toss-in-app.github.io/mandalartplan/ 에 배포됨(2026-10-08). 다음은 9단계 앱 정보(콘솔 입력)·7단계 광고 그룹·10단계 QR.
 - 끝난 기능: 체크인(홈 3×3·세부 3×3 탭 체크·전체 보기·기록(오늘·주간·월간 통계)), 설정·예시 템플릿·초기화, Supabase 백업·복원, 공유(이미지 저장·글·링크), 광고(전면·리워드·배너, 테스트 ID), 알림 동의(템플릿 코드는 `.env`), 두 번째 판(리워드 잠금 해제·판 바꾸기 시트·판별 체크 기록), 분석 이벤트(`Analytics.log`, `contract/events.md` 20개).
 - 홈 마무리(안내 한 줄·공지·시즌 문구·문구 점검)까지 끝. 남은 기능 없음.
