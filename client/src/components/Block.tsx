@@ -17,6 +17,15 @@ function cellStyle(view: CellView, size: BlockSize): CSSProperties {
     case 'goal':
       return { background: brandColor, color: colors.white, fontWeight: view.text ? 700 : 600 };
     case 'sub':
+      if (view.checked) {
+        // 글이 있는 실천을 오늘 전부 체크한 세부 목표: 진한 틴트 + 브랜드 테두리 (grey900 글자 대비 10:1)
+        return {
+          background: withAlpha(brandColor, 0.36),
+          color: colors.grey900,
+          fontWeight: 700,
+          boxShadow: `inset 0 0 0 ${size === 'main' ? 2 : 1.5}px ${brandColor}`,
+        };
+      }
       return {
         background: withAlpha(brandColor, 0.14),
         color: view.text ? colors.grey900 : colors.grey700,
@@ -42,7 +51,7 @@ function cellStyle(view: CellView, size: BlockSize): CSSProperties {
 /** 전체 보기 블록 버튼의 이름. aria-label 이 안의 글을 가리니 제목과 오늘 체크 수를 담아요. */
 function blockButtonLabel(views: CellView[], label: string): string {
   const title = views[CENTER].text.trim();
-  const done = views.filter((view) => view.checked).length;
+  const done = views.filter((view) => view.kind === 'action' && view.checked).length;
   return `${title ? `${title}, ` : ''}${label} 열기${done > 0 ? `, 오늘 ${done}개 했어요` : ''}`;
 }
 
@@ -63,6 +72,8 @@ interface BlockProps {
   onSelect?: () => void;
   /** 칸 하나씩 누를 수 있게 (홈·세부 목표·편집 미리보기) */
   onSelectCell?: (cell: number, view: CellView) => void;
+  /** onSelectCell 격자에서 누를 수 없는 칸을 정해요 (예: 세부 목표 화면의 가운데 이름표). 없으면 모두 눌러요 */
+  interactive?: (cell: number, view: CellView) => boolean;
 }
 
 function CellContent({ view, caption, size }: { view: CellView; caption: string | null; size: BlockSize }) {
@@ -80,7 +91,7 @@ function CellContent({ view, caption, size }: { view: CellView; caption: string 
   );
 }
 
-export function Block({ board, block, size, checked, caption, onSelect, onSelectCell }: BlockProps) {
+export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive }: BlockProps) {
   const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
   const className = `mg-block mg-block-${size}`;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
@@ -102,7 +113,7 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
       {views.map((view, cell) => {
         const cap = caption?.(view, cell) ?? null;
         const name = view.text || view.placeholder || `실천 ${view.kind === 'action' && view.index !== null ? (view.index % 8) + 1 : ''}`;
-        return onSelectCell ? (
+        return onSelectCell && (interactive?.(cell, view) ?? true) ? (
           <button
             key={cell}
             type="button"

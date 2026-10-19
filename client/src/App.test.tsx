@@ -102,7 +102,7 @@ describe('App (공유)', () => {
     vi.mocked(saveImageToPhotos).mockClear();
   });
 
-  it('홈의 공유 버튼으로 공유 화면에 가고, 저장을 누르면 PNG 본문과 날짜 파일명으로 사진첩 저장 브릿지를 불러요', async () => {
+  it('홈 전체 보기 → 오른쪽 위 공유로 공유 화면에 가고, 저장을 누르면 PNG 본문과 날짜 파일명으로 사진첩 저장 브릿지를 불러요', async () => {
     const { ctx } = fakeCanvasContext();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx);
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,QUJD');
@@ -116,7 +116,9 @@ describe('App (공유)', () => {
     );
     renderApp();
     await screen.findByRole('heading', { level: 1, name: '건강한 한 해' });
-    fireEvent.click(screen.getByText('공유'));
+    expect(screen.queryByText('공유')).not.toBeInTheDocument(); // 홈에는 공유가 없어요(편집만)
+    fireEvent.click(screen.getByText('전체 보기'));
+    fireEvent.click(await screen.findByText('공유'));
 
     await screen.findByText('오늘 체크까지 담은 9×9 이미지예요');
     expect(screen.getByText('글로 공유하기')).toBeInTheDocument();

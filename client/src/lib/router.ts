@@ -16,7 +16,7 @@ import { useEffect, useState } from 'react';
 export type Route =
   | { name: 'home' }
   | { name: 'sub'; sub: number }
-  | { name: 'block'; block: number }
+  | { name: 'block'; block: number; cell?: number }
   | { name: 'overview' }
   | { name: 'today' }
   | { name: 'share' }
@@ -25,8 +25,8 @@ export type Route =
 const HOME: Route = { name: 'home' };
 
 export function parseRoute(hash: string): Route {
-  const block = /^#\/block\/([0-8])$/.exec(hash);
-  if (block) return { name: 'block', block: Number(block[1]) };
+  const block = /^#\/block\/([0-8])(?:\/([0-8]))?$/.exec(hash);
+  if (block) return block[2] === undefined ? { name: 'block', block: Number(block[1]) } : { name: 'block', block: Number(block[1]), cell: Number(block[2]) };
   const sub = /^#\/sub\/([0-7])$/.exec(hash);
   if (sub) return { name: 'sub', sub: Number(sub[1]) };
   if (hash === '#/overview') return { name: 'overview' };
@@ -39,7 +39,8 @@ export function parseRoute(hash: string): Route {
 export function routeToHash(route: Route): string {
   switch (route.name) {
     case 'block':
-      return `#/block/${route.block}`;
+      // 뒤의 칸 번호는 편집 화면에 들어가며 커서를 둘 칸(세부 목표 화면에서 빈 실천 칸을 눌렀을 때)
+      return route.cell === undefined ? `#/block/${route.block}` : `#/block/${route.block}/${route.cell}`;
     case 'sub':
       return `#/sub/${route.sub}`;
     case 'home':

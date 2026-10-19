@@ -1,5 +1,5 @@
 import { FixedBottomCTA, TextField, Top } from '@toss/tds-mobile';
-import type { InputHTMLAttributes } from 'react';
+import { useEffect, type InputHTMLAttributes } from 'react';
 
 import { Block } from '../components/Block';
 import { ACTION_COUNT, CENTER, MAX_TEXT, SUB_COUNT, cellOfRing, ringIndex, type Board } from '../lib/mandalart';
@@ -12,6 +12,8 @@ interface BlockScreenProps {
   onChangeSubTitle: (subIndex: number, title: string) => void;
   onChangeAction: (subIndex: number, actionIndex: number, text: string) => void;
   onDone: () => void;
+  /** 들어오자마자 커서를 둘 칸(0~8). 세부 목표 화면에서 빈 실천 칸을 눌러 왔을 때 */
+  initialCell?: number | null;
 }
 
 const inputId = (cell: number) => `mandalart-cell-${cell}`;
@@ -38,7 +40,11 @@ function enterProps(cell: number): Pick<InputHTMLAttributes<HTMLInputElement>, '
 }
 
 export function BlockScreen(props: BlockScreenProps) {
-  const { board, block, onDone } = props;
+  const { board, block, onDone, initialCell = null } = props;
+  // 화면이 뜬 뒤 한 번만. iOS 웹뷰는 손가락 없이 포커스하면 키보드는 안 올라오지만 칸까지 스크롤은 돼요
+  useEffect(() => {
+    if (initialCell !== null) focusCell(initialCell);
+  }, [initialCell]);
   const isCenter = block === CENTER;
   const subIndex = isCenter ? null : ringIndex(block);
   const sub = subIndex === null ? null : board.subs[subIndex];

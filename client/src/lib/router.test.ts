@@ -20,6 +20,9 @@ describe('parseRoute / routeToHash', () => {
     expect(parseRoute('')).toEqual({ name: 'home' });
     expect(parseRoute('#/sub/8')).toEqual({ name: 'home' });
     expect(parseRoute('#/block/9')).toEqual({ name: 'home' });
+    expect(parseRoute('#/block/4/7')).toEqual({ name: 'block', block: 4, cell: 7 });
+    expect(routeToHash({ name: 'block', block: 4, cell: 7 })).toBe('#/block/4/7');
+    expect(parseRoute('#/block/4/9')).toEqual({ name: 'home' });
     expect(parseRoute('#/nope')).toEqual({ name: 'home' });
     expect(parseRoute('#/checkin')).toEqual({ name: 'today' });
   });

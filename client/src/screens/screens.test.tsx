@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { cheerFor, getBundledContent } from '../content';
-import { actionIndex, createEmptyBoard, type Board } from '../lib/mandalart';
+import { actionIndex, cellOfRing, createEmptyBoard, type Board } from '../lib/mandalart';
 import { dateKey, type CheckinRecord } from '../lib/state';
 import { addDays } from '../lib/stats';
 import { boardFromTemplate } from '../lib/template';
@@ -23,18 +23,26 @@ const record: CheckinRecord = { days: { [today]: [actionIndex(0, 0), actionIndex
 const wrap = (ui: React.ReactElement) => render(<TDSMobileAITProvider brandPrimaryColor="#6B5CFF">{ui}</TDSMobileAITProvider>);
 
 describe('OverviewScreen (9×9 전체 보기)', () => {
-  it('블록 9개가 버튼이고, 둘레 블록은 세부 목표로·가운데는 편집으로 가요', () => {
+  it('둘레 블록 8개만 버튼이고 세부 목표로 가요. 가운데 블록은 누를 수 없고, 공유는 오른쪽 위', () => {
     const onSelectSub = vi.fn();
-    const onEditCore = vi.fn();
-    wrap(<OverviewScreen board={fullBoard} checkin={record} onSelectSub={onSelectSub} onEditCore={onEditCore} />);
+    const onShare = vi.fn();
+    wrap(<OverviewScreen board={fullBoard} checkin={record} onSelectSub={onSelectSub} onShare={onShare} />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('전체 보기');
-    expect(screen.getAllByRole('button', { name: / 열기(, 오늘 \d+개 했어요)?$/ })).toHaveLength(9);
+    expect(screen.getAllByRole('button', { name: / 열기(, 오늘 \d+개 했어요)?$/ })).toHaveLength(8);
+    expect(screen.queryByRole('button', { name: /핵심 목표와 세부 목표/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('group', { name: '핵심 목표와 세부 목표' })).toBeInTheDocument();
     // 블록 이름에 제목과 오늘 체크 수가 들어가요 (안의 글은 aria-label 에 가려져요)
     expect(screen.getByRole('button', { name: `${fullBoard.subs[0].title}, 세부 목표 1 열기, 오늘 2개 했어요` })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /세부 목표 3 열기$/ }));
     expect(onSelectSub).toHaveBeenCalledWith(2);
-    fireEvent.click(screen.getByRole('button', { name: /핵심 목표와 세부 목표 열기$/ }));
-    expect(onEditCore).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('공유'));
+    expect(onShare).toHaveBeenCalledTimes(1);
+  });
+
+  it('세부 목표의 실천을 오늘 다 하면 블록 이름의 체크 수는 실천만 세요(가운데 칸은 안 세요)', () => {
+    const all: CheckinRecord = { days: { [today]: Array.from({ length: 8 }, (_, a) => actionIndex(0, a)) }, lastCompletedAt: NOW };
+    wrap(<OverviewScreen board={fullBoard} checkin={all} onSelectSub={vi.fn()} onShare={vi.fn()} />);
+    expect(screen.getByRole('button', { name: `${fullBoard.subs[0].title}, 세부 목표 1 열기, 오늘 8개 했어요` })).toBeInTheDocument();
   });
 });
 
@@ -70,7 +78,7 @@ describe('BlockScreen (편집 폼)', () => {
 });
 
 describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
-  it('글이 있는 실천 칸은 체크 토글, 가운데(세부 목표)는 편집으로 가요. 오늘 체크한 칸은 aria-pressed', () => {
+  it('글이 있는 실천 칸은 체크 토글, 가운데(세부 목표)는 누를 수 없고 편집은 오른쪽 위 버튼. 오늘 체크한 칸은 aria-pressed', () => {
     const onToggle = vi.fn();
     const onEdit = vi.fn();
     wrap(<SubScreen board={fullBoard} subIndex={0} checkin={record} onToggle={onToggle} onEdit={onEdit} />);
@@ -83,13 +91,25 @@ describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
     expect(unchecked).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(unchecked);
     expect(onToggle).toHaveBeenCalledWith(actionIndex(0, 2));
-    fireEvent.click(screen.getByRole('button', { name: sub.title }));
-    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: sub.title })).not.toBeInTheDocument();
+    expect(screen.getAllByText(sub.title).length).toBeGreaterThanOrEqual(2); // 제목 + 가운데 이름표
     fireEvent.click(screen.getByText('편집'));
-    expect(onEdit).toHaveBeenCalledTimes(2);
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith(); // 버튼은 칸 없이
   });
 
-  it('빈 실천 칸을 누르면 편집으로 가요 (체크할 글이 없으니까)', () => {
+  it('실천 8개를 오늘 다 체크하면 안내가 바뀌고 가운데 이름표에 체크 표시가 붙어요', () => {
+    const all: CheckinRecord = { days: { [today]: Array.from({ length: 8 }, (_, a) => actionIndex(0, a)) }, lastCompletedAt: NOW };
+    const { container } = wrap(<SubScreen board={fullBoard} subIndex={0} checkin={all} onToggle={vi.fn()} onEdit={vi.fn()} />);
+    expect(screen.getByText(/오늘 8\/8 · 오늘 실천을 다 했어요/)).toBeInTheDocument();
+    // 가운데(5번째 칸)는 버튼이 아닌 span 이고 체크 표시를 품어요
+    const cells = container.querySelectorAll('.mg-block-main > .mg-cell');
+    expect(cells).toHaveLength(9);
+    expect(cells[4].tagName).toBe('SPAN');
+    expect(cells[4].querySelector('.mg-cell-check')).not.toBeNull();
+  });
+
+  it('빈 실천 칸을 누르면 그 칸부터 편집으로 가요 (체크할 글이 없으니까)', () => {
     const onToggle = vi.fn();
     const onEdit = vi.fn();
     const board = createEmptyBoard(NOW);
@@ -98,6 +118,7 @@ describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
     expect(screen.getByText('실천 항목을 적어 보세요')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '실천 1' }));
     expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith(cellOfRing(0));
     expect(onToggle).not.toHaveBeenCalled();
   });
 });

@@ -23,7 +23,6 @@ interface HomeScreenProps {
   onSelectSub: (subIndex: number) => void;
   onToday: () => void;
   onOverview: () => void;
-  onShare: () => void;
   onSettings: () => void;
   /** 제목(판이 2개일 때만 셀렉터)을 누르면 판 바꾸기 바텀시트 */
   onSwitchBoard: () => void;
@@ -34,7 +33,8 @@ interface HomeScreenProps {
 
 /**
  * 홈 = 가운데 3×3 (핵심 목표 + 세부 목표 8). 세부 목표를 누르면 그 목표의 3×3 으로,
- * 가운데(핵심 목표)를 누르면 편집으로. 9×9 는 '전체 보기' 로.
+ * 가운데(핵심 목표)를 누르면 전체 보기(9×9)로 — 판이 비어 있을 때만 편집으로. 편집은 오른쪽 위 버튼.
+ * 글이 있는 실천을 오늘 전부 체크한 세부 목표 칸은 진해지고 체크 표시가 붙어요.
  */
 export function HomeScreen({
   board,
@@ -48,7 +48,6 @@ export function HomeScreen({
   onSelectSub,
   onToday,
   onOverview,
-  onShare,
   onSettings,
   onSwitchBoard,
   onNotification,
@@ -67,7 +66,9 @@ export function HomeScreen({
     ? '가운데 칸을 눌러 핵심 목표부터 정해 보세요'
     : progress.actionsFilled === 0
       ? '세부 목표 칸을 눌러 실천을 적어 보세요'
-      : checked.size > 0
+      : checked.size > 0 && checked.size >= progress.actionsFilled
+        ? `${days}일째 · 오늘 실천을 다 했어요`
+        : checked.size > 0
         ? `${days}일째 · 오늘 ${checked.size}개 했어요`
         : days > 0
           ? `${days}일째 이어가는 중 · 오늘은 아직`
@@ -87,12 +88,10 @@ export function HomeScreen({
         }
         subtitleBottom={<Top.SubtitleParagraph size={17}>{subtitle}</Top.SubtitleParagraph>}
         right={
-          // 빈 판에서는 잠긴 버튼을 늘어놓지 않고 숨겨요
-          isEmpty ? undefined : (
-            <Top.RightButton color="dark" variant="weak" onClick={onShare}>
-              공유
-            </Top.RightButton>
-          )
+          // 편집은 잠기지 않으니 빈 판에서도 보여요. 공유는 전체 보기 화면 오른쪽 위에 있어요
+          <Top.RightButton color="dark" variant="weak" onClick={onEditCore}>
+            편집
+          </Top.RightButton>
         }
       />
 
@@ -109,6 +108,7 @@ export function HomeScreen({
           board={board}
           block={CENTER}
           size="main"
+          checked={checked}
           caption={(view) => {
             if (view.kind !== 'sub' || view.index === null || !view.text) return null;
             const total = board.subs[view.index].actions.filter((a) => a.trim()).length;
@@ -116,7 +116,8 @@ export function HomeScreen({
             return `오늘 ${checkedInSub(checked, view.index)}/${total}`;
           }}
           onSelectCell={(_cell, view) => {
-            if (view.kind === 'goal') onEditCore();
+            // 가운데(핵심 목표)는 판 전체로 나가요. 비어 있을 때만 바로 적을 수 있게 편집으로
+            if (view.kind === 'goal') (hasGoal ? onOverview : onEditCore)();
             else if (view.kind === 'sub' && view.index !== null) onSelectSub(view.index);
           }}
         />

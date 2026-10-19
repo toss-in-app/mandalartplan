@@ -490,7 +490,7 @@ function App() {
           subIndex={route.sub}
           checkin={record}
           onToggle={toggleToday}
-          onEdit={() => navigate({ name: 'block', block: cellOfRing(route.sub) })}
+          onEdit={(cell) => navigate(cell === undefined ? { name: 'block', block: cellOfRing(route.sub) } : { name: 'block', block: cellOfRing(route.sub), cell })}
         />
       );
     case 'block':
@@ -502,10 +502,11 @@ function App() {
           onChangeSubTitle={app.setSubTitle}
           onChangeAction={app.setAction}
           onDone={goBack}
+          initialCell={route.cell ?? null}
         />
       );
     case 'overview':
-      return <OverviewScreen board={board} checkin={record} onSelectSub={openSub} onEditCore={editCore} />;
+      return <OverviewScreen board={board} checkin={record} onSelectSub={openSub} onShare={() => navigate({ name: 'share' })} />;
     case 'today':
       return (
         <TodayScreen
@@ -575,7 +576,6 @@ function App() {
           todayBusy={todayBusy}
           onToday={() => void openToday()}
           onOverview={() => navigate({ name: 'overview' })}
-          onShare={() => navigate({ name: 'share' })}
           onSettings={() => navigate({ name: 'settings' })}
           onSwitchBoard={openBoardPicker}
           onNotification={() => void askNotification('home')}
