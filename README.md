@@ -18,7 +18,7 @@ npm run typecheck && npm test && npm run build   # tsc · vitest · vite build &
 
 ## 검사
 - `npm run contract` — 계약 검증(콘텐츠 3벌·상태 샘플·백업 페이로드 ↔ `contract/*.schema.json`). `npm run content` 로 콘텐츠를 바꾼 뒤 꼭 돌린다.
-- `npm run check` — 계약 → 타입 → 린트 → 테스트 → 출시 번들 빌드. 워크플로우 6단계의 `steps/6-test/scripts/check-mandalartplan.sh` 가 이걸 돌리고 번들 크기까지 로그로 남긴다.
+- `npm run check` — 계약 → 타입 → 린트 → 테스트 → 출시 번들 빌드. 출시 빌드(`npm --prefix client run build`)는 `client/scripts/check-release-bundle.mjs` 로 dist 에 테스트 광고 ID 문자열이 없고 라이브 광고 그룹 ID 4개가 있는지 검사해요(콘솔이 번들을 정적 검사해 자동 반려, 2026-10-19). 테스트 광고 ID 로 QR 번들을 만들 때는 `npm --prefix client run build:test-ads`. 워크플로우 6단계의 `steps/6-test/scripts/check-mandalartplan.sh` 가 이걸 돌리고 번들 크기까지 로그로 남긴다.
 
 ## 구조
 
