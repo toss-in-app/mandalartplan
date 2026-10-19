@@ -48,6 +48,8 @@ describe('OverviewScreen (9×9 전체 보기)', () => {
 
 describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => {
   const sheetInput = (placeholder: string) => screen.getByPlaceholderText(placeholder) as HTMLTextAreaElement;
+  /** 시트 제목에 들어가는 칸 이름(16자 넘으면 줄임) */
+  const titleName = (text: string) => (text.trim().length > 16 ? `${text.trim().slice(0, 15)}…` : text.trim());
   /** 시트 안의 '완료' (화면 아래 '완료' 와 구분) */
   const sheetDone = () => {
     const input = document.getElementById('mandalart-cell-editor');
@@ -80,7 +82,7 @@ describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => 
     // 세부 목표 칸: 시트 제목은 칸 이름, 부제는 핵심 목표. 키보드 '완료'(Enter)로도 반영
     fireEvent.click(screen.getByRole('button', { name: fullBoard.subs[2].title }));
     expect(screen.getByText('세부 목표 3')).toBeInTheDocument();
-    expect(screen.getByText(`핵심 목표 · ${fullBoard.goal}`)).toBeInTheDocument();
+    expect(screen.getByText(`${titleName(fullBoard.goal)} 칸의 세부 목표는 무엇인가요?`)).toBeInTheDocument();
     const third = sheetInput('예: 꾸준한 운동');
     fireEvent.change(third, { target: { value: '세 번째' } });
     fireEvent.keyDown(third, { key: 'Enter' });
@@ -89,6 +91,23 @@ describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => 
 
     fireEvent.click(screen.getByText('완료'));
     expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('질문에 위 칸의 이름이 들어가요: 핵심 목표가 \'자격증 따기\' 면 \'자격증 따기 칸의 세부 목표는 무엇인가요?\'', () => {
+    const board = createEmptyBoard(NOW);
+    board.goal = '자격증 따기';
+    const { unmount } = wrap(<BlockScreen board={board} block={4} onChangeGoal={vi.fn()} onChangeSubTitle={vi.fn()} onChangeAction={vi.fn()} onDone={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: '목표 1' }));
+    expect(screen.getByText('자격증 따기 칸의 세부 목표는 무엇인가요?')).toBeInTheDocument();
+    unmount();
+    // 세부 목표 블록의 실천 칸: 세부 목표 이름이 비어 있으면 '세부 목표 n' 으로
+    wrap(<BlockScreen board={board} block={cellOfRing(1)} initialCell={cellOfRing(0)} onChangeGoal={vi.fn()} onChangeSubTitle={vi.fn()} onChangeAction={vi.fn()} onDone={vi.fn()} />);
+    expect(screen.getByText('세부 목표 2 칸의 실천은 무엇인가요?')).toBeInTheDocument();
+  });
+
+  it('핵심 목표가 비어 있으면 세부 목표 질문은 일반 문장이에요', () => {
+    wrap(<BlockScreen board={createEmptyBoard(NOW)} block={4} initialCell={cellOfRing(0)} onChangeGoal={vi.fn()} onChangeSubTitle={vi.fn()} onChangeAction={vi.fn()} onDone={vi.fn()} />);
+    expect(screen.getByText('목표를 이루려면 무엇이 필요할까요?')).toBeInTheDocument();
   });
 
   it('한글을 조합하는 중의 Enter 는 반영하지 않아요', () => {
@@ -107,7 +126,7 @@ describe('BlockScreen (편집: 칸을 눌러 바텀시트에서 적기)', () => 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(fullBoard.subs[0].title);
     fireEvent.click(screen.getByRole('button', { name: fullBoard.subs[0].actions[7] }));
     expect(screen.getByText('실천 8')).toBeInTheDocument();
-    expect(screen.getByText(`세부 목표 · ${fullBoard.subs[0].title}`)).toBeInTheDocument();
+    expect(screen.getByText(`${titleName(fullBoard.subs[0].title)} 칸의 실천은 무엇인가요?`)).toBeInTheDocument();
     const action = sheetInput('예: 아침 스트레칭 10분');
     expect(action.value).toBe(fullBoard.subs[0].actions[7]);
     fireEvent.change(action, { target: { value: '바꾼 실천' } });

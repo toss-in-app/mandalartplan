@@ -31,53 +31,56 @@ function focusEditor() {
 }
 
 interface CellSpec {
-  /** 시트 제목(질문형) */
+  /** 시트 제목(질문형). 위 칸의 이름을 넣어요: "자격증 따기 칸의 세부 목표는 무엇인가요?" */
   question: string;
   /** 칸 위치 이름: 핵심 목표 · 세부 목표 n · 실천 n (위치 아이콘 옆, 입력칸 이름) */
   position: string;
-  /** 위 칸의 글(알약 표시). 없으면 생략 */
-  parent: { label: string; text: string } | null;
   placeholder: string;
   value: string;
   save: (text: string) => void;
+}
+
+/** 제목에 넣을 칸 이름. 길면 줄여요(전체 글은 3×3 에 그대로 보여요) */
+function nameForTitle(text: string, max = 16): string {
+  const t = text.trim();
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 }
 
 /** 블록·칸 번호 → 그 칸의 질문, 위치 이름, 지금 글, 저장 콜백 */
 function cellSpec(props: BlockScreenProps, cell: number): CellSpec {
   const { board, block } = props;
   const goal = board.goal.trim();
-  const goalParent = goal ? { label: '핵심 목표', text: goal } : null;
+  // 세부 목표 칸의 질문: 핵심 목표 이름을 넣어요. 핵심 목표가 비어 있으면 일반 질문
+  const subQuestion = goal ? `${nameForTitle(goal)} 칸의 세부 목표는 무엇인가요?` : '목표를 이루려면 무엇이 필요할까요?';
   if (block === CENTER) {
     if (cell === CENTER) {
-      return { question: '어떤 목표를 이루고 싶나요?', position: '핵심 목표', parent: null, placeholder: '예: 올해 안에 책 한 권 쓰기', value: board.goal, save: props.onChangeGoal };
+      return { question: '어떤 목표를 이루고 싶나요?', position: '핵심 목표', placeholder: '예: 올해 안에 책 한 권 쓰기', value: board.goal, save: props.onChangeGoal };
     }
     const s = ringIndex(cell);
     return {
-      question: '목표를 이루려면 무엇이 필요할까요?',
+      question: subQuestion,
       position: `세부 목표 ${s + 1}`,
-      parent: goalParent,
       placeholder: '예: 꾸준한 운동',
       value: board.subs[s].title,
       save: (text) => props.onChangeSubTitle(s, text),
     };
   }
   const s = ringIndex(block);
-  const title = board.subs[s].title.trim();
   if (cell === CENTER) {
     return {
-      question: '이 칸의 세부 목표는 무엇인가요?',
+      question: subQuestion,
       position: `세부 목표 ${s + 1}`,
-      parent: goalParent,
       placeholder: '예: 매일 글쓰기 습관',
       value: board.subs[s].title,
       save: (text) => props.onChangeSubTitle(s, text),
     };
   }
   const a = ringIndex(cell);
+  // 실천 칸의 질문: 세부 목표 이름을 넣어요. 비어 있으면 '세부 목표 n'
+  const subName = board.subs[s].title.trim() || `세부 목표 ${s + 1}`;
   return {
-    question: '매일 체크할 행동을 적어 주세요',
+    question: `${nameForTitle(subName)} 칸의 실천은 무엇인가요?`,
     position: `실천 ${a + 1}`,
-    parent: title ? { label: '세부 목표', text: title } : goalParent,
     placeholder: '예: 아침 스트레칭 10분',
     value: board.subs[s].actions[a],
     save: (text) => props.onChangeAction(s, a, text),
@@ -177,34 +180,9 @@ export function BlockScreen(props: BlockScreenProps) {
       >
         {spec && (
           <div className="mg-cell-editor" style={{ padding: '4px 24px 0', ['--mg-brand' as string]: brandColor }}>
-            {/* 어느 칸인지: 3×3 위치 아이콘 + 이 칸이 속한 위 칸의 글(알약) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            {/* 어느 칸인지: 3×3 위치 아이콘 + 칸 이름 (위 칸의 이름은 제목에 있어요) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <CellPositionIcon cell={editing ?? CENTER} />
-              {spec.parent ? (
-                <span
-                  style={{
-                    minWidth: 0,
-                    padding: '3px 10px',
-                    borderRadius: 999,
-                    background: withAlpha(brandColor, 0.1),
-                    color: brandColor,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    lineHeight: '18px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {spec.parent.label} · {spec.parent.text}
-                </span>
-              ) : (
-                <Text typography="t7" color={colors.grey600}>
-                  만다라트 한가운데 칸이에요
-                </Text>
-              )}
-            </div>
-            <div style={{ marginTop: 16 }}>
               <Text typography="t7" color={colors.grey600} fontWeight="semibold">
                 {spec.position}
               </Text>
