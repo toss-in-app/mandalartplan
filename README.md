@@ -31,6 +31,7 @@ contract/                  # 계약 (3단계 승인본). 바뀌면 CHANGELOG.md 
 content/content.source.json  # 콘텐츠 원본(사람이 검수). scripts/build-content.mjs 의 입력
 scripts/build-content.mjs    # 검증 통과한 것만 static/ 과 번들 동봉본으로
 static/                      # GitHub Pages 에 올릴 것: content.json · index · terms · privacy · og.png(예정)
+console/                     # 콘솔 앱 정보 자료(9·11단계 입력값): logo.png · app-info.md · features.md · policies/ · release-notes.md — 앱 자료는 steps/ 가 아니라 여기
 supabase/schema.sql          # 백업·복원용 Supabase 테이블·RLS·RPC (2026-10-04, 사용자가 SQL Editor 에서 실행)
 client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/web-framework 3.x)
 ├── apps-in-toss.config.ts   #   appName·브랜드 색·네비게이션 바·웹뷰 옵션 (콘솔 appName 과 같아야 함)
