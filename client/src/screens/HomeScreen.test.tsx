@@ -1,5 +1,5 @@
 import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getBundledContent, type Content } from '../content';
@@ -18,7 +18,17 @@ function filledBoard(actions: boolean): Board {
 interface Handlers {
   onEditCore?: () => void;
   onOverview?: () => void;
+  onSelectSub?: (subIndex: number) => void;
+  onChangeGoal?: (goal: string) => void;
+  onChangeSubTitle?: (subIndex: number, title: string) => void;
   todayAdNotice?: boolean;
+}
+
+/** 칸 편집 시트 안의 '완료' */
+function sheetDone() {
+  let node: HTMLElement | null = document.getElementById('mandalart-cell-editor');
+  while (node && !within(node).queryByText('완료')) node = node.parentElement;
+  return within(node!).getByText('완료');
 }
 
 function renderHome(board: Board, content: Content, checkin?: CheckinRecord, handlers: Handlers = {}) {
@@ -34,7 +44,9 @@ function renderHome(board: Board, content: Content, checkin?: CheckinRecord, han
         notificationVisible={false}
         todayAdNotice={handlers.todayAdNotice}
         onEditCore={handlers.onEditCore ?? noop}
-        onSelectSub={noop}
+        onSelectSub={handlers.onSelectSub ?? noop}
+        onChangeGoal={handlers.onChangeGoal ?? noop}
+        onChangeSubTitle={handlers.onChangeSubTitle ?? noop}
         onToday={noop}
         onOverview={handlers.onOverview ?? noop}
         onSettings={noop}
@@ -49,21 +61,45 @@ function renderHome(board: Board, content: Content, checkin?: CheckinRecord, han
 describe('HomeScreen (홈 마무리)', () => {
   const content = getBundledContent();
 
-  it('빈 판: 안내 한 줄 + 예시로 시작하기 버튼 + 편집만, 잠긴 버튼(기록·전체 보기)과 진행률은 숨겨요. 가운데 칸은 편집으로', () => {
+  it('빈 판: 안내 한 줄 + 예시로 시작하기 버튼 + 편집만, 잠긴 버튼(기록·전체 보기)과 진행률은 숨겨요. 빈 세부 목표 칸에는 글이 없어요', () => {
     const onEditCore = vi.fn();
     const onOverview = vi.fn();
-    renderHome(createEmptyBoard(1759000000000), content, undefined, { onEditCore, onOverview });
+    const onChangeGoal = vi.fn();
+    renderHome(createEmptyBoard(1759000000000), content, undefined, { onEditCore, onOverview, onChangeGoal });
+    expect(screen.queryByText('목표 1')).not.toBeInTheDocument(); // "목표 n" 자리 표시 없음
+    expect(screen.getByRole('button', { name: '세부 목표 1' })).toHaveTextContent('');
     expect(screen.getByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요')).toBeInTheDocument();
     expect(screen.getByText('예시로 시작하기').closest('button')).not.toBeDisabled();
     expect(screen.queryByText('기록 보기')).not.toBeInTheDocument();
     expect(screen.queryByText('전체 보기')).not.toBeInTheDocument();
     expect(screen.queryByText('공유')).not.toBeInTheDocument(); // 공유는 전체 보기 화면으로 옮겼어요
     expect(screen.queryByText('오늘 실천')).not.toBeInTheDocument();
+    // 빈 가운데 칸은 그 자리에서 시트로 정해요(편집 화면으로 가지 않아요)
     fireEvent.click(screen.getByRole('button', { name: '핵심 목표' }));
-    expect(onEditCore).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('어떤 목표를 이루고 싶나요?')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('예: 올해 안에 책 한 권 쓰기'), { target: { value: '자격증 따기' } });
+    fireEvent.click(sheetDone());
+    expect(onChangeGoal).toHaveBeenCalledWith('자격증 따기');
+    expect(onEditCore).not.toHaveBeenCalled();
     expect(onOverview).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('편집'));
-    expect(onEditCore).toHaveBeenCalledTimes(2);
+    expect(onEditCore).toHaveBeenCalledTimes(1);
+  });
+
+  it('빈 세부 목표 칸을 누르면 그 자리에서 정하고, 채워진 칸은 그 세부 목표 화면으로 가요', async () => {
+    const onSelectSub = vi.fn();
+    const onChangeSubTitle = vi.fn();
+    renderHome(filledBoard(true), content, undefined, { onSelectSub, onChangeSubTitle });
+    fireEvent.click(screen.getByRole('button', { name: '세부 목표 2' }));
+    expect(screen.getByText('건강한 한 해 칸의 세부 목표는 무엇인가요?')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('예: 꾸준한 운동'), { target: { value: '독서' } });
+    fireEvent.click(sheetDone());
+    expect(onChangeSubTitle).toHaveBeenCalledWith(1, '독서');
+    expect(onSelectSub).not.toHaveBeenCalled();
+    // 시트가 닫히고 나면(포커스 잠금 해제) 다시 칸을 누를 수 있어요
+    await waitFor(() => expect(document.getElementById('mandalart-cell-editor')).toBeNull());
+    fireEvent.click(await screen.findByRole('button', { name: '운동, 오늘 1개 중 0개' }));
+    expect(onSelectSub).toHaveBeenCalledWith(0);
   });
 
   it('목표가 있으면 가운데 칸은 전체 보기로 가고, 편집은 오른쪽 위 버튼으로만 가요', () => {

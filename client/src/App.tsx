@@ -490,7 +490,8 @@ function App() {
           subIndex={route.sub}
           checkin={record}
           onToggle={toggleToday}
-          onEdit={(cell) => navigate(cell === undefined ? { name: 'block', block: cellOfRing(route.sub) } : { name: 'block', block: cellOfRing(route.sub), cell })}
+          onEdit={() => navigate({ name: 'block', block: cellOfRing(route.sub) })}
+          onChangeAction={app.setAction}
         />
       );
     case 'block':
@@ -573,6 +574,8 @@ function App() {
           notificationVisible={notificationPrompt}
           onEditCore={editCore}
           onSelectSub={openSub}
+          onChangeGoal={app.setGoal}
+          onChangeSubTitle={app.setSubTitle}
           todayBusy={todayBusy}
           todayAdNotice={interstitial.upcoming}
           onToday={() => void openToday()}

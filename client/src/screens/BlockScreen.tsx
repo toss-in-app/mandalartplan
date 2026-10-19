@@ -1,11 +1,11 @@
 import { colors } from '@toss/tds-colors';
-import { BottomSheet, FixedBottomCTA, Text, TextArea, Top } from '@toss/tds-mobile';
-import { useEffect, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { FixedBottomCTA, Text, Top } from '@toss/tds-mobile';
+import { useEffect } from 'react';
 
 import { Block } from '../components/Block';
+import { useCellEditor } from '../hooks/useCellEditor';
+import { editTarget } from '../lib/cellEdit';
 import { CENTER, MAX_TEXT, ringIndex, type Board } from '../lib/mandalart';
-import { brandColor, withAlpha } from '../theme';
 
 interface BlockScreenProps {
   board: Board;
@@ -15,95 +15,8 @@ interface BlockScreenProps {
   onChangeSubTitle: (subIndex: number, title: string) => void;
   onChangeAction: (subIndex: number, actionIndex: number, text: string) => void;
   onDone: () => void;
-  /** 들어오자마자 입력창을 열 칸(0~8). 세부 목표 화면에서 빈 실천 칸을 눌러 왔을 때 */
+  /** 들어오자마자 입력창을 열 칸(0~8). `#/block/:b/:cell` 딥링크 */
   initialCell?: number | null;
-}
-
-const EDITOR_INPUT_ID = 'mandalart-cell-editor';
-
-/** 입력칸에 포커스하고 커서를 글 끝에 둬요(이미 적힌 글을 이어서 고치기 쉽게) */
-function focusEditor() {
-  const el = document.getElementById(EDITOR_INPUT_ID) as HTMLTextAreaElement | null;
-  if (!el) return;
-  el.focus();
-  const end = el.value.length;
-  el.setSelectionRange(end, end);
-}
-
-interface CellSpec {
-  /** 시트 제목(질문형). 위 칸의 이름을 넣어요: "자격증 따기 칸의 세부 목표는 무엇인가요?" */
-  question: string;
-  /** 칸 위치 이름: 핵심 목표 · 세부 목표 n · 실천 n (위치 아이콘 옆, 입력칸 이름) */
-  position: string;
-  placeholder: string;
-  value: string;
-  save: (text: string) => void;
-}
-
-/** 제목에 넣을 칸 이름. 길면 줄여요(전체 글은 3×3 에 그대로 보여요) */
-function nameForTitle(text: string, max = 16): string {
-  const t = text.trim();
-  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
-}
-
-/** 블록·칸 번호 → 그 칸의 질문, 위치 이름, 지금 글, 저장 콜백 */
-function cellSpec(props: BlockScreenProps, cell: number): CellSpec {
-  const { board, block } = props;
-  const goal = board.goal.trim();
-  // 세부 목표 칸의 질문: 핵심 목표 이름을 넣어요. 핵심 목표가 비어 있으면 일반 질문
-  const subQuestion = goal ? `${nameForTitle(goal)} 칸의 세부 목표는 무엇인가요?` : '목표를 이루려면 무엇이 필요할까요?';
-  if (block === CENTER) {
-    if (cell === CENTER) {
-      return { question: '어떤 목표를 이루고 싶나요?', position: '핵심 목표', placeholder: '예: 올해 안에 책 한 권 쓰기', value: board.goal, save: props.onChangeGoal };
-    }
-    const s = ringIndex(cell);
-    return {
-      question: subQuestion,
-      position: `세부 목표 ${s + 1}`,
-      placeholder: '예: 꾸준한 운동',
-      value: board.subs[s].title,
-      save: (text) => props.onChangeSubTitle(s, text),
-    };
-  }
-  const s = ringIndex(block);
-  if (cell === CENTER) {
-    return {
-      question: subQuestion,
-      position: `세부 목표 ${s + 1}`,
-      placeholder: '예: 매일 글쓰기 습관',
-      value: board.subs[s].title,
-      save: (text) => props.onChangeSubTitle(s, text),
-    };
-  }
-  const a = ringIndex(cell);
-  // 실천 칸의 질문: 세부 목표 이름을 넣어요. 비어 있으면 '세부 목표 n'
-  const subName = board.subs[s].title.trim() || `세부 목표 ${s + 1}`;
-  return {
-    question: `${nameForTitle(subName)} 칸의 실천은 무엇인가요?`,
-    position: `실천 ${a + 1}`,
-    placeholder: '예: 아침 스트레칭 10분',
-    value: board.subs[s].actions[a],
-    save: (text) => props.onChangeAction(s, a, text),
-  };
-}
-
-/** 지금 적는 칸이 3×3 의 어디인지 보여주는 작은 아이콘(장식, 읽지 않음) */
-function CellPositionIcon({ cell }: { cell: number }) {
-  return (
-    <span aria-hidden style={{ display: 'inline-grid', gridTemplateColumns: 'repeat(3, 6px)', gap: 2, flexShrink: 0 }}>
-      {Array.from({ length: 9 }, (_, i) => (
-        <span
-          key={i}
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 1.5,
-            background: i === cell ? brandColor : i === CENTER ? withAlpha(brandColor, 0.35) : colors.grey200,
-          }}
-        />
-      ))}
-    </span>
-  );
 }
 
 /**
@@ -112,33 +25,15 @@ function CellPositionIcon({ cell }: { cell: number }) {
  */
 export function BlockScreen(props: BlockScreenProps) {
   const { board, block, onDone, initialCell = null } = props;
-  const [editing, setEditing] = useState<number | null>(null);
-  const [draft, setDraft] = useState('');
+  const editor = useCellEditor(props);
 
-  // 세부 목표 화면에서 빈 칸을 눌러 왔으면 그 칸의 입력창을 바로 열어요(키보드는 입력칸을 한 번 누르면 올라와요)
+  // 딥링크로 칸이 정해져 들어왔으면 그 칸의 입력창을 바로 열어요(키보드는 입력칸을 한 번 누르면 올라와요)
   useEffect(() => {
     if (initialCell === null) return;
-    setDraft(cellSpec(props, initialCell).value);
-    setEditing(initialCell);
+    editor.open(editTarget(board, block, initialCell));
     // 화면이 처음 뜰 때 한 번만
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCell]);
-
-  /** 칸을 누른 그 순간 안에서 시트를 그리고 입력칸에 포커스해요 — 그래야 iOS 웹뷰도 키보드를 올려요 */
-  const openFromTap = (cell: number) => {
-    flushSync(() => {
-      setDraft(cellSpec(props, cell).value);
-      setEditing(cell);
-    });
-    focusEditor();
-  };
-
-  const close = () => setEditing(null);
-  const commit = () => {
-    if (editing === null) return;
-    cellSpec(props, editing).save(draft.trim());
-    setEditing(null);
-  };
 
   const isCenter = block === CENTER;
   const subIndex = isCenter ? null : ringIndex(block);
@@ -147,7 +42,6 @@ export function BlockScreen(props: BlockScreenProps) {
   const subtitle = isCenter
     ? '가운데가 핵심 목표, 둘레 8칸이 세부 목표예요'
     : `${board.goal.trim() || '핵심 목표'}를 이루기 위한 실천 항목 8개예요`;
-  const spec = editing === null ? null : cellSpec(props, editing);
 
   return (
     <>
@@ -157,7 +51,7 @@ export function BlockScreen(props: BlockScreenProps) {
       />
 
       <div style={{ padding: '0 20px' }}>
-        <Block board={board} block={block} size="main" onSelectCell={(cell) => openFromTap(cell)} />
+        <Block board={board} block={block} size="main" onSelectCell={(cell) => editor.openFromTap(editTarget(board, block, cell))} />
       </div>
 
       <div style={{ padding: '16px 24px 120px' }}>
@@ -168,51 +62,7 @@ export function BlockScreen(props: BlockScreenProps) {
 
       <FixedBottomCTA onClick={onDone}>완료</FixedBottomCTA>
 
-      <BottomSheet
-        open={spec !== null}
-        onClose={close}
-        // 시트의 포커스 잠금이 컨테이너로 포커스를 옮겨도 입력칸으로 돌려놔요(다른 화면에서 들어와 바로 열린 경우 포함)
-        onEntered={focusEditor}
-        hasTextField
-        ctaContentGap={20}
-        header={<BottomSheet.Header>{spec?.question ?? ''}</BottomSheet.Header>}
-        cta={<BottomSheet.CTA onClick={commit}>완료</BottomSheet.CTA>}
-      >
-        {spec && (
-          <div className="mg-cell-editor" style={{ padding: '4px 24px 0', ['--mg-brand' as string]: brandColor }}>
-            {/* 어느 칸인지: 3×3 위치 아이콘 + 칸 이름 (위 칸의 이름은 제목에 있어요) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CellPositionIcon cell={editing ?? CENTER} />
-              <Text typography="t7" color={colors.grey600} fontWeight="semibold">
-                {spec.position}
-              </Text>
-            </div>
-            <div style={{ margin: '0 -24px' }}>
-              {/* 칸 글은 짧은 한 줄이지만 40자까지라 큰 글씨가 잘리지 않게 여러 줄로 보여요. 줄바꿈은 넣지 않아요(Enter = 완료) */}
-              <TextArea
-                id={EDITOR_INPUT_ID}
-                variant="big"
-                aria-label={spec.position}
-                placeholder={spec.placeholder}
-                value={draft}
-                maxLength={MAX_TEXT}
-                enterKeyHint="done"
-                onChange={(event) => setDraft(event.target.value.replace(/[\r\n]+/g, ' '))}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
-                  event.preventDefault();
-                  commit();
-                }}
-              />
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <Text typography="t7" color={draft.length >= MAX_TEXT ? colors.red500 : colors.grey500}>
-                {draft.length}/{MAX_TEXT}
-              </Text>
-            </div>
-          </div>
-        )}
-      </BottomSheet>
+      {editor.sheet}
     </>
   );
 }

@@ -28,12 +28,13 @@ export function cellView(board: Board, block: number, cell: number, checked: Rea
       return { text: board.goal, placeholder: '핵심 목표', kind: 'goal', index: null, checked: false };
     }
     const s = ringIndex(cell);
-    return { text: board.subs[s].title, placeholder: `목표 ${s + 1}`, kind: 'sub', index: s, checked: subCompleted(board, s, checked) };
+    // 빈 세부 목표 칸은 비워 둬요(“목표 n” 같은 자리 표시를 보여주지 않아요, 2026-10-20 사용자 피드백)
+    return { text: board.subs[s].title, placeholder: '', kind: 'sub', index: s, checked: subCompleted(board, s, checked) };
   }
   const s = ringIndex(block);
   const sub = board.subs[s];
   if (cell === CENTER) {
-    return { text: sub.title, placeholder: `목표 ${s + 1}`, kind: 'sub', index: s, checked: subCompleted(board, s, checked) };
+    return { text: sub.title, placeholder: '', kind: 'sub', index: s, checked: subCompleted(board, s, checked) };
   }
   const a = ringIndex(cell);
   const index = actionIndex(s, a);

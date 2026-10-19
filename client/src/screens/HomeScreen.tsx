@@ -2,6 +2,8 @@ import { colors } from '@toss/tds-colors';
 import { Button, List, ListRow, ProgressBar, Text, Top } from '@toss/tds-mobile';
 
 import { Block } from '../components/Block';
+import { useCellEditor } from '../hooks/useCellEditor';
+import { editTarget } from '../lib/cellEdit';
 import { activeSeason, type Content } from '../content';
 import { checkedInSub, formatDateLabel, todaySet } from '../lib/checkin';
 import { CENTER, getProgress, type Board } from '../lib/mandalart';
@@ -23,6 +25,9 @@ interface HomeScreenProps {
   todayAdNotice?: boolean;
   onEditCore: () => void;
   onSelectSub: (subIndex: number) => void;
+  /** 빈 핵심 목표·세부 목표 칸을 눌러 시트에서 정했을 때 */
+  onChangeGoal: (goal: string) => void;
+  onChangeSubTitle: (subIndex: number, title: string) => void;
   onToday: () => void;
   onOverview: () => void;
   onSettings: () => void;
@@ -35,7 +40,7 @@ interface HomeScreenProps {
 
 /**
  * 홈 = 가운데 3×3 (핵심 목표 + 세부 목표 8). 세부 목표를 누르면 그 목표의 3×3 으로,
- * 가운데(핵심 목표)를 누르면 전체 보기(9×9)로 — 판이 비어 있을 때만 편집으로. 편집은 오른쪽 위 버튼.
+ * 가운데(핵심 목표)를 누르면 전체 보기(9×9)로. 비어 있는 칸(핵심 목표·세부 목표)은 누르면 그 자리에서 바텀시트로 정해요. 편집은 오른쪽 위 버튼.
  * 글이 있는 실천을 오늘 전부 체크한 세부 목표 칸은 진해지고 체크 표시가 붙어요.
  */
 export function HomeScreen({
@@ -49,6 +54,8 @@ export function HomeScreen({
   todayAdNotice = false,
   onEditCore,
   onSelectSub,
+  onChangeGoal,
+  onChangeSubTitle,
   onToday,
   onOverview,
   onSettings,
@@ -56,6 +63,7 @@ export function HomeScreen({
   onNotification,
   onStartWithTemplate,
 }: HomeScreenProps) {
+  const editor = useCellEditor({ onChangeGoal, onChangeSubTitle });
   const today = dateKey();
   const progress = getProgress(board);
   const checked = todaySet(checkin, today);
@@ -118,9 +126,13 @@ export function HomeScreen({
             if (total === 0) return '실천을 적어요';
             return `오늘 ${checkedInSub(checked, view.index)}/${total}`;
           }}
-          onSelectCell={(_cell, view) => {
-            // 가운데(핵심 목표)는 판 전체로 나가요. 비어 있을 때만 바로 적을 수 있게 편집으로
-            if (view.kind === 'goal') (hasGoal ? onOverview : onEditCore)();
+          onSelectCell={(cell, view) => {
+            // 비어 있는 칸은 그 자리에서 정해요. 채워진 가운데는 판 전체로, 채워진 세부 목표는 그 목표의 3×3 으로
+            if (!view.text.trim()) {
+              editor.openFromTap(editTarget(board, CENTER, cell));
+              return;
+            }
+            if (view.kind === 'goal') onOverview();
             else if (view.kind === 'sub' && view.index !== null) onSelectSub(view.index);
           }}
         />
@@ -191,6 +203,8 @@ export function HomeScreen({
           </Text>
         </div>
       )}
+
+      {editor.sheet}
 
       <List>
         {notificationVisible && (

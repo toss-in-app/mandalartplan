@@ -77,7 +77,7 @@ interface BlockProps {
 }
 
 function CellContent({ view, caption, size }: { view: CellView; caption: string | null; size: BlockSize }) {
-  const text = view.text || view.placeholder || (size === 'main' ? '비어 있어요' : '');
+  const text = view.text || view.placeholder || (size === 'main' && view.kind === 'action' ? '비어 있어요' : '');
   return (
     <>
       <span className="mg-cell-text">{text}</span>
@@ -114,7 +114,11 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
     <div className={className} role="group" aria-label={label}>
       {views.map((view, cell) => {
         const cap = caption?.(view, cell) ?? null;
-        const name = view.text || view.placeholder || `실천 ${view.kind === 'action' && view.index !== null ? (view.index % 8) + 1 : ''}`;
+        // 빈 칸은 화면에 글이 없어도 스크린리더가 어느 칸인지 알 수 있게 이름을 붙여요
+        const name =
+          view.text ||
+          view.placeholder ||
+          (view.kind === 'sub' && view.index !== null ? `세부 목표 ${view.index + 1}` : view.kind === 'action' && view.index !== null ? `실천 ${(view.index % 8) + 1}` : '');
         return onSelectCell && (interactive?.(cell, view) ?? true) ? (
           <button
             key={cell}
