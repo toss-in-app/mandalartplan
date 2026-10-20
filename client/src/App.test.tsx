@@ -111,7 +111,8 @@ describe('App (공유)', () => {
       JSON.stringify({
         version: 1,
         active: 0,
-        boards: [{ id: 'b1759000000000', goal: '건강한 한 해', subs: Array.from({ length: 8 }, () => ({ title: '', actions: Array(8).fill('') })), templateId: null, createdAt: 1, updatedAt: 1 }],
+        // 세부 목표가 하나라도 있어야 홈에 '기록 보기·전체 보기' 가 나와요(없으면 AI 초안·예시 버튼, 2.0)
+        boards: [{ id: 'b1759000000000', goal: '건강한 한 해', subs: Array.from({ length: 8 }, (_, i) => ({ title: i === 0 ? '규칙적인 수면' : '', actions: Array(8).fill('') })), templateId: null, createdAt: 1, updatedAt: 1 }],
       }),
     );
     renderApp();

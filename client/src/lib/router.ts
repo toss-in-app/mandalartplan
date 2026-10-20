@@ -20,7 +20,9 @@ export type Route =
   | { name: 'overview' }
   | { name: 'today' }
   | { name: 'share' }
-  | { name: 'settings' };
+  | { name: 'settings' }
+  /** AI 초안 만들기 (2.0) */
+  | { name: 'draft' };
 
 const HOME: Route = { name: 'home' };
 
@@ -33,6 +35,7 @@ export function parseRoute(hash: string): Route {
   if (hash === '#/today' || hash === '#/checkin') return { name: 'today' };
   if (hash === '#/share') return { name: 'share' };
   if (hash === '#/settings') return { name: 'settings' };
+  if (hash === '#/draft') return { name: 'draft' };
   return HOME;
 }
 

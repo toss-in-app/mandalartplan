@@ -79,7 +79,28 @@ describe('createEmptyBoard / normalizeBoard', () => {
     board.templateId = 'job-change';
     board.subs[2].title = '글쓰기 습관';
     board.subs[2].actions[5] = '매일 300자';
+    board.aiDraft = { at: NOW + 3, model: 'claude-haiku-5-5', promptVersion: 1 };
     expect(normalizeBoard(JSON.parse(JSON.stringify(board)), NOW + 1)).toEqual(board);
+  });
+
+  it('AI 기록은 모양이 맞을 때만 남겨요(예전 판에는 없음 → null)', () => {
+    const base = JSON.parse(JSON.stringify(createEmptyBoard(NOW)));
+    delete base.aiDraft;
+    expect(normalizeBoard(base, NOW)?.aiDraft).toBeNull();
+    expect(normalizeBoard({ ...base, aiDraft: { at: -1, model: 'x', promptVersion: 1 } }, NOW)?.aiDraft).toBeNull();
+    expect(normalizeBoard({ ...base, aiDraft: { at: NOW, model: '', promptVersion: 1 } }, NOW)?.aiDraft).toBeNull();
+    expect(normalizeBoard({ ...base, aiDraft: { at: NOW, model: 'm', promptVersion: 0 } }, NOW)?.aiDraft).toBeNull();
+    expect(normalizeBoard({ ...base, aiDraft: { at: NOW + 0.5, model: 'm', promptVersion: 2 } }, NOW)?.aiDraft).toEqual({ at: NOW, model: 'm', promptVersion: 2 });
+  });
+});
+
+describe('boardToText AI 표시', () => {
+  it('AI 결과를 넣은 판은 공유 글 끝에 (AI 초안 포함)', () => {
+    const board = createEmptyBoard(NOW);
+    board.goal = '토익 900점';
+    expect(boardToText(board)).not.toContain('AI 초안');
+    board.aiDraft = { at: NOW, model: 'claude-haiku-5-5', promptVersion: 1 };
+    expect(boardToText(board).endsWith('\n\n(AI 초안 포함)')).toBe(true);
   });
 });
 

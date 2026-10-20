@@ -5,7 +5,7 @@
 |--------|------|----------|
 | `home_view` | `home` 렌더 | `filled`(0~73), `boards`(1~2) |
 | `board_edit` | `block` 에서 값이 바뀐 뒤 화면 이탈 | `block`(0~8) |
-| `board_filled` | 73칸이 처음 다 찼을 때(판마다 1회) | `templateId` |
+| `board_filled` | 73칸이 처음 다 찼을 때(판마다 1회) | `templateId`, `ai`(true/false — AI 결과를 넣은 판인지, 2.0) |
 | `action_check` | 세부 목표 화면에서 실천 칸 탭 | `index`(0~63), `checked`(true/false), `todayCount`, `streak`, `first`(처음 체크한 순간이면 true) |
 | `today_view` | 홈 '기록 보기' 진입(기록 화면, 오늘 탭) | `todayCount`, `streak` |
 | `stats_view` | 기록 화면 주간·월간 탭을 열거나 기간을 옮겼을 때 (v3, 2026-10-16) | `period`(week/month), `offset`(0 = 이번, -1 = 지난…), `activeDays`, `checks` |

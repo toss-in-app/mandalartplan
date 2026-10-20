@@ -71,6 +71,13 @@ describe('layoutCard', () => {
     expect(layout.header.summary).toBe('73칸 중 0칸');
     expect(layout.footer).toBeNull();
   });
+
+  it('AI 결과를 넣은 판은 머리글에 AI 초안 포함(고화질에도)', () => {
+    const board = createEmptyBoard(1);
+    board.aiDraft = { at: 1, model: 'claude-haiku-5-5', promptVersion: 1 };
+    const layout = layoutCard({ board, checked: new Set(), today: '2026-01-01', streakDays: 0 }, HD_CARD);
+    expect(layout.header.summary).toBe('73칸 중 0칸 · AI 초안 포함');
+  });
 });
 
 describe('파일 이름·날짜·렌더', () => {

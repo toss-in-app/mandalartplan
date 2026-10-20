@@ -1,7 +1,8 @@
 import { colors } from '@toss/tds-colors';
-import { FixedBottomCTA, Text, Top } from '@toss/tds-mobile';
+import { Button, FixedBottomCTA, Text, Top } from '@toss/tds-mobile';
 import { useEffect } from 'react';
 
+import { AdMark } from '../components/AiDraftBadge';
 import { Block } from '../components/Block';
 import { useCellEditor } from '../hooks/useCellEditor';
 import { nextEmptyCell } from '../lib/cells';
@@ -18,6 +19,8 @@ interface BlockScreenProps {
   onDone: () => void;
   /** 들어오자마자 입력창을 열 칸(0~8). `#/block/:b/:cell` 딥링크 */
   initialCell?: number | null;
+  /** AI 로 빈 칸 채우기(2.0, 광고 1회): 가운데 블록 = 빈 세부 목표, 둘레 블록 = 그 세부 목표의 빈 실천. 채울 칸이 없으면 없음 */
+  aiFill?: { label: string; caption: string; disabled: boolean; onPress: () => void };
 }
 
 /**
@@ -25,7 +28,7 @@ interface BlockScreenProps {
  * (2026-10-20 사용자 피드백: 아래에 입력칸이 줄줄이 있는 대신 누른 칸만 입력)
  */
 export function BlockScreen(props: BlockScreenProps) {
-  const { board, block, onDone, initialCell = null } = props;
+  const { board, block, onDone, initialCell = null, aiFill } = props;
   const editor = useCellEditor(props);
 
   // 딥링크로 칸이 정해져 들어왔으면 그 칸의 입력창을 바로 열어요(키보드는 입력칸을 한 번 누르면 올라와요)
@@ -54,6 +57,24 @@ export function BlockScreen(props: BlockScreenProps) {
       <div style={{ padding: '0 20px' }}>
         <Block board={board} block={block} size="main" nextCell={nextEmptyCell(board, block)} onSelectCell={(cell) => editor.openFromTap(editTarget(board, block, cell))} />
       </div>
+
+      {aiFill && (
+        <>
+          <div style={{ padding: '16px 20px 0' }}>
+            <Button display="block" size="large" color="dark" variant="weak" disabled={aiFill.disabled} onClick={aiFill.onPress} aria-label={`광고 보고 ${aiFill.label}`}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <AdMark onBrand={false} />
+                <span>{aiFill.label}</span>
+              </span>
+            </Button>
+          </div>
+          <div className="text-balance" style={{ padding: '8px 24px 0' }}>
+            <Text typography="t7" color={colors.grey600} display="block">
+              {aiFill.caption}
+            </Text>
+          </div>
+        </>
+      )}
 
       <div style={{ padding: '16px 24px 120px' }}>
         <Text typography="t7" color={colors.grey600} display="block">

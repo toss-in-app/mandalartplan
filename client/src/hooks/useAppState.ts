@@ -212,6 +212,7 @@ export function useAppState() {
     state,
     board,
     getState,
+    updateBoard,
     setGoal,
     setSubTitle,
     setAction,

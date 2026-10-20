@@ -1,0 +1,211 @@
+import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import App from './App';
+import type { RewardedOutcome } from './ads/useRewardedAd';
+import { logEvent } from './lib/analytics';
+import { dateKey } from './lib/state';
+
+// AI 초안(2.0) 흐름: 서버 주소·키·광고·서버 응답만 가짜로 두고 화면부터 저장까지 봐요.
+vi.mock('./lib/analytics', () => ({ logEvent: vi.fn() }));
+vi.mock('./ai/config', () => ({
+  AI_DRAFT_URL: 'https://example.supabase.co/functions/v1/mandalart-draft',
+  AI_PUBLISHABLE_KEY: 'sb_publishable_test',
+  isAiConfigured: () => true,
+}));
+vi.mock('./ai/key', () => ({ getAiKey: vi.fn(async () => `k${'a'.repeat(64)}`) }));
+
+const ad = vi.hoisted(() => ({ outcome: 'rewarded' as RewardedOutcome, watched: 0 }));
+vi.mock('./ads/useRewardedAd', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./ads/useRewardedAd')>();
+  return {
+    ...actual,
+    useRewardedAd: () => ({
+      watch: async () => {
+        ad.watched += 1;
+        return ad.outcome;
+      },
+      supported: true,
+    }),
+  };
+});
+
+const server = vi.hoisted(() => ({ error: null as string | null, calls: [] as Record<string, unknown>[] }));
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
+/** 계약(contract/ai-draft.api.md)대로 빈 칸만 채워 돌려주는 가짜 서버. 원격 콘텐츠 요청은 404 로 번들 콘텐츠를 써요 */
+const fakeFetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+  if (!String(url).includes('mandalart-draft')) return new Response('{}', { status: 404 });
+  const body = JSON.parse(String(init?.body)) as { mode: string; subs: string[]; only: number; actions: string[] };
+  server.calls.push(body);
+  if (server.error) return json({ ok: false, error: server.error });
+  const meta = { model: 'claude-haiku-5-5', promptVersion: 1 };
+  if (body.mode === 'subs') return json({ ok: true, mode: 'subs', subs: body.subs.map((t, i) => t || `영역 ${i + 1}`), ...meta });
+  const actions = body.actions.map((t, j) => t || `실천 ${body.only + 1}-${j + 1}`);
+  return json({ ok: true, mode: 'actions', only: body.only, actions, filled: body.actions.filter((t) => !t).length, ...meta });
+});
+
+beforeEach(() => {
+  ad.outcome = 'rewarded';
+  ad.watched = 0;
+  server.error = null;
+  server.calls = [];
+  vi.stubGlobal('fetch', fakeFetch);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.mocked(logEvent).mockClear();
+  fakeFetch.mockClear();
+});
+
+function renderAt(hash = '') {
+  window.location.hash = hash;
+  return render(
+    <TDSMobileAITProvider brandPrimaryColor="#6B5CFF">
+      <App />
+    </TDSMobileAITProvider>,
+  );
+}
+
+function saveBoard(goal: string, subs: string[] = []) {
+  window.localStorage.setItem(
+    '__ait_storage:mandalart.boards.v1',
+    JSON.stringify({
+      version: 1,
+      active: 0,
+      boards: [
+        {
+          id: 'b1759000000000',
+          goal,
+          subs: Array.from({ length: 8 }, (_, i) => ({ title: subs[i] ?? '', actions: Array(8).fill('') })),
+          templateId: null,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+    }),
+  );
+}
+
+function saveAi(ai: Record<string, unknown>) {
+  window.localStorage.setItem('__ait_storage:mandalart.settings.v1', JSON.stringify({ version: 1, ai }));
+}
+
+const savedBoard = () => JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.boards.v1')!).boards[0];
+const savedAi = () => JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).ai;
+
+describe('App (AI 초안)', () => {
+  it('빈 판 홈 → 목표 입력 → 처음 한 번 고지 → 광고 → 미리보기 → 이대로 시작하기 → 홈에 AI 초안 표시', async () => {
+    renderAt();
+    fireEvent.click(await screen.findByText('AI로 초안 만들기'));
+    await screen.findByText('핵심 목표를 적으면 세부 목표 8개와 실천 64개를 채워요');
+    expect(screen.getByText('광고를 끝까지 보면 AI가 초안을 만들어요 · 오늘 10번 남았어요')).toBeInTheDocument();
+    expect(ad.watched).toBe(0); // 들어오기만 해서는 광고도 고지도 없어요
+
+    fireEvent.click(screen.getByText('토익 900점')); // 예시 칩 → 입력칸
+    expect(screen.getByRole('textbox', { name: '핵심 목표' })).toHaveValue('토익 900점');
+    fireEvent.click(screen.getByRole('button', { name: '광고 보고 AI 초안 만들기' }));
+
+    await screen.findByText('AI로 초안을 만들어요');
+    expect(ad.watched).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
+
+    await screen.findByText('시작한 뒤에도 칸을 눌러 고칠 수 있어요');
+    expect(ad.watched).toBe(1);
+    expect(screen.getByText('AI 초안')).toBeInTheDocument();
+    expect(server.calls.filter((c) => c.mode === 'subs')).toHaveLength(1);
+    expect(server.calls.filter((c) => c.mode === 'actions')).toHaveLength(8); // 세부 목표마다 하나씩
+    expect(screen.getByText('다시 만들기는 광고를 한 번 더 봐요 · 오늘 9번 남았어요')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('이대로 시작하기'));
+    await screen.findByRole('heading', { level: 1, name: '토익 900점' });
+    expect(screen.getByText('AI 초안')).toBeInTheDocument();
+    await waitFor(() => expect(savedBoard().aiDraft).toMatchObject({ model: 'claude-haiku-5-5', promptVersion: 1 }));
+    expect(savedBoard().subs[7].actions[7]).toBe('실천 8-8');
+    expect(savedAi().runs).toEqual({ date: dateKey(), count: 1 });
+    expect(savedAi().noticeAt).toEqual(expect.any(Number));
+    expect(logEvent).toHaveBeenCalledWith('ai_notice_agree');
+    expect(logEvent).toHaveBeenCalledWith('ai_draft_reward', { mode: 'draft', result: 'rewarded' });
+    expect(logEvent).toHaveBeenCalledWith('ai_draft_result', { mode: 'draft', result: 'ok', ms: expect.any(Number) });
+    expect(logEvent).toHaveBeenCalledWith('ai_draft_apply', { mode: 'draft', filled: 73 });
+  });
+
+  it('버튼을 겹쳐 눌러도 고지·광고·서버·횟수는 한 번만', async () => {
+    saveBoard('토익 900점');
+    renderAt('#/draft');
+    const cta = await screen.findByRole('button', { name: '광고 보고 AI 초안 만들기' });
+    fireEvent.click(cta);
+    fireEvent.click(cta);
+    await screen.findByText('AI로 초안을 만들어요');
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
+    fireEvent.click(cta); // 시트가 닫히며 아래 버튼이 한 번 더 눌린 경우
+    await screen.findByText('시작한 뒤에도 칸을 눌러 고칠 수 있어요');
+    expect(ad.watched).toBe(1);
+    expect(server.calls.filter((c) => c.mode === 'subs')).toHaveLength(1);
+    await waitFor(() => expect(savedAi().runs.count).toBe(1));
+  });
+
+  it('광고를 못 불러오면 AI 를 쓰지 않고 예시를 권해요', async () => {
+    ad.outcome = 'unavailable';
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('8구단 드래프트 1순위');
+    renderAt('#/draft');
+    fireEvent.click(await screen.findByRole('button', { name: '광고 보고 AI 초안 만들기' }));
+    await screen.findByText('지금은 광고를 불러올 수 없어요');
+    expect(screen.getByText('예시로 시작하기')).toBeInTheDocument();
+    expect(server.calls).toHaveLength(0);
+    expect(savedAi().runs.count).toBe(0);
+  });
+
+  it('자해·자살 표현이면 광고도 서버도 부르지 않고 109 안내만', async () => {
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    renderAt('#/draft');
+    fireEvent.change(await screen.findByRole('textbox', { name: '핵심 목표' }), { target: { value: '죽고 싶다' } });
+    fireEvent.click(screen.getByRole('button', { name: '광고 보고 AI 초안 만들기' }));
+    await screen.findByText('지금 마음이 힘들다면');
+    expect(screen.getByText('109에 전화하기')).toBeInTheDocument();
+    expect(ad.watched).toBe(0);
+    expect(server.calls).toHaveLength(0);
+    expect(vi.mocked(logEvent).mock.calls.some(([name]) => String(name).startsWith('ai_draft'))).toBe(false);
+  });
+
+  it('AI 가 거절하면 입력칸 아래에 안내하고 오늘 횟수에서 빼지 않아요', async () => {
+    server.error = 'refused';
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('도박으로 1억 벌기');
+    renderAt('#/draft');
+    fireEvent.click(await screen.findByRole('button', { name: '광고 보고 AI 초안 만들기' }));
+    await screen.findByText('이 목표로는 초안을 만들 수 없어요. 다른 목표로 적어 보세요.');
+    expect(screen.getByText('방금 본 광고는 오늘 횟수에서 빼지 않았어요 · 10번 남았어요')).toBeInTheDocument();
+    expect(ad.watched).toBe(1);
+    expect(savedAi().runs.count).toBe(0);
+  });
+
+  it('오늘 10번을 다 썼으면 버튼이 잠기고 안내해요', async () => {
+    saveAi({ noticeAt: 1, runs: { date: dateKey(), count: 10 } });
+    saveBoard('토익 900점');
+    renderAt('#/draft');
+    await screen.findByText('오늘 AI 초안 10번을 다 썼어요. 내일 다시 만들 수 있어요');
+    expect(screen.getByRole('button', { name: '광고 보고 AI 초안 만들기' })).toBeDisabled();
+  });
+
+  it('편집 화면: 빈 세부 목표만 AI 로 채우고 바로 넣어요', async () => {
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('8구단 드래프트 1순위', ['체력 강화', '제구력', '구위', '멘탈', '구속 향상']);
+    renderAt('#/block/4');
+    await screen.findByText('비어 있는 세부 목표 3칸만 채워요. 광고를 끝까지 보면 채워져요 · 오늘 10번 남았어요');
+    fireEvent.click(screen.getByRole('button', { name: '광고 보고 빈 칸 AI로 채우기' }));
+    await waitFor(() => expect(screen.getAllByText('빈 칸 3개를 AI로 채웠어요').length).toBeGreaterThan(0));
+    await waitFor(() => expect(savedBoard().subs.map((s: { title: string }) => s.title)).toEqual(['체력 강화', '제구력', '구위', '멘탈', '구속 향상', '영역 6', '영역 7', '영역 8']));
+    expect(savedBoard().aiDraft).not.toBeNull();
+    expect(savedAi().runs.count).toBe(1);
+    expect(logEvent).toHaveBeenCalledWith('ai_draft_apply', { mode: 'subs', filled: 3 });
+    // 다 채워지면 버튼이 사라져요
+    await waitFor(() => expect(screen.queryByRole('button', { name: '광고 보고 빈 칸 AI로 채우기' })).not.toBeInTheDocument());
+  });
+});

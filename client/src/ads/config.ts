@@ -33,6 +33,8 @@ export const AD_GROUPS = {
   rewardedExtraBoard: pick(import.meta.env.VITE_AD_GROUP_REWARDED_EXTRA_BOARD, TEST_AD_GROUPS?.rewarded),
   /** `banner-today`: 기록 화면 맨 아래, 모든 탭 (배너 1개) */
   bannerToday: pick(import.meta.env.VITE_AD_GROUP_BANNER_TODAY, TEST_AD_GROUPS?.banner),
+  /** `rewarded-ai-draft`: AI 초안 만들기·다시 만들기·빈 칸 채우기·실천 추천 (리워드, 2.0 — 광고 1회 = AI 1회) */
+  rewardedAiDraft: pick(import.meta.env.VITE_AD_GROUP_REWARDED_AI_DRAFT, TEST_AD_GROUPS?.rewarded),
 } as const;
 
 /** 하나라도 비어 있거나 테스트 ID 면 true. 출시 번들에서는 false 여야 해요. */

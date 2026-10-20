@@ -160,3 +160,24 @@ button.mg-block:focus:not(:focus-visible) {
     animation: none;
   }
 }
+
+/* AI 초안 만드는 중: 아직 채우지 못한 칸 (Block loading) */
+.mg-cell-loading {
+  animation: mg-loading 1.4s ease-in-out infinite;
+}
+
+@keyframes mg-loading {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-cell-loading {
+    animation: none;
+  }
+}

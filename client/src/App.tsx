@@ -2,6 +2,10 @@ import { useDialog, useToast } from '@toss/tds-mobile';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { AD_GROUPS } from './ads/config';
+import { isAiConfigured } from './ai/config';
+import { AI_MESSAGES, CARE_PHONE_URL } from './ai/messages';
+import { canFillActions, canFillSubs, emptyActionCount, emptySubCount } from './ai/rules';
+import { useAiDraft, type AiResult } from './ai/useAiDraft';
 import { interstitialEligible } from './ads/rules';
 import { useInterstitial } from './ads/useInterstitial';
 import { useRewardedAd } from './ads/useRewardedAd';
@@ -15,15 +19,16 @@ import { useAppState } from './hooks/useAppState';
 import { useBoardPicker } from './hooks/useBoardPicker';
 import { useTemplatePicker } from './hooks/useTemplatePicker';
 import { logEvent } from './lib/analytics';
-import { canSaveImage, createShareLink, haptic, saveImageToPhotos, shareText } from './lib/bridge';
+import { canSaveImage, createShareLink, haptic, openUrl, saveImageToPhotos, shareText } from './lib/bridge';
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
 import { notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { todaySet, toggleCheck } from './lib/checkin';
-import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress } from './lib/mandalart';
+import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, ringIndex } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
 import { atHistoryBottom, goBack, navigate, useRoute } from './lib/router';
 import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
 import { BlockScreen } from './screens/BlockScreen';
+import { DraftScreen } from './screens/DraftScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OverviewScreen } from './screens/OverviewScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -85,6 +90,11 @@ function App() {
   // 두 번째 판: 리워드로 한 번 열면 영구. (백업 복원 등으로) 판이 이미 2개면 열린 것으로 봐요.
   const extraBoardOpen = app.state ? app.state.settings.unlocks.extraBoard || app.state.boards.boards.length >= MAX_BOARDS : false;
   const extraBoardReward = useRewardedAd(AD_GROUPS.rewardedExtraBoard, route.name === 'settings' && !extraBoardOpen);
+  // AI 초안(2.0): 광고 1회 = AI 1회. 서버 설정이 없거나 광고를 못 쓰는 토스앱 버전이면 AI 버튼을 숨겨요
+  const aiConfigured = isAiConfigured();
+  const aiReward = useRewardedAd(AD_GROUPS.rewardedAiDraft, aiConfigured && (route.name === 'draft' || route.name === 'block'));
+  const aiEnabled = aiConfigured && aiReward.supported;
+  const ai = useAiDraft(app, aiReward);
   const switchBoard = useCallback(
     (index: number) => {
       app.setActiveBoard(index);
@@ -267,7 +277,7 @@ function App() {
     const filled = getProgress(activeBoard).filled;
     const prev = filledRef.current;
     if (prev && prev.id === activeBoard.id && prev.filled < TOTAL_CELLS && filled === TOTAL_CELLS) {
-      logEvent('board_filled', { templateId: activeBoard.templateId ?? 'none' });
+      logEvent('board_filled', { templateId: activeBoard.templateId ?? 'none', ai: activeBoard.aiDraft !== null });
     }
     filledRef.current = { id: activeBoard.id, filled };
   }, [activeBoard]);
@@ -482,9 +492,76 @@ function App() {
     }
   };
 
+  /** 자해·자살 표현: AI 를 부르지 않고 상담전화 안내만(광고도 없음) */
+  const showCare = async () => {
+    const call = await openConfirm({ title: AI_MESSAGES.careTitle, description: AI_MESSAGES.careBody, confirmButton: AI_MESSAGES.careCall, cancelButton: '닫기' });
+    if (call) void openUrl(CARE_PHONE_URL);
+  };
+
+  /** 편집 화면 채우기 결과 안내 */
+  const afterFill = async (result: AiResult<number>) => {
+    if (result.kind === 'ok') {
+      if (result.value > 0) {
+        void haptic('success');
+        toast.openToast(`빈 칸 ${result.value}개를 AI로 채웠어요`);
+      } else {
+        toast.openToast('AI가 채운 칸이 없어요. 잠시 뒤에 다시 해 주세요');
+      }
+      return;
+    }
+    if (result.kind === 'stopped') {
+      if (result.reason === 'self_harm') await showCare();
+      else if (result.reason === 'limit') toast.openToast(AI_MESSAGES.limit);
+      else if (result.reason === 'dismissed') toast.openToast('광고를 끝까지 보면 AI가 빈 칸을 채워요');
+      else if (result.reason === 'no_ad') toast.openToast(`${AI_MESSAGES.noAdTitle}. ${AI_MESSAGES.retryLater}`);
+      else if (result.reason === 'key') toast.openToast(AI_MESSAGES.retryLater);
+      return;
+    }
+    if (result.code === 'self_harm') await showCare();
+    else if (result.code === 'refused') toast.openToast('이 내용으로는 AI가 채울 수 없어요. 방금 본 광고는 오늘 횟수에서 빼지 않았어요');
+    else if (result.code === 'limited') toast.openToast(AI_MESSAGES.serverLimited);
+    else toast.openToast(AI_MESSAGES.failBody);
+  };
+
+  /** 편집 화면 아래 AI 버튼: 가운데 블록은 빈 세부 목표, 둘레 블록은 그 세부 목표의 빈 실천 */
+  const aiFillFor = (block: number) => {
+    if (!aiEnabled) return undefined;
+    const left = ai.runsLeft;
+    const disabled = left === 0 || ai.busy;
+    if (block === CENTER) {
+      if (!canFillSubs(board)) return undefined;
+      return {
+        label: '빈 칸 AI로 채우기',
+        caption: left === 0 ? AI_MESSAGES.limit : AI_MESSAGES.fillCaption(`비어 있는 세부 목표 ${emptySubCount(board)}칸만 채워요.`, left),
+        disabled,
+        onPress: () => void ai.fillSubs().then(afterFill),
+      };
+    }
+    const subIndex = ringIndex(block);
+    if (!canFillActions(board, subIndex)) return undefined;
+    return {
+      label: '실천 AI로 추천',
+      caption:
+        left === 0
+          ? AI_MESSAGES.limit
+          : AI_MESSAGES.fillCaption(`'${board.subs[subIndex].title.trim()}'의 빈 실천 ${emptyActionCount(board, subIndex)}칸을 채워요.`, left),
+      disabled,
+      onPress: () => void ai.fillActions(subIndex).then(afterFill),
+    };
+  };
+
+  /** 미리보기 '이대로 시작하기': 지금 판의 빈 칸에 넣고 이전 화면(대개 홈)으로 */
+  const applyAiDraft = (goal: string, draft: Parameters<typeof ai.applyDraft>[1]) => {
+    ai.applyDraft(goal, draft);
+    void haptic('success');
+    toast.openToast('AI 초안을 넣었어요. 칸을 눌러 고쳐 쓸 수 있어요');
+    goBack();
+  };
+
+  let view: JSX.Element;
   switch (route.name) {
     case 'sub':
-      return (
+      view = (
         <SubScreen
           board={board}
           subIndex={route.sub}
@@ -494,8 +571,9 @@ function App() {
           onChangeAction={app.setAction}
         />
       );
+      break;
     case 'block':
-      return (
+      view = (
         <BlockScreen
           board={board}
           block={route.block}
@@ -504,12 +582,15 @@ function App() {
           onChangeAction={app.setAction}
           onDone={goBack}
           initialCell={route.cell ?? null}
+          aiFill={aiFillFor(route.block)}
         />
       );
+      break;
     case 'overview':
-      return <OverviewScreen board={board} checkin={record} onSelectSub={openSub} onShare={() => navigate({ name: 'share' })} />;
+      view = <OverviewScreen board={board} checkin={record} onSelectSub={openSub} onShare={() => navigate({ name: 'share' })} />;
+      break;
     case 'today':
-      return (
+      view = (
         <TodayScreen
           board={board}
           record={record}
@@ -520,8 +601,9 @@ function App() {
           onStatsView={(info) => logEvent('stats_view', { ...info })}
         />
       );
+      break;
     case 'share':
-      return (
+      view = (
         <ShareScreen
           board={board}
           checkin={record}
@@ -534,8 +616,9 @@ function App() {
           onDone={goBack}
         />
       );
+      break;
     case 'settings':
-      return (
+      view = (
         <SettingsScreen
           content={content}
           notification={state.settings.notification}
@@ -563,8 +646,20 @@ function App() {
           onReset={() => void resetAll()}
         />
       );
+      break;
+    case 'draft':
+      view = (
+        <DraftScreen
+          board={board}
+          runsLeft={ai.runsLeft}
+          onGenerate={(goal, hooks) => ai.runDraft(goal, board, hooks)}
+          onApply={applyAiDraft}
+          onStartWithTemplate={openTemplatePicker}
+        />
+      );
+      break;
     default:
-      return (
+      view = (
         <HomeScreen
           board={board}
           content={content}
@@ -584,9 +679,17 @@ function App() {
           onSwitchBoard={openBoardPicker}
           onNotification={() => void askNotification('home')}
           onStartWithTemplate={openTemplatePicker}
+          onAiDraft={aiEnabled ? () => navigate({ name: 'draft' }) : undefined}
         />
       );
   }
+  // 생성형 AI 고지 시트는 어느 화면에서 AI 를 눌러도 같은 것 하나
+  return (
+    <>
+      {view}
+      {ai.noticeSheet}
+    </>
+  );
 }
 
 export default App;

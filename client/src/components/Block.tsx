@@ -96,6 +96,8 @@ interface BlockProps {
   interactive?: (cell: number, view: CellView) => boolean;
   /** 다음에 채울 칸(0~8): 은은하게 퍼지는 테두리와 '눌러서 적기' 를 보여줘요. `nextEmptyCell` */
   nextCell?: number | null;
+  /** AI 초안을 만드는 중: 아직 빈 칸이 은은하게 깜빡여요(동작 줄이기면 멈춤) */
+  loading?: boolean;
 }
 
 interface CellContentProps {
@@ -132,7 +134,10 @@ function CellContent({ view, caption, size, invite = false, next = false }: Cell
   );
 }
 
-export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null }: BlockProps) {
+/** 만드는 중인 빈 칸: 회색 자리 + 깜빡임(grid.css .mg-cell-loading) */
+const LOADING_STYLE: CSSProperties = { background: colors.grey100 };
+
+export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null, loading = false }: BlockProps) {
   const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
   const className = `mg-block mg-block-${size}`;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
@@ -180,6 +185,8 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
           >
             <CellContent view={view} caption={cap} size={size} invite={invite} next={next} />
           </button>
+        ) : loading && !view.text.trim() ? (
+          <span key={cell} className="mg-cell mg-cell-loading" style={LOADING_STYLE} />
         ) : (
           <span key={cell} className="mg-cell" style={cellStyle(view, size)}>
             <CellContent view={view} caption={cap} size={size} />

@@ -1,6 +1,7 @@
 import { colors } from '@toss/tds-colors';
 import { Button, List, ListRow, ProgressBar, Text, Top } from '@toss/tds-mobile';
 
+import { AiDraftBadge } from '../components/AiDraftBadge';
 import { Block } from '../components/Block';
 import { useCellEditor } from '../hooks/useCellEditor';
 import { editTarget } from '../lib/cellEdit';
@@ -37,6 +38,8 @@ interface HomeScreenProps {
   /** '매일 저녁 알림 받기' 행 — 누르면 바로 알림 동의 화면(사용자가 누른 뒤에만) */
   onNotification: () => void;
   onStartWithTemplate: () => void;
+  /** 'AI로 초안 만들기'(2.0) — 세부 목표가 하나도 없을 때 보여요. 없으면(서버 설정 없음·광고 미지원) 버튼을 숨겨요 */
+  onAiDraft?: () => void;
 }
 
 /**
@@ -63,6 +66,7 @@ export function HomeScreen({
   onSwitchBoard,
   onNotification,
   onStartWithTemplate,
+  onAiDraft,
 }: HomeScreenProps) {
   const editor = useCellEditor({ onChangeGoal, onChangeSubTitle });
   const today = dateKey();
@@ -75,6 +79,8 @@ export function HomeScreen({
   const titleText = hasGoal ? board.goal : boardCount > 1 ? boardLabel(activeIndex) : '만다라트';
 
   const hasSubs = board.subs.some((sub) => sub.title.trim().length > 0);
+  // AI 초안은 세부 목표·실천이 하나도 없을 때(빈 판 또는 핵심 목표만) 홈에서 권해요. 그 뒤로는 편집 화면의 'AI로 채우기'
+  const offerAi = Boolean(onAiDraft) && !hasSubs && progress.actionsFilled === 0;
   const subtitle = isEmpty
     ? '가운데 칸을 눌러 핵심 목표부터 정해 보세요'
     : !hasSubs
@@ -92,6 +98,7 @@ export function HomeScreen({
   return (
     <>
       <Top
+        subtitleTop={board.aiDraft ? <AiDraftBadge /> : undefined}
         title={
           boardCount > 1 ? (
             <Top.TitleSelector size={22} onClick={onSwitchBoard}>
@@ -158,7 +165,24 @@ export function HomeScreen({
         </div>
       )}
 
-      {isEmpty ? (
+      {offerAi ? (
+        // 세부 목표가 없을 때: AI 초안(주) · 예시(보조). 광고는 버튼을 누른 뒤 목표 입력 화면의 '광고 보고 만들기'에서만 나와요
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '24px 20px 10px' }}>
+            <Button display="block" size="large" onClick={onAiDraft}>
+              AI로 초안 만들기
+            </Button>
+            <Button display="block" size="large" color="dark" variant="weak" onClick={onStartWithTemplate}>
+              예시로 시작하기
+            </Button>
+          </div>
+          <div className="text-balance" style={{ padding: '0 24px 8px' }}>
+            <Text typography="t7" color={colors.grey600} display="block">
+              목표를 적고 광고를 한 번 보면 AI가 세부 목표와 실천을 채워요.
+            </Text>
+          </div>
+        </>
+      ) : isEmpty ? (
         // 빈 판: 가운데 칸(직접 쓰기) 말고 다른 시작 길은 예시 하나만 버튼으로 둬요
         <div style={{ padding: '24px 20px 8px' }}>
           <Button display="block" size="large" color="dark" variant="weak" onClick={onStartWithTemplate}>

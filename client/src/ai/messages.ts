@@ -1,0 +1,28 @@
+/** AI 초안 안내 문구 (화면 시안 plans/2.0-ai-mockup, 토스 라이팅: 해요체·느낌표 없음) */
+import { AI_DAILY_RUNS } from './rules';
+
+export const AI_MESSAGES = {
+  /** 목표 입력 '광고 보고 만들기' 위 */
+  draftCaption: (left: number) => `광고를 끝까지 보면 AI가 초안을 만들어요 · 오늘 ${left}번 남았어요`,
+  /** 미리보기 '다시 만들기' 위 */
+  remakeCaption: (left: number) => `다시 만들기는 광고를 한 번 더 봐요 · 오늘 ${left}번 남았어요`,
+  /** 편집 화면 채우기 버튼 아래 */
+  fillCaption: (what: string, left: number) => `${what} 광고를 끝까지 보면 채워져요 · 오늘 ${left}번 남았어요`,
+  limit: `오늘 AI 초안 ${AI_DAILY_RUNS}번을 다 썼어요. 내일 다시 만들 수 있어요`,
+  /** 거절·실패 뒤: 광고는 봤지만 횟수에는 넣지 않았어요 */
+  notCounted: (left: number) => `방금 본 광고는 오늘 횟수에서 빼지 않았어요 · ${left}번 남았어요`,
+  refused: '이 목표로는 초안을 만들 수 없어요. 다른 목표로 적어 보세요.',
+  dismissed: '광고를 끝까지 보면 AI가 초안을 만들어요',
+  serverLimited: '오늘은 AI 초안을 더 만들 수 없어요. 내일 다시 해 주세요',
+  retryLater: '잠시 뒤에 다시 해 주세요',
+  noAdTitle: '지금은 광고를 불러올 수 없어요',
+  noAdBody: 'AI 초안은 광고를 끝까지 본 뒤에 만들어요. 잠시 뒤에 다시 해 주세요.',
+  failTitle: '지금은 초안을 만들 수 없어요',
+  failBody: '잠시 뒤에 다시 해 주세요. 방금 본 광고는 오늘 횟수에서 빼지 않았어요.',
+  careTitle: '지금 마음이 힘들다면',
+  careBody: '자살예방 상담전화 109에서 언제든 이야기를 들어 줘요. 이 내용으로는 초안을 만들지 않아요.',
+  careCall: '109에 전화하기',
+} as const;
+
+/** 자살예방 상담전화 (보건복지부, 24시간) */
+export const CARE_PHONE_URL = 'tel:109';

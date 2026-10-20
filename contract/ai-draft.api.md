@@ -18,15 +18,16 @@
 
 ### 실천 채우기 `mode: "actions"`
 ```json
-{ "mode": "actions", "key": "k…", "goal": "…", "subs": ["…×8"], "actions": [["…×8"], "…×8"], "only": 3 }
+{ "mode": "actions", "key": "k…", "goal": "…", "subs": ["…×8"], "only": 3, "actions": ["…×8"] }
 ```
-- `subs` 길이 8, 모두 1자 이상(세부 목표가 정해진 뒤에만). `actions` 8×8.
-- `only`(선택, 0~7): 그 세부 목표 하나의 빈 실천만. 없으면 빈 칸이 있는 세부 목표마다 병렬로 채운다.
+- 한 요청 = 세부 목표 하나(`only`, 0~7)의 실천 8칸. `subs[only]` 는 1자 이상이어야 하고, 다른 세부 목표는 겹치지 않게 하려는 참고용이라 빈 칸(`""`)이어도 된다.
+- `actions` 길이 8 = 그 세부 목표의 실천 칸. 빈 칸만 채운다. 8칸이 다 차 있으면 400 `invalid`.
+- 판 전체 초안은 클라가 세부 목표마다 이 요청을 동시에 보낸다(화면의 '실천 채우는 중 n/8' 이 실제 진행). (2026-10-20 구현 때 정함 — 처음 설계는 한 요청에 8×8)
 
 ## 응답 (HTTP 200)
 ```json
 { "ok": true, "mode": "subs", "subs": ["…×8"], "model": "claude-haiku-5-5", "promptVersion": 1 }
-{ "ok": true, "mode": "actions", "actions": [["…×8"], "…×8"], "filled": 31, "model": "claude-haiku-5-5", "promptVersion": 1 }
+{ "ok": true, "mode": "actions", "only": 3, "actions": ["…×8"], "filled": 5, "model": "claude-haiku-5-5", "promptVersion": 1 }
 { "ok": false, "error": "refused" | "self_harm" | "limited" | "invalid_output" | "busy" }
 ```
 - 사용자가 적은 칸은 응답에서도 원래 글 그대로(서버가 보장). 검사에 걸린 칸은 `""`.
@@ -36,7 +37,7 @@
 |---|---|---|
 | `refused` | 모델 거절(`stop_reason: refusal` 또는 `refused: true`) | 이 목표로는 초안을 만들 수 없어요 |
 | `self_harm` | 자해·자살 표현(모델 호출 안 함) | 109 안내 |
-| `limited` | 키당 하루 30 호출 또는 전체 하루 3,000 호출 초과 | 오늘은 더 만들 수 없어요 |
+| `limited` | 키당 하루 100 호출 또는 전체 하루 30,000 호출 초과 | 오늘은 더 만들 수 없어요 |
 | `invalid_output` | 형식 검사 1회 재요청 뒤에도 실패 | 잠시 뒤에 다시 해 주세요 |
 | `busy` | Claude 429·5xx·시간 초과 | 잠시 뒤에 다시 해 주세요 |
 
@@ -46,5 +47,5 @@
 - 405 — POST 아님
 
 ## 한도
-- 키당 하루(서울 날짜) 30 호출, 전체 하루 3,000 호출 — 서버 `ai_draft_take`. 앱은 별도로 사람당 하루 AI 10회(광고 기준).
+- 호출 = Claude 호출 1번 = 요청 1개. 키당 하루(서울 날짜) 100 호출, 전체 하루 30,000 호출 — 서버 `ai_draft_take`. 앱은 별도로 사람당 하루 AI 10회(광고 기준). 판 전체 초안 1회 = 최대 9 호출(세부 목표 1 + 실천 8)이라 10회면 90 호출.
 - 클라 자동 재시도 금지. 사용자가 다시 누를 때만.

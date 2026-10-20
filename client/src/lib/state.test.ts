@@ -106,7 +106,15 @@ describe('settings', () => {
       firstCheckinAt: 5,
       backup: { enabled: false, key: null, lastBackupAt: null },
       ads: { lastInterstitialDate: null },
+      ai: { noticeAt: null, runs: { date: null, count: 0 } },
     });
     expect(normalizeSettings({ version: 0 })).toBeNull();
+  });
+
+  it('AI 설정(2.0): 고지 시각과 하루 횟수, 모양이 다르면 기본값', () => {
+    const s = normalizeSettings({ version: 1, ai: { noticeAt: 7.9, runs: { date: '2026-10-20', count: 3 } } });
+    expect(s?.ai).toEqual({ noticeAt: 7, runs: { date: '2026-10-20', count: 3 } });
+    const bad = normalizeSettings({ version: 1, ai: { noticeAt: 'x', runs: { date: '10/20', count: 3 } } });
+    expect(bad?.ai).toEqual({ noticeAt: null, runs: { date: null, count: 0 } });
   });
 });

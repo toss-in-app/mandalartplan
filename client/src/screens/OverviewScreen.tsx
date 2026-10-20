@@ -1,6 +1,7 @@
 import { colors } from '@toss/tds-colors';
 import { Text, Top } from '@toss/tds-mobile';
 
+import { AiDraftBadge } from '../components/AiDraftBadge';
 import { MandalartGrid } from '../components/MandalartGrid';
 import { todaySet } from '../lib/checkin';
 import { ringIndex, type Board } from '../lib/mandalart';
@@ -19,6 +20,7 @@ export function OverviewScreen({ board, checkin, onSelectSub, onShare }: Overvie
   return (
     <>
       <Top
+        subtitleTop={board.aiDraft ? <AiDraftBadge /> : undefined}
         title={<Top.TitleParagraph size={22}>전체 보기</Top.TitleParagraph>}
         subtitleBottom={<Top.SubtitleParagraph size={17}>둘레 블록을 누르면 크게 볼 수 있어요</Top.SubtitleParagraph>}
         right={

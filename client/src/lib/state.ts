@@ -48,6 +48,14 @@ export interface AdsSettings {
   lastInterstitialDate: string | null;
 }
 
+/** AI 초안 (2.0). 하루 상한·고지 규칙은 ai/rules.ts */
+export interface AiSettings {
+  /** 생성형 AI 사전 고지 시트에서 '확인'을 누른 시각. null 이면 다음 AI 실행 전에 먼저 알려요 */
+  noticeAt: number | null;
+  /** 기기 날짜(date)에 AI 를 돌린 횟수. 날짜가 바뀌면 0 부터 */
+  runs: { date: string | null; count: number };
+}
+
 export interface SettingsState {
   version: 1;
   notification: NotificationStatus;
@@ -56,6 +64,7 @@ export interface SettingsState {
   firstCheckinAt: number | null;
   backup: BackupSettings;
   ads: AdsSettings;
+  ai: AiSettings;
 }
 
 const BACKUP_KEY_RE = /^k[0-9a-f]{64}$/;
@@ -148,6 +157,7 @@ export function createDefaultSettings(): SettingsState {
     firstCheckinAt: null,
     backup: { enabled: false, key: null, lastBackupAt: null },
     ads: { lastInterstitialDate: null },
+    ai: { noticeAt: null, runs: { date: null, count: 0 } },
   };
 }
 
@@ -170,6 +180,12 @@ export function normalizeSettings(input: unknown): SettingsState | null {
   };
   const ads = raw.ads && typeof raw.ads === 'object' ? (raw.ads as Record<string, unknown>) : {};
   s.ads.lastInterstitialDate = typeof ads.lastInterstitialDate === 'string' && DATE_RE.test(ads.lastInterstitialDate) ? ads.lastInterstitialDate : null;
+  const ai = raw.ai && typeof raw.ai === 'object' ? (raw.ai as Record<string, unknown>) : {};
+  if (typeof ai.noticeAt === 'number' && ai.noticeAt >= 0) s.ai.noticeAt = Math.floor(ai.noticeAt);
+  const runs = ai.runs && typeof ai.runs === 'object' ? (ai.runs as Record<string, unknown>) : {};
+  if (typeof runs.date === 'string' && DATE_RE.test(runs.date) && typeof runs.count === 'number' && runs.count >= 0) {
+    s.ai.runs = { date: runs.date, count: Math.floor(runs.count) };
+  }
   return s;
 }
 

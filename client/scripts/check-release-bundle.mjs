@@ -1,6 +1,6 @@
 // 출시 빌드 검사 (npm run build 의 vite build 뒤, ait build 전).
 // 콘솔은 번들을 정적으로 검사해 테스트 광고 ID('ait-ad-test-…')가 있으면 검토를 자동 반려해요(2026-10-19 반려).
-// 그래서 dist 에 테스트 ID 가 한 글자라도 남아 있거나, 라이브 광고 그룹 ID 가 4개 미만이면 실패시켜요.
+// 그래서 dist 에 테스트 ID 가 한 글자라도 남아 있거나, 라이브 광고 그룹 ID 가 광고 그룹 수보다 적으면 실패시켜요.
 // 테스트 ID 로 QR 번들을 만들 때는 이 검사를 거치지 않는 `npm run build:test-ads` 를 써요.
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -14,7 +14,9 @@ const js = readdirSync(assets)
 
 const testIds = [...new Set(js.match(/ait-ad-test-[a-z-]*/g) ?? [])];
 const liveIds = [...new Set(js.match(/ait\.v2\.live\.[0-9a-f]+/g) ?? [])];
-const EXPECTED_LIVE = 4; // 전면 1 · 리워드 2 · 배너 1 (contract/events.md '광고 그룹')
+// 광고 그룹 수 = src/ads/config.ts 의 VITE_AD_GROUP_* 항목 수(전면 1 · 리워드 3 · 배너 1, contract/events.md '광고 그룹'). 하나라도 비면 실패
+const adConfig = readFileSync(fileURLToPath(new URL('../src/ads/config.ts', import.meta.url)), 'utf8');
+const EXPECTED_LIVE = (adConfig.match(/pick\(import\.meta\.env\.VITE_AD_GROUP_/g) ?? []).length;
 
 if (testIds.length > 0) {
   console.error(`출시 번들에 테스트 광고 ID 가 남아 있어요: ${testIds.join(', ')} — 콘솔 검토가 자동 반려돼요. src/ads/config.ts 확인`);

@@ -11,7 +11,9 @@ describe('boardFromTemplate', () => {
     const template = getBundledContent().templates[0];
     const board = createEmptyBoard(NOW);
     board.goal = '지워질 글';
+    board.aiDraft = { at: NOW, model: 'claude-haiku-5-5', promptVersion: 1 };
     const next = boardFromTemplate(board, template, NOW + 5);
+    expect(next.aiDraft).toBeNull(); // 예시 글로 모두 바뀌니 'AI 초안' 표시도 지워요
     expect(next.id).toBe(board.id);
     expect(next.createdAt).toBe(NOW);
     expect(next.updatedAt).toBe(NOW + 5);

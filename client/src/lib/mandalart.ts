@@ -20,6 +20,14 @@ export interface SubGoal {
   actions: string[];
 }
 
+/** AI 결과를 판에 넣은 기록 (계약 board.aiDraft, 2.0). 있으면 'AI 초안' 표시를 붙여요(서비스 오픈 정책 2-4) */
+export interface AiDraftMeta {
+  /** AI 결과를 판에 마지막으로 넣은 시각 */
+  at: number;
+  model: string;
+  promptVersion: number;
+}
+
 export interface Board {
   /** 'b' + 생성 시각(ms 13자리) */
   id: string;
@@ -27,6 +35,8 @@ export interface Board {
   subs: SubGoal[];
   /** 예시 템플릿에서 시작했으면 그 id */
   templateId: string | null;
+  /** AI 초안·빈 칸 채우기 결과를 넣었으면 그 기록, 아니면 null */
+  aiDraft: AiDraftMeta | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -47,6 +57,7 @@ export function createEmptyBoard(now: number = Date.now()): Board {
     goal: '',
     subs: Array.from({ length: SUB_COUNT }, createEmptySub),
     templateId: null,
+    aiDraft: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -89,6 +100,17 @@ function cleanTime(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.floor(value) : fallback;
 }
 
+/** 저장돼 있던 AI 기록. 모양이 다르면 null(표시 없음) */
+function cleanAiDraft(value: unknown): AiDraftMeta | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const { at, model, promptVersion } = raw;
+  if (typeof at !== 'number' || !Number.isFinite(at) || at < 0) return null;
+  if (typeof model !== 'string' || model.length === 0 || model.length > 64) return null;
+  if (typeof promptVersion !== 'number' || !Number.isInteger(promptVersion) || promptVersion < 1) return null;
+  return { at: Math.floor(at), model, promptVersion };
+}
+
 /**
  * 저장돼 있던 값을 검증해서 Board 로 만들어요. 모양이 다르면 null.
  * 예전 형식(`version`·`updatedAt` 만 있는 단일 판, 실천별 `done`)도 받아들이고 모르는 필드는 버려요.
@@ -102,6 +124,7 @@ export function normalizeBoard(input: unknown, now: number = Date.now()): Board 
   if (typeof raw.id === 'string' && BOARD_ID_RE.test(raw.id)) board.id = raw.id;
   board.goal = cleanText(raw.goal);
   board.templateId = typeof raw.templateId === 'string' && raw.templateId ? raw.templateId : null;
+  board.aiDraft = cleanAiDraft(raw.aiDraft);
   board.createdAt = cleanTime(raw.createdAt, now);
   board.updatedAt = cleanTime(raw.updatedAt, board.createdAt);
 
@@ -152,5 +175,7 @@ export function boardToText(board: Board, checkedToday: ReadonlySet<number> = ne
     if (!sub.title.trim() && actions.length === 0) return;
     lines.push('', `${i + 1}. ${sub.title.trim() || `세부 목표 ${i + 1}`}`, ...actions);
   });
+  // AI 가 쓴 글이 들어간 판은 밖으로 보내는 글에도 표시해요(서비스 오픈 정책 2-4)
+  if (board.aiDraft) lines.push('', '(AI 초안 포함)');
   return lines.join('\n');
 }

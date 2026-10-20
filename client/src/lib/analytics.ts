@@ -22,7 +22,12 @@ export type EventName =
   | 'backup_run'
   | 'backup_restore'
   | 'backup_disable'
-  | 'backup_error';
+  | 'backup_error'
+  | 'ai_notice_agree'
+  | 'ai_draft_start'
+  | 'ai_draft_reward'
+  | 'ai_draft_result'
+  | 'ai_draft_apply';
 
 export type EventParams = Record<string, string | number | boolean | null | undefined>;
 

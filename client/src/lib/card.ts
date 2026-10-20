@@ -106,6 +106,8 @@ export function layoutCard(input: CardInput, options: CardOptions = BASIC_CARD):
   const parts = [`73칸 중 ${progress.filled}칸`];
   if (checked.size > 0) parts.push(`오늘 ${checked.size}개 실천`);
   if (streakDays > 0) parts.push(`${streakDays}일째`);
+  // AI 가 쓴 글이 들어간 판은 이미지에도 표시해요(서비스 오픈 정책 2-4). 고화질은 바닥글이 없어서 머리글에 둬요
+  if (board.aiDraft) parts.push('AI 초안 포함');
 
   return {
     width: CARD_WIDTH,

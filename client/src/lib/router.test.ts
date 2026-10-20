@@ -12,6 +12,7 @@ describe('parseRoute / routeToHash', () => {
       { name: 'today' as const },
       { name: 'share' as const },
       { name: 'settings' as const },
+      { name: 'draft' as const },
     ];
     for (const route of routes) expect(parseRoute(routeToHash(route))).toEqual(route);
   });
@@ -35,6 +36,7 @@ describe('routeFromSchemeUrl', () => {
     expect(routeFromSchemeUrl('intoss://mandalartplan/today?from=push')).toEqual({ name: 'today' });
     expect(routeFromSchemeUrl('intoss-private://mandalartplan/sub/2')).toEqual({ name: 'sub', sub: 2 });
     expect(routeFromSchemeUrl('https://mandalartplan.apps.tossmini.com/share')).toEqual({ name: 'share' });
+    expect(routeFromSchemeUrl('intoss://mandalartplan/draft')).toEqual({ name: 'draft' });
     expect(routeFromSchemeUrl('')).toBeNull();
     expect(routeFromSchemeUrl('not a url')).toBeNull();
   });
