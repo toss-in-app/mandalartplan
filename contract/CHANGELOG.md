@@ -89,3 +89,8 @@
 - `events.md`: AI 이벤트 5개(`ai_notice_agree`·`ai_draft_start`·`ai_draft_reward`·`ai_draft_result`·`ai_draft_apply`), 자해 표현 감지는 기록하지 않음. `board_filled` 에 `ai` 파라미터(AI 가 핵심 전환에 주는 효과를 보려고). 광고 그룹 `rewarded-ai-draft`. 알림 템플릿 제목 "실천 체크 시간"(8자) → "실천 체크"(7자 규칙). 발송은 매일 20:00(사용자 결정 — 21~08시는 다음 날 08시로 밀릴 수 있어서), 앱 문구·동의문 "저녁 8시".
 - 클라 구현(2026-10-20): `client/src/ai/`(rules·safety·api·key·config·messages·useAiDraft), 화면 `#/draft`(DraftScreen), 고지 시트(AiNoticeSheet), 'AI 초안' 배지(홈·전체 보기·미리보기), 공유 이미지 머리글·공유 글 끝 'AI 초안 포함'. 예시 템플릿을 넣으면 `aiDraft` 를 지움.
 - 2026-10-20 사용자 결정 'AI 칸을 다 고치면 표시 없애기': `aiDraft.cells`(AI 가 쓰고 아직 안 고친 칸 번호) 추가 — 사용자가 칸을 고치면 빠지고, 다 빠지면 `aiDraft = null`. 한 칸만 고쳐도 없애는 안은 나머지 AI 글이 표시 없이 남아 정책 2-4 위반 소지라 채택하지 않음.
+
+## 2026-10-20 [client] 2.0.0 출시 번들 — AI 리워드 지면 임시 공유 (공지 54047)
+- 계약 변경 없음(`state`·`content` 그대로). 콘솔 MCP `iaa_placement_group_create` 가 리워드 지면 신규 생성을 거부(앱인토스 공지 54047 '전면·리워드 광고 지면 신규 생성 오류', 2026-10-19 16:48 KST~, 복구 미정) → 사용자 결정으로 `rewarded-ai-draft` 는 `rewarded-extra-board` 지면(`ait.v2.live.4f0aaab3a62749d1`)을 함께 씀. 콘솔에서 그 지면의 보상 이름을 '두 번째 만다라트 판' → '기회'(1)로, 표시 이름에 'AI 초안(임시)'을 더함(사용자 확인).
+- 앱: 두 키가 같은 그룹이면 리워드 훅 하나로 한 번만 불러옴(`App.tsx` `aiSharesExtraBoard`). 출시 검사(`check-release-bundle.mjs`)는 `config.ts` 의 `VITE_AD_GROUP_*` 키가 `.env.production` 에 모두 있고 그 고유 라이브 ID 가 번들에 전부 있는지 확인(같은 ID 공유 허용) — 2.0.0 번들: 테스트 ID 0개, 라이브 4개(설정 5곳).
+- 복구 공지 뒤: AI 전용 지면 생성 → `.env.production` 교체 → 2.0.1. 두 번째 판 지면의 보상·표시 이름 원복 검토.

@@ -29,7 +29,7 @@
 |------|------|------|------|
 | `interstitial-today` | 전면 | 홈 '기록 보기' → today 전환 | 하루 1회 · 오늘 체크 1개 이상일 때만 · 사전 로딩 · 실패 시 건너뜀 |
 | `rewarded-hd-image` | 리워드 | 공유 화면 '고화질로 저장' | 보상 = 고화질 저장 1회, `userEarnedReward` 에서만 |
-| `rewarded-extra-board` | 리워드 | 설정 '두 번째 만다라트 판' | 보상 = `unlocks.extraBoard = true`(영구) |
+| `rewarded-extra-board` | 리워드 | 설정 '두 번째 만다라트 판' | 보상 = `unlocks.extraBoard = true`(영구). 2026-10-20~ 공지 54047 동안 `rewarded-ai-draft` 가 이 지면을 함께 씀(콘솔 보상 이름 '기회' 1) |
 | `banner-today` | 배너 | 기록 화면 맨 아래(모든 탭) | 1개, refresh 없음, 버튼과 24px 이상 |
 
 ## 알림 템플릿 (콘솔 정기 발송, 기능성)
@@ -76,6 +76,6 @@ Supabase RPC: `backup_get(p_key)` · `backup_upsert(p_key, p_payload, p_payload_
 
 | 광고 그룹 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
-| `rewarded-ai-draft` | 리워드 | 목표 입력 '광고 보고 만들기' · 미리보기 '다시 만들기' · 편집 '빈 칸 AI로 채우기'·'실천 AI로 추천' | 보상 = AI 1회(이름 "AI 초안", 수량 1), `userEarnedReward` 에서만. 광고를 못 불러오면 AI 를 쓰지 않음(2026-10-20 결정). 사람당 하루 10회(`settings.ai.runs`). 라이브 ID `VITE_AD_GROUP_REWARDED_AI_DRAFT` |
+| `rewarded-ai-draft` | 리워드 | 목표 입력 '광고 보고 만들기' · 미리보기 '다시 만들기' · 편집 '빈 칸 AI로 채우기'·'실천 AI로 추천' | 보상 = AI 1회(이름 "AI 초안", 수량 1), `userEarnedReward` 에서만. 광고를 못 불러오면 AI 를 쓰지 않음(2026-10-20 결정). 사람당 하루 10회(`settings.ai.runs`). 라이브 ID `VITE_AD_GROUP_REWARDED_AI_DRAFT`. **임시(2026-10-20~)**: 전면·리워드 지면 신규 생성 오류(앱인토스 공지 54047) 동안 `rewarded-extra-board` 지면 ID 를 같이 씀 — 콘솔 보상 이름 '기회' 1, 앱은 같은 그룹을 한 번만 불러옴. 복구되면 전용 지면 생성 → 2.0.1 |
 
 서버: Supabase Edge Function `mandalart-draft`(`supabase/functions/mandalart-draft/`), 남용 방지 테이블 `ai_draft_usage`·`ai_draft_cost` 와 RPC `ai_draft_take`·`ai_draft_cost_add`(서버 키만 실행) — `supabase/schema.sql`.
