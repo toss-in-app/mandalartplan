@@ -114,7 +114,8 @@
               ""
             ]
           }
-        ]
+        ],
+        "aiDraft": null
       }
     ]
   },
@@ -153,6 +154,13 @@
     },
     "ads": {
       "lastInterstitialDate": null
+    },
+    "ai": {
+      "noticeAt": null,
+      "runs": {
+        "date": null,
+        "count": 0
+      }
     }
   }
 }

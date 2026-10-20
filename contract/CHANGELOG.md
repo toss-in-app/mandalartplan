@@ -82,3 +82,8 @@
 - 같은 날 질문에 위 칸 이름 넣기(사용자 "이 칸 대신 해당 이름"): 세부 목표 칸 "{핵심 목표} 칸의 세부 목표는 무엇인가요?"(핵심 목표가 비면 "목표를 이루려면 무엇이 필요할까요?"), 실천 칸 "{세부 목표 또는 '세부 목표 n'} 칸의 실천은 무엇인가요?". 이름은 16자 넘으면 줄임. 위 칸 이름이 제목으로 가서 알약·별도 라벨은 빼고 위치 아이콘 옆 칸 이름 한 줄만.
 - 같은 날 빈 칸 정리(사용자 "초기화·처음에 목표 1, 목표 2 가 써 있음 → 비워 두고, 누르면 목표를 정하게"): 세부 목표 칸 자리 표시 `목표 n` 제거(`lib/cells.ts`, 읽는 이름은 '세부 목표 n'), '비어 있어요' 는 실천 칸만. 홈의 빈 핵심 목표·세부 목표 칸과 세부 목표 화면의 빈 실천 칸은 누르면 그 자리에서 칸 편집 시트(화면 이동 없음). 시트는 `lib/cellEdit.ts`(질문·반영) + `components/CellEditorSheet.tsx` + `hooks/useCellEditor.tsx` 로 나눠 편집 화면·홈·세부 목표 화면이 같이 씀.
 - 같은 날 빈 칸 초대 표시(사용자 "비면 너무 휑함 → 효과나 텍스트로"): 누를 수 있는 빈 세부 목표·실천 칸 = 점선 브랜드 테두리 + 옅은 틴트 + '+' 아이콘(`Block` invite), 다음에 채울 칸(`lib/cells.ts` `nextEmptyCell`: 가운데 → 둘레 첫 빈 칸)만 '눌러서 적기' + 바깥으로 퍼지는 테두리 애니메이션(`grid.css` `.mg-cell-next`, prefers-reduced-motion 이면 멈춤). 홈 안내: 핵심 목표만 있으면 '둘레 칸을 눌러 세부 목표를 정해 보세요'.
+
+## 2026-10-20 v5 [contract] 2.0 AI 초안 (설계 승인)
+- `state.schema.json`(필드 추가만): `boards[].aiDraft`(`{ at, model, promptVersion }` 또는 null — AI 결과를 넣은 판, 'AI 초안' 표시 근거) · `settings.ai`(`noticeAt` = 생성형 AI 고지 확인 시각, `runs` = 기기 날짜별 AI 실행 수, 하루 10회). 없으면 기본값. 백업 페이로드는 boards 를 그대로 싣으니 `aiDraft` 도 백업·복원된다.
+- `ai-draft.api.md` 신설(`plans/` 에서 옮김): Edge Function `POST /functions/v1/mandalart-draft`, `mode` subs/actions, 오류 코드 6개, 한도(키당 하루 30 호출·전체 3,000).
+- `events.md`: AI 이벤트 5개(`ai_notice_agree`·`ai_draft_start`·`ai_draft_reward`·`ai_draft_result`·`ai_draft_apply`), 자해 표현 감지는 기록하지 않음. 광고 그룹 `rewarded-ai-draft`. 알림 템플릿 제목 "실천 체크 시간"(8자) → "실천 체크"(7자 규칙).

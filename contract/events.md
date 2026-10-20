@@ -35,7 +35,9 @@
 ## 알림 템플릿 (콘솔 정기 발송, 기능성)
 | 발송 코드(templateCode) | 발송 | 제목(7자, 명사형) / 내용(25자, ~요.) | 링크 |
 |----|------|----------------------------------|------|
-| `mandalartplan-daily-checkin` | 매일 21:00 (정기 발송) | "실천 체크 시간" / "오늘 한 실천을 만다라트에 체크해요." | `intoss://mandalartplan` |
+| `mandalartplan-daily-checkin` | 매일 저녁(정기 발송, 20시·21시 중 템플릿 만들 때 결정 — MCP 설명상 21~08시는 다음 날 08시로 밀릴 수 있음) | "실천 체크" / "오늘 한 실천을 만다라트에 체크해요." | `intoss://mandalartplan` |
+
+- 2026-10-20: 제목을 공식 규칙(7자 이내)에 맞춰 "실천 체크 시간"(8자) → "실천 체크". 2.0.0 에 알림을 같이 켠다(사용자 결정).
 
 - 발송 코드는 공식 규칙대로 `{appName}-` 로 시작. 콘솔에서 만든 뒤 `client/.env` 의 `VITE_NOTIFICATION_TEMPLATE_CODE` 에 넣는다(비어 있으면 출시 번들에서 알림 기능 숨김, 개발 빌드는 이 코드로 대신). 알림 동의문(발송 시점 "매일 저녁 9시", 철회 경로 "토스 앱 알림 설정")이 연결돼 있어야 저장된다.
 - 클라 호출: `Notification.requestAgreement({ options: { templateCode } })` — 홈 행·기록 화면(오늘 탭) 버튼·설정 행에서 사용자가 누른 뒤에만. 결과 `newAgreement`/`alreadyAgreed` → `settings.notification = agreed`, `agreementRejected` → `declined`.
@@ -58,3 +60,21 @@
 | `backup_error` | 키 발급·네트워크 실패 | `stage`(key/get/upsert/delete), `code` |
 
 Supabase RPC: `backup_get(p_key)` · `backup_upsert(p_key, p_payload, p_payload_version, p_client_version, p_cells_filled)` · `backup_delete(p_key)` — `supabase/schema.sql`. 테이블 직접 접근 없음(RLS). 페이로드 `contract/backup.schema.json`.
+
+## AI 초안 (2.0, 2026-10-20 추가 — 설계 `plans/2.0-ai-draft-design.md`, API `ai-draft.api.md`)
+| 이벤트 | 언제 | 파라미터 |
+|--------|------|----------|
+| `ai_notice_agree` | 생성형 AI 사전 고지 시트에서 '확인' | |
+| `ai_draft_start` | AD 버튼을 누르고 사전 검사(고지·하루 10회·입력)를 통과해 광고를 띄우기 직전 | `mode`(draft/subs/actions) |
+| `ai_draft_reward` | 리워드 광고 결과 | `mode`, `result`(rewarded/dismissed/unavailable) |
+| `ai_draft_result` | 서버 응답(보상을 받은 뒤에만 부름) | `mode`, `result`(ok/refused/limited/invalid_output/busy/network/invalid), `ms` |
+| `ai_draft_apply` | 결과를 판에 넣음(미리보기 '이대로 시작하기' 또는 편집 화면 채우기) | `mode`, `filled`(새로 채운 칸 수) |
+
+- `mode`: `draft` = 목표 입력 화면에서 판 전체(세부 목표 → 실천 순서로 서버 2번), `subs` = 편집 화면 빈 세부 목표만, `actions` = 편집 화면 한 세부 목표의 빈 실천만.
+- 자해·자살 표현 감지(앱 사전 검사·서버 `self_harm`)는 **이벤트를 남기지 않는다** — 민감한 정보라서. 목표 문구·칸 글도 어떤 이벤트에도 싣지 않는다.
+
+| 광고 그룹 | 유형 | 지점 | 규칙 |
+|------|------|------|------|
+| `rewarded-ai-draft` | 리워드 | 목표 입력 '광고 보고 만들기' · 미리보기 '다시 만들기' · 편집 '빈 칸 AI로 채우기'·'실천 AI로 추천' | 보상 = AI 1회(이름 "AI 초안", 수량 1), `userEarnedReward` 에서만. 광고를 못 불러오면 AI 를 쓰지 않음(2026-10-20 결정). 사람당 하루 10회(`settings.ai.runs`). 라이브 ID `VITE_AD_GROUP_REWARDED_AI_DRAFT` |
+
+서버: Supabase Edge Function `mandalart-draft`(`supabase/functions/mandalart-draft/`), 남용 방지 테이블 `ai_draft_usage`·`ai_draft_cost` 와 RPC `ai_draft_take`·`ai_draft_cost_add`(서버 키만 실행) — `supabase/schema.sql`.

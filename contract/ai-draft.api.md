@@ -1,6 +1,6 @@
-# AI 초안 API 계약 (초안, 2.0) — `POST /functions/v1/mandalart-draft`
+# AI 초안 API 계약 (2.0) — `POST /functions/v1/mandalart-draft`
 
-> 승인 뒤 `contract/ai-draft.api.md` 로 옮긴다. 바뀌면 `contract/CHANGELOG.md` 에 한 줄.
+> 2026-10-20 설계 승인과 함께 `plans/` 에서 옮김. 바뀌면 `contract/CHANGELOG.md` 에 한 줄. 서버 구현 `supabase/functions/mandalart-draft/`, 클라 `client/src/ai/`.
 
 ## 공통
 - 호출: 클라(토스 미니앱 WebView) → Supabase Edge Function. HTTPS 만.

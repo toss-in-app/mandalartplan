@@ -97,6 +97,9 @@
         },
         "updatedAt": {
           "$ref": "#/$defs/epochMs"
+        },
+        "aiDraft": {
+          "$ref": "#/$defs/aiDraft"
         }
       }
     },
@@ -282,8 +285,85 @@
             }
           },
           "description": "2026-10-06 추가 (기능 5 광고). 없으면 기본값"
+        },
+        "ai": {
+          "type": "object",
+          "required": [
+            "noticeAt",
+            "runs"
+          ],
+          "properties": {
+            "noticeAt": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/epochMs"
+                }
+              ],
+              "description": "생성형 AI 사전 고지 시트에서 '확인'을 누른 시각. null 이면 다음 AI 실행 때 먼저 고지"
+            },
+            "runs": {
+              "type": "object",
+              "required": [
+                "date",
+                "count"
+              ],
+              "properties": {
+                "date": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/date"
+                    }
+                  ]
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "date(기기 날짜)에 AI 를 성공적으로 돌린 횟수. 하루 10회 상한"
+                }
+              }
+            }
+          },
+          "description": "2.0 추가(2026-10-20, AI 초안). 없으면 기본값 { noticeAt: null, runs: { date: null, count: 0 } }"
         }
       }
+    },
+    "aiDraft": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "at",
+            "model",
+            "promptVersion"
+          ],
+          "properties": {
+            "at": {
+              "$ref": "#/$defs/epochMs",
+              "description": "AI 결과를 판에 마지막으로 넣은 시각"
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "description": "예: claude-haiku-5-5"
+            },
+            "promptVersion": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ],
+      "description": "2.0 추가(2026-10-20). AI 초안·빈 칸 채우기 결과를 이 판에 넣었으면 기록, 아니면 null 또는 없음. 있으면 홈·전체 보기·공유 이미지에 'AI 초안' 표시(서비스 오픈 정책 2-4)"
     }
   }
 }
