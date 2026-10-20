@@ -94,3 +94,9 @@
 - 계약 변경 없음(`state`·`content` 그대로). 콘솔 MCP `iaa_placement_group_create` 가 리워드 지면 신규 생성을 거부(앱인토스 공지 54047 '전면·리워드 광고 지면 신규 생성 오류', 2026-10-19 16:48 KST~, 복구 미정) → 사용자 결정으로 `rewarded-ai-draft` 는 `rewarded-extra-board` 지면(`ait.v2.live.4f0aaab3a62749d1`)을 함께 씀. 콘솔에서 그 지면의 보상 이름을 '두 번째 만다라트 판' → '기회'(1)로, 표시 이름에 'AI 초안(임시)'을 더함(사용자 확인).
 - 앱: 두 키가 같은 그룹이면 리워드 훅 하나로 한 번만 불러옴(`App.tsx` `aiSharesExtraBoard`). 출시 검사(`check-release-bundle.mjs`)는 `config.ts` 의 `VITE_AD_GROUP_*` 키가 `.env.production` 에 모두 있고 그 고유 라이브 ID 가 번들에 전부 있는지 확인(같은 ID 공유 허용) — 2.0.0 번들: 테스트 ID 0개, 라이브 4개(설정 5곳).
 - 복구 공지 뒤: AI 전용 지면 생성 → `.env.production` 교체 → 2.0.1. 두 번째 판 지면의 보상·표시 이름 원복 검토.
+
+## 2026-10-20 [server] 출시 뒤 취약점 점검 — 서버 상한 (앱 업데이트 없음)
+- 계약 변경 없음(요청·응답·오류 코드 그대로). `supabase/schema.sql` 두 함수만 바꿔 서울 운영 DB 에 반영(롤백 트랜잭션 시험 6가지 통과 → 반영 → 권한·실제 AI 요청·백업 왕복 확인).
+- `ai_draft_take`: 전체 하루 상한 30,000 → **3,000** 호출. 키(익명 키 sha256)는 앱이 만들어 보내는 값이라 서버가 진짜인지 모르고, 공개 키·Origin 은 브라우저 밖에서 흉내 낼 수 있어 키당 100 은 가짜 키로 우회된다 → 전체 상한이 비용·남용의 실제 상한. 상한에 걸리면 앱은 `limited` → "오늘은 AI 초안을 더 만들 수 없어요"(광고를 본 뒤일 수 있으니 실제 사용이 가까워지면 올린다).
+- `backup_upsert`: **새 키는 `mandalart_backups` 표 전체(인덱스·TOAST 포함)가 300MB 를 넘으면 거부**(SQLSTATE 53100 → HTTP 503, 앱은 "백업하지 못했어요. 잠시 뒤에 다시 해 주세요"). 이미 있는 백업 덮어쓰기는 그대로. 키당 200KB 제한만 있어 가짜 키로 무료 DB(500MB)를 채울 수 있었던 것을 막음.
+- 같은 날 의존성: `client/package-lock.json` source-map-js 1.2.1 → 1.2.2(CVE-2026-93749, Dependabot PR #1 을 사용자가 병합). 그 PR 이 바꾼 루트 의존성 표기(`latest` → `*`)는 package.json 에 맞춰 되돌림.

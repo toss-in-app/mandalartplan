@@ -31,6 +31,7 @@ language sql security definer set search_path = public stable as $$
 $$;
 
 -- 쓰기: 있으면 덮어쓰기. 200KB 넘는 본은 거부(정상 본은 20KB 안팎).
+-- 새 키는 표 전체(인덱스·TOAST 포함)가 300MB 를 넘으면 거부(2026-10-20) — 공개 키와 가짜 키로 무료 DB(500MB)를 채우지 못하게. 이미 있는 백업 덮어쓰기는 그대로 돼요.
 create or replace function public.backup_upsert(
   p_key text, p_payload jsonb, p_payload_version int, p_client_version text, p_cells_filled int
 ) returns timestamptz
@@ -43,6 +44,10 @@ begin
   end if;
   if pg_column_size(p_payload) > 200000 then
     raise exception 'payload too large' using errcode = '22023';
+  end if;
+  if pg_total_relation_size('public.mandalart_backups') > 300 * 1024 * 1024
+     and not exists (select 1 from public.mandalart_backups b where b.backup_key = p_key) then
+    raise exception 'backup storage full' using errcode = '53100';
   end if;
   insert into public.mandalart_backups as b
     (backup_key, payload, payload_version, client_version, cells_filled, updated_at)
@@ -88,7 +93,8 @@ grant execute on function public.backup_delete(text) to anon;
 --  · 목표 글·칸 글·AI 결과는 어디에도 저장하지 않아요. 남기는 것은 키 해시별 날짜·호출 수(7일 보관)와 날짜별 토큰 합계뿐.
 --  · 키는 'k' + sha256('ai:' + 토스 익명 키) — 백업 키와 다른 값이라 둘을 이어 붙일 수 없어요.
 --  · 두 함수는 서버 키(Edge Function)만 실행해요. anon(publishable key)에 주면 누구나 상한을 다 써 버릴 수 있어서 주지 않아요.
---  · 상한(호출 = Claude 1번): 키당 하루 100, 전체 하루 30,000 — 서울 날짜 기준(contract/ai-draft.api.md '한도').
+--  · 상한(요청 1개 = Claude 1번, 형식이 틀리면 재요청까지 최대 2번): 키당 하루 100, 전체 하루 3,000 — 서울 날짜 기준(contract/ai-draft.api.md '한도').
+--    2026-10-20 전체 상한을 30,000 → 3,000 으로 낮춤: 키는 앱이 만들어 보내는 값이라 가짜 키로 키당 상한을 우회할 수 있어, 전체 상한이 비용·남용의 실제 상한이에요.
 
 create table if not exists public.ai_draft_usage (
   key_hash text not null check (key_hash ~ '^k[0-9a-f]{64}$'),
@@ -125,7 +131,7 @@ begin
     return false;
   end if;
   select coalesce(sum(calls), 0) into v_total from public.ai_draft_usage where day = v_day;
-  if v_total >= 30000 then
+  if v_total >= 3000 then
     return false;
   end if;
   insert into public.ai_draft_usage as u (key_hash, day, calls)
