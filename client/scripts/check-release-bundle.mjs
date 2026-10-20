@@ -14,16 +14,31 @@ const js = readdirSync(assets)
 
 const testIds = [...new Set(js.match(/ait-ad-test-[a-z-]*/g) ?? [])];
 const liveIds = [...new Set(js.match(/ait\.v2\.live\.[0-9a-f]+/g) ?? [])];
-// 광고 그룹 수 = src/ads/config.ts 의 VITE_AD_GROUP_* 항목 수(전면 1 · 리워드 3 · 배너 1, contract/events.md '광고 그룹'). 하나라도 비면 실패
+// src/ads/config.ts 가 읽는 VITE_AD_GROUP_* 는 .env.production 에 모두 값이 있어야 하고, 그 라이브 ID 가 전부 번들에 들어가야 해요.
+// 두 기능이 한 지면을 같이 쓰면(예: AI 초안이 '두 번째 판' 지면을 임시로) ID 가 겹쳐도 돼요.
 const adConfig = readFileSync(fileURLToPath(new URL('../src/ads/config.ts', import.meta.url)), 'utf8');
-const EXPECTED_LIVE = (adConfig.match(/pick\(import\.meta\.env\.VITE_AD_GROUP_/g) ?? []).length;
+const requiredKeys = [...new Set(adConfig.match(/VITE_AD_GROUP_[A-Z_]+/g) ?? [])];
+const envProd = Object.fromEntries(
+  readFileSync(fileURLToPath(new URL('../.env.production', import.meta.url)), 'utf8')
+    .split('\n')
+    .filter((line) => /^VITE_AD_GROUP_[A-Z_]+=/.test(line))
+    .map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1).trim()]),
+);
+const emptyKeys = requiredKeys.filter((key) => !envProd[key]);
+const expectedIds = [...new Set(requiredKeys.map((key) => envProd[key]).filter(Boolean))];
+const missingIds = expectedIds.filter((id) => !js.includes(id));
+const EXPECTED_LIVE = expectedIds.length;
 
 if (testIds.length > 0) {
   console.error(`출시 번들에 테스트 광고 ID 가 남아 있어요: ${testIds.join(', ')} — 콘솔 검토가 자동 반려돼요. src/ads/config.ts 확인`);
+  process.exit(1);
+}
+if (emptyKeys.length > 0 || missingIds.length > 0) {
+  console.error(`라이브 광고 그룹 ID 가 비었거나 번들에 없어요: ${[...emptyKeys, ...missingIds].join(', ')} — client/.env.production 확인`);
   process.exit(1);
 }
 if (liveIds.length < EXPECTED_LIVE) {
   console.error(`라이브 광고 그룹 ID 가 ${liveIds.length}개뿐이에요(기대 ${EXPECTED_LIVE}). client/.env.production 의 VITE_AD_GROUP_* 확인`);
   process.exit(1);
 }
-console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개`);
+console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳)`);
