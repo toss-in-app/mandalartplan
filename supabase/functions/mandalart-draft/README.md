@@ -17,6 +17,7 @@
 사용자가 할 일(키는 Claude 가 다루지 않아요):
 1. Supabase CLI 설치·로그인: `brew install supabase/tap/supabase` → `supabase login`
 2. 프로젝트 연결: 프로젝트 폴더에서 `supabase link --project-ref <ref>` (`client/.env` 의 `VITE_SUPABASE_URL` 에 있는 `https://<ref>.supabase.co` 의 ref)
+   - 2026-10-20 부터 서울 프로젝트 `elpwdczwgcjbkqqjxpuh`(ap-northeast-2). 처음 쓰던 시드니 프로젝트(`jwkwxkoveeslbdiyxmmr`)는 사용자가 삭제 — 1.x 앱의 백업은 서울 주소로 다시 빌드한 판부터 동작
 3. Anthropic 키 넣기: `supabase secrets set ANTHROPIC_API_KEY=<키>` — Anthropic 콘솔에서 만든 키, 워크스페이스 월 사용 한도(예: $10)를 먼저 걸어 두기
 
 그다음(사용자 또는 Claude):
