@@ -3,7 +3,7 @@
  * 순서: 형식 검사 → 자해 표현(Claude 를 부르지 않고 횟수에도 넣지 않음) → 하루 상한 → Claude(형식 실패·빈 칸 많음이면 1회 더) → 칸 정리.
  * 목표 글·칸 글·결과는 저장하지도 로그에 남기지도 않아요.
  */
-import { ACTIONS_SCHEMA, MODEL, PROMPT_VERSION, SUBS_SCHEMA, actionsMessage, subsMessage } from './prompt.ts';
+import { DRAFT_SCHEMA, MODEL, PROMPT_VERSION, actionsMessage, subsMessage } from './prompt.ts';
 import { looksLikeSelfHarm } from './safety.ts';
 import { RETRY_IF_EMPTY_OVER, mergeOutput, parseModelJson, parseRequest, type DraftRequest, type MergedCells } from './validate.ts';
 
@@ -43,19 +43,17 @@ function fail(error: DraftError, status = 200): DraftResult {
 
 /** Claude 1~2회. 형식이 틀리거나 비운 칸이 많으면 한 번 더, 그래도 형식이 틀리면 invalid_output */
 async function generate(req: DraftRequest, deps: DraftDeps): Promise<MergedCells | DraftError> {
-  const field = req.mode;
   const user = req.mode === 'subs' ? subsMessage(req.goal, req.subs) : actionsMessage(req.goal, req.subs, req.only, req.actions);
-  const schema = req.mode === 'subs' ? SUBS_SCHEMA : ACTIONS_SCHEMA;
   const input = req.mode === 'subs' ? req.subs : req.actions;
   // 실천은 세부 목표 이름을 그대로 반복하지 않게
   const avoid = req.mode === 'subs' ? [req.goal] : [req.goal, req.subs[req.only]];
   let best: MergedCells | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const outcome = await deps.callClaude(user, schema);
+    const outcome = await deps.callClaude(user, DRAFT_SCHEMA);
     if (outcome.kind === 'error') return best ?? 'busy';
     await deps.addCost(1, outcome.usage).catch(() => {});
     if (outcome.kind === 'refusal') return 'refused';
-    const parsed = parseModelJson(outcome.text, field);
+    const parsed = parseModelJson(outcome.text);
     if (parsed?.refused) return 'refused';
     const merged = parsed ? mergeOutput(input, parsed.list, avoid) : null;
     if (merged && (!best || merged.filled > best.filled)) best = merged;

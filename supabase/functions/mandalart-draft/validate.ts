@@ -103,8 +103,8 @@ export function mergeOutput(input: readonly string[], output: unknown, avoid: re
   return { cells: merged, filled, empty };
 }
 
-/** 구조화 출력 글 → { refused, list }. 형식이 다르면 null */
-export function parseModelJson(text: string, field: 'subs' | 'actions'): { refused: boolean; list: unknown } | null {
+/** 구조화 출력 글({ refused, items }) → { refused, list }. 형식이 다르면 null */
+export function parseModelJson(text: string): { refused: boolean; list: unknown } | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -114,5 +114,5 @@ export function parseModelJson(text: string, field: 'subs' | 'actions'): { refus
   if (!parsed || typeof parsed !== 'object') return null;
   const record = parsed as Record<string, unknown>;
   if (typeof record.refused !== 'boolean') return null;
-  return { refused: record.refused, list: record[field] };
+  return { refused: record.refused, list: record.items };
 }

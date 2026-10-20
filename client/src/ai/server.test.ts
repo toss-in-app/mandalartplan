@@ -70,7 +70,7 @@ describe('모델 출력 칸 정리', () => {
 
 describe('handleDraft', () => {
   it('세부 목표 성공: 계약 모양, 사용자 칸 보존, 비용 기록', async () => {
-    const deps = fakeDeps([text({ refused: false, subs: ['바꾸면 안 됨', ...SUBS.slice(1)] })]);
+    const deps = fakeDeps([text({ refused: false, items: ['바꾸면 안 됨', ...SUBS.slice(1)] })]);
     const res = await handleDraft({ mode: 'subs', key: KEY, goal: '8구단 드래프트 1순위', subs: ['체력', '', '', '', '', '', '', ''] }, deps);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true, mode: 'subs', subs: ['체력', ...SUBS.slice(1)], model: 'claude-haiku-5-5', promptVersion: 1 });
@@ -80,7 +80,7 @@ describe('handleDraft', () => {
 
   it('실천 성공: only 와 새로 채운 수', async () => {
     const actions = ['불펜 투구 50개', '같은 폼 반복 연습', '릴리스 포인트 점검', '투구 영상 확인', '하체 고정 연습', '코너 투구 20개', '섀도 피칭 30회', '투구 결과 기록'];
-    const deps = fakeDeps([text({ refused: false, actions })]);
+    const deps = fakeDeps([text({ refused: false, items: actions })]);
     const res = await handleDraft({ mode: 'actions', key: KEY, goal: '목표', subs: SUBS, only: 1, actions: EMPTY8 }, deps);
     expect(res.body).toMatchObject({ ok: true, mode: 'actions', only: 1, actions, filled: 8 });
   });
@@ -104,17 +104,17 @@ describe('handleDraft', () => {
   it('거절: stop_reason refusal 또는 refused: true', async () => {
     const stop = await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, fakeDeps([{ kind: 'refusal', usage: USAGE }]));
     expect(stop.body).toEqual({ ok: false, error: 'refused' });
-    const flagged = await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, fakeDeps([text({ refused: true, subs: EMPTY8 })]));
+    const flagged = await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, fakeDeps([text({ refused: true, items: EMPTY8 })]));
     expect(flagged.body).toEqual({ ok: false, error: 'refused' });
   });
 
   it('형식이 틀리면 한 번 더, 그래도 틀리면 invalid_output. Claude 오류는 busy', async () => {
-    const retry = fakeDeps([{ kind: 'text', text: '{망가진', usage: USAGE }, text({ refused: false, subs: SUBS })]);
+    const retry = fakeDeps([{ kind: 'text', text: '{망가진', usage: USAGE }, text({ refused: false, items: SUBS })]);
     expect((await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, retry)).body).toMatchObject({ ok: true, subs: SUBS });
     expect(retry.callClaude).toHaveBeenCalledTimes(2);
     expect(retry.addCost).toHaveBeenCalledTimes(2);
 
-    const broken = fakeDeps([text({ refused: false, subs: ['하나'] }), text({ refused: false })]);
+    const broken = fakeDeps([text({ refused: false, items: ['하나'] }), text({ refused: false })]);
     expect((await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, broken)).body).toEqual({ ok: false, error: 'invalid_output' });
 
     expect((await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, fakeDeps([{ kind: 'error' }]))).body).toEqual({ ok: false, error: 'busy' });
@@ -122,11 +122,19 @@ describe('handleDraft', () => {
 
   it('비운 칸이 3칸을 넘으면 한 번 더 요청하고 더 많이 채운 쪽을 써요', async () => {
     const sparse = ['체력 강화', '', '', '', '', '변화구', '몸 관리', '인성과 태도'];
-    const deps = fakeDeps([text({ refused: false, subs: sparse }), text({ refused: false, subs: SUBS })]);
+    const deps = fakeDeps([text({ refused: false, items: sparse }), text({ refused: false, items: SUBS })]);
     const res = await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, deps);
     expect(res.body).toMatchObject({ ok: true, subs: SUBS });
     expect(deps.callClaude).toHaveBeenCalledTimes(2);
   });
+});
+
+it('세부 목표·실천이 같은 스키마로 Claude 를 불러요(프롬프트 캐시 공유)', async () => {
+  const deps = fakeDeps([text({ refused: false, items: SUBS }), text({ refused: false, items: SUBS })]);
+  await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, deps);
+  await handleDraft({ mode: 'actions', key: KEY, goal: '목표', subs: SUBS, only: 0, actions: EMPTY8 }, deps);
+  const [first, second] = deps.callClaude.mock.calls.map((call) => (call as unknown as [string, Record<string, unknown>])[1]);
+  expect(first).toBe(second);
 });
 
 it('사용자 글은 JSON 문자열로만 들어가요(지시문이 섞여도 글로 취급)', () => {
