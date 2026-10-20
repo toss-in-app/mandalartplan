@@ -240,7 +240,7 @@ export function HomeScreen({
           <ListRow
             onClick={onNotification}
             withArrow
-            contents={<ListRow.Texts type="2RowTypeA" top="매일 저녁 알림 받기" bottom="저녁 9시에 오늘 실천을 체크하라고 알려요" />}
+            contents={<ListRow.Texts type="2RowTypeA" top="매일 저녁 알림 받기" bottom="저녁 8시에 오늘 실천을 체크하라고 알려요" />}
           />
         )}
         <ListRow onClick={onSettings} withArrow contents={<ListRow.Texts type="1RowTypeA" top="설정" />} />

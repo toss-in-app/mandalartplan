@@ -243,7 +243,7 @@ describe('App (알림 동의)', () => {
     await screen.findByText('매일 저녁 알림 받기');
 
     fireEvent.click(screen.getByText('매일 저녁 알림 받기'));
-    await waitFor(() => expect(screen.getAllByText('매일 저녁 9시에 알림을 보내요').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText('매일 저녁 8시에 알림을 보내요').length).toBeGreaterThan(0));
     expect(logEvent).toHaveBeenCalledWith('notification_agree', { result: 'agreed', from: 'home' });
     await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).notification).toBe('agreed'));
     expect(screen.queryByText('매일 저녁 알림 받기')).not.toBeInTheDocument();

@@ -369,7 +369,7 @@ function App() {
     if (result === 'agreed' || result === 'alreadyAgreed') {
       app.updateSettings((settings) => ({ ...settings, notification: 'agreed' }));
       logEvent('notification_agree', { result: 'agreed', from });
-      toast.openToast(result === 'agreed' ? '매일 저녁 9시에 알림을 보내요' : '이미 알림을 받고 있어요');
+      toast.openToast(result === 'agreed' ? '매일 저녁 8시에 알림을 보내요' : '이미 알림을 받고 있어요');
     } else if (result === 'declined') {
       app.updateSettings((settings) => ({ ...settings, notification: 'declined' }));
       logEvent('notification_agree', { result: 'declined', from });

@@ -78,7 +78,7 @@ export function SettingsScreen({
         <ListRow
           onClick={notificationAvailable ? onNotification : undefined}
           disabled={!notificationAvailable}
-          contents={<ListRow.Texts type="2RowTypeA" top="매일 저녁 알림" bottom="저녁 9시에 오늘 실천을 체크하라고 알려요" />}
+          contents={<ListRow.Texts type="2RowTypeA" top="매일 저녁 알림" bottom="저녁 8시에 오늘 실천을 체크하라고 알려요" />}
           right={rightText(notificationAvailable ? NOTIFICATION_LABEL[notification] : '준비 중')}
         />
         <ListRow withArrow onClick={onPickTemplate} contents={<ListRow.Texts type="1RowTypeA" top="예시 템플릿 불러오기" />} />
