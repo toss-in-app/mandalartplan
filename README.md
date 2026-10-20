@@ -1,7 +1,7 @@
 # mandalartplan — 만다라트 (앱인토스 미니앱)
 
 핵심 목표 1개 · 세부 목표 8개 · 실천 64개를 9×9 만다라트에 적고, 매일 실천을 체크해 진행률을 쌓고, 완성한 9×9 를 이미지로 공유하는 미니앱이에요.
-자체 서버·로그인 없음. 저장은 기기 로컬(`Storage`)이고, 사용자가 켜면 Supabase 에 백업(토스 익명 키 기반). 워크플로우 카드는 `~/Desktop/toss/apps/mandalartplan.md`, 설계는 `steps/3-design/wireframes/mandalartplan-flow.md`.
+자체 서버·로그인 없음. 저장은 기기 로컬(`Storage`)이고, 사용자가 켜면 Supabase(서울 리전)에 백업(토스 익명 키 기반). 2.0.0 부터 AI 초안은 Supabase Edge Function(`supabase/functions/mandalart-draft/`)이 Anthropic Claude 를 불러요 — Anthropic 키는 Supabase secrets 에만 있고 저장소·앱에는 없어요. 워크플로우 카드는 `~/Desktop/toss/apps/mandalartplan.md`, 설계는 `steps/3-design/wireframes/mandalartplan-flow.md`.
 
 ## 실행
 
@@ -20,7 +20,7 @@ npm run typecheck && npm test && npm run build   # tsc · vitest · vite build &
 
 ## 검사
 - `npm run contract` — 계약 검증(콘텐츠 3벌·상태 샘플·백업 페이로드 ↔ `contract/*.schema.json`). `npm run content` 로 콘텐츠를 바꾼 뒤 꼭 돌린다.
-- `npm run check` — 계약 → 타입 → 린트 → 테스트 → 출시 번들 빌드. 출시 빌드(`npm --prefix client run build`)는 `client/scripts/check-release-bundle.mjs` 로 dist 에 테스트 광고 ID 문자열이 없고 라이브 광고 그룹 ID 4개가 있는지 검사해요(콘솔이 번들을 정적 검사해 자동 반려, 2026-10-19). 테스트 광고 ID 로 QR 번들을 만들 때는 `npm --prefix client run build:test-ads`. 워크플로우 6단계의 `steps/6-test/scripts/check-mandalartplan.sh` 가 이걸 돌리고 번들 크기까지 로그로 남긴다.
+- `npm run check` — 계약 → 타입 → 린트 → 테스트 → 출시 번들 빌드. 출시 빌드(`npm --prefix client run build`)는 `client/scripts/check-release-bundle.mjs` 로 dist 에 테스트 광고 ID 문자열이 없고 `.env.production` 에 설정된 라이브 광고 그룹 ID(2.0.0: 고유 4개·설정 5곳 — AI 초안이 두 번째 판 지면을 임시로 같이 씀)가 모두 있는지 검사해요(콘솔이 번들을 정적 검사해 자동 반려, 2026-10-19). 테스트 광고 ID 로 QR 번들을 만들 때는 `npm --prefix client run build:test-ads`. 워크플로우 6단계의 `steps/6-test/scripts/check-mandalartplan.sh` 가 이걸 돌리고 번들 크기까지 로그로 남긴다.
 
 ## 구조
 
@@ -35,7 +35,8 @@ scripts/build-content.mjs    # 검증 통과한 것만 static/ 과 번들 동봉
 static/                      # GitHub Pages 에 올릴 것: content.json · index · terms · privacy · og.png(예정)
 console/                     # 콘솔 앱 정보 자료(9·11단계 입력값): logo.png · app-info.md · features.md · policies/ · release-notes.md — 앱 자료는 steps/ 가 아니라 여기
 releases/                    # 출시 기록(12단계): 버전별 태그·라이브 번들·검토·광고·알려진 제한. 1.0.0.md = 첫 출시
-supabase/schema.sql          # 백업·복원용 Supabase 테이블·RLS·RPC (2026-10-04, 사용자가 SQL Editor 에서 실행)
+supabase/schema.sql          # 백업·복원용 Supabase 테이블·RLS·RPC (2026-10-04) + AI 초안 사용량·비용 표·RPC (2.0.0, 서버 키만 실행)
+supabase/functions/mandalart-draft/  # AI 초안 Edge Function(2.0.0): 형식·자해 검사·하루 한도·Claude 호출 — README.md 에 배포 절차
 client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/web-framework 3.x)
 ├── apps-in-toss.config.ts   #   appName·브랜드 색·네비게이션 바·웹뷰 옵션 (콘솔 appName 과 같아야 함)
 └── src/
@@ -45,6 +46,7 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
     ├── backup/              #   Supabase 백업·복원: config(URL·publishable 키) · key(익명 키 sha256) · api(RPC fetch) · useBackup
     ├── ads/                 #   광고: config(그룹 ID, 비면 테스트 ID) · fullScreen(load/show 약속) · useInterstitial · useRewardedAd · banner(TossAds 초기화) · rules(하루 1회)
     ├── notification/        #   알림 동의: Notification.requestAgreement 약속 래퍼, 템플릿 코드(.env)
+    ├── ai/                  #   AI 초안(2.0.0): rules(빈 칸만·하루 10회) · safety(자해 표현) · api · key · useAiDraft(고지 → 리워드 → 요청)
     ├── lib/
     │   ├── mandalart.ts     #   판 모델·검증·진행률·공유 텍스트
     │   ├── state.ts         #   boards · checkins · settings 정규화, 날짜 키, 연속 일수
@@ -61,7 +63,8 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
 ```
 
 ## 단계 현황
-- **1.1.0 출시 2026-10-20 10:01** — 태그 `v1.1.0`(커밋 `ee8654e`), 콘솔 번들 `20261020-11`, 검토 승인 10:01. 칸을 눌러 바텀시트에서 적기·빈 칸 초대 표시. 기록은 `releases/1.1.0.md`, GitHub 릴리즈 v1.1.0(최신).
+- **2.0.0 출시 2026-10-20 13:53** — 태그 `v2.0.0`(커밋 `90b6451`), 콘솔 번들 `20261020-15`, 검토 승인 13:48. AI 초안(리워드 광고 1회 = AI 1회, 하루 10회)·생성형 AI 고지와 'AI 초안' 표시·저녁 8시 알림·서울 백업. 기록은 `releases/2.0.0.md`, GitHub 릴리즈 v2.0.0(최신).
+- **1.1.0 출시 2026-10-20 10:01** — 태그 `v1.1.0`(커밋 `ee8654e`), 콘솔 번들 `20261020-11`, 검토 승인 10:01. 칸을 눌러 바텀시트에서 적기·빈 칸 초대 표시. 기록은 `releases/1.1.0.md`, GitHub 릴리즈 v1.1.0.
 - **1.0.1 출시 2026-10-19 20:05** — 태그 `v1.0.1`(커밋 `339cc2e`), 콘솔 번들 `20261019-6`, 홈 '기록 보기' 전면 광고 사전 안내. 기록은 `releases/1.0.1.md`, GitHub 릴리즈 v1.0.1.
 - **1.0.0 출시 2026-10-19 18:00** — 태그 `v1.0.0`(커밋 `5588715`), 콘솔 라이브 번들 `20261019-5`, 검토 승인 17:31. 기록은 `releases/1.0.0.md`, GitHub 릴리즈 v1.0.0.
 - 1~6단계 완료(콘솔 등록 2026-09-29, appName `mandalartplan`, 기능 9개·테스트 104개 2026-10-08). 8단계: `static/` 이 GitHub Pages(Actions)로 https://toss-in-app.github.io/mandalartplan/ 에 배포됨(2026-10-08). 다음은 9단계 앱 정보(콘솔 입력)·7단계 광고 그룹·10단계 QR.
