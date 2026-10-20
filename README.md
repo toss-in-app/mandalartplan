@@ -14,6 +14,8 @@ npm run typecheck && npm test && npm run build   # tsc · vitest · vite build &
 ```
 
 ## 정적 배포 (8단계)
+> **저장소를 비공개로 바꾸지 마세요.** 조직이 무료 플랜이라 비공개 저장소는 GitHub Pages 가 꺼지고 설정도 지워져 약관·개인정보처리방침·콘텐츠·공유 이미지가 전부 404 가 돼요(2026-10-19 저녁~10-20 아침 실제 장애). 되돌린 뒤에는 `gh api -X POST repos/toss-in-app/mandalartplan/pages -f build_type=workflow` 로 Pages 를 다시 켜고 `gh workflow run pages.yml` 로 다시 배포해야 해요.
+
 - `static/` → GitHub Pages(`.github/workflows/pages.yml`, main 에 push 하면 계약 검증 뒤 배포, 1~2분). 주소 https://toss-in-app.github.io/mandalartplan/ — `content.json`·`og.png`·`terms/`·`privacy/`. 절차·롤백·동결 규칙은 `steps/8-server-deploy/runbooks/mandalartplan-deploy.md`.
 
 ## 검사
