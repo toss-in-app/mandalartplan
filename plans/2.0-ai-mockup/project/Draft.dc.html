@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>AI 초안 만들기 · 목표 입력</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6B5CFF}a:hover{color:#5443e6}
+.chip{height:36px;padding:0 14px;border:0;border-radius:18px;background:#f2f4f6;color:#333d4b;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.chip-on{background:rgba(107,92,255,0.12);color:#5443e6}
+#goal::placeholder{color:#b0b8c1}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #191f28">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 20px 24px 28px">
+<h1 style="margin: 0; font-size: 22px; line-height: 1.36; font-weight: 700; color: #191f28">AI 초안 만들기</h1>
+<p style="margin: 0; font-size: 17px; line-height: 1.45; color: #4e5968; text-wrap: balance">핵심 목표를 적으면 세부 목표 8개와 실천 64개를 채워요</p>
+</div>
+<div style="padding: 0 24px">
+<label for="goal" style="display: block; font-size: 13px; font-weight: 500; color: #6b7684">핵심 목표</label>
+<input id="goal" type="text" value="{{goal}}" onChange="{{onGoal}}" placeholder="예: 올해 안에 책 한 권 쓰기" style="display: block; width: 100%; margin-top: 8px; padding: 0 0 8px; border: 0; border-bottom: 2px solid #6B5CFF; border-radius: 0; background: transparent; font-family: inherit; font-size: 24px; font-weight: 600; color: #191f28; caret-color: #6B5CFF; outline: none; box-sizing: border-box">
+<div style="margin-top: 8px; text-align: right; font-size: 13px; color: #6b7684">{{count}}</div>
+</div>
+<div style="padding: 24px 24px 0">
+<div style="font-size: 13px; font-weight: 500; color: #6b7684">예시</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px">
+<sc-for list="{{chips}}" as="chip" hint-placeholder-count="4">
+<button type="button" class="{{chip.cls}}" onClick="{{chip.pick}}">{{chip.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 20px 28px; background: #ffffff">
+<p style="margin: 0; text-align: center; font-size: 13px; line-height: 1.5; color: #6b7684">광고를 끝까지 보면 AI가 초안을 만들어요 · 오늘 10번 남았어요</p>
+<sc-if value="{{canMake}}" hint-placeholder-val="{{ true }}">
+<a href="Notice.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 6px; height: 56px; border-radius: 16px; background: #6B5CFF; color: #ffffff; font-size: 17px; font-weight: 600; text-decoration: none"><span aria-hidden="true" style="padding: 1px 5px; border-radius: 4px; background: #ffffff; color: #6B5CFF; font-size: 11px; font-weight: 700; line-height: 16px">AD</span><span>광고 보고 만들기</span></a>
+</sc-if>
+<sc-if value="{{cannotMake}}" hint-placeholder-val="{{ false }}">
+<button type="button" disabled style="display: flex; align-items: center; justify-content: center; gap: 6px; height: 56px; border: 0; border-radius: 16px; background: #d3ceff; color: #ffffff; font-family: inherit; font-size: 17px; font-weight: 600"><span aria-hidden="true" style="padding: 1px 5px; border-radius: 4px; background: #ffffff; color: #a79eff; font-size: 11px; font-weight: 700; line-height: 16px">AD</span><span>광고 보고 만들기</span></button>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const saved = this.state && typeof this.state.goal === 'string' ? this.state.goal : null;
+    const goal = saved === null ? '8구단 드래프트 1순위' : saved;
+    const examples = ['8구단 드래프트 1순위', '토익 900점', '올해 10kg 감량', '하프 마라톤 완주'];
+    const canMake = goal.trim().length > 0;
+    return {
+      goal: goal,
+      count: goal.length + '/40',
+      onGoal: (event) => this.setState({ goal: String(event.target.value).replace(/\n/g, ' ').slice(0, 40) }),
+      chips: examples.map((label) => ({
+        label: label,
+        cls: label === goal ? 'chip chip-on' : 'chip',
+        pick: () => this.setState({ goal: label }),
+      })),
+      canMake: canMake,
+      cannotMake: !canMake,
+    };
+  }
+}
+</script>
+</body>
+</html>

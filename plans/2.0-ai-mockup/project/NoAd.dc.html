@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>광고를 못 불러왔을 때</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6B5CFF}a:hover{color:#5443e6}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #191f28">
+<div aria-hidden="true">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 20px 24px 28px">
+<div style="font-size: 22px; line-height: 1.36; font-weight: 700; color: #191f28">AI 초안 만들기</div>
+<div style="font-size: 17px; line-height: 1.45; color: #4e5968; text-wrap: balance">핵심 목표를 적으면 세부 목표 8개와 실천 64개를 채워요</div>
+</div>
+<div style="padding: 0 24px">
+<div style="font-size: 13px; font-weight: 500; color: #6b7684">핵심 목표</div>
+<div style="margin-top: 8px; padding-bottom: 8px; border-bottom: 2px solid #6B5CFF; font-size: 24px; font-weight: 600; color: #191f28">8구단 드래프트 1순위</div>
+<div style="margin-top: 8px; text-align: right; font-size: 13px; color: #6b7684">12/40</div>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 20px 28px">
+<div style="text-align: center; font-size: 13px; line-height: 1.5; color: #6b7684">광고를 끝까지 보면 AI가 초안을 만들어요 · 오늘 10번 남았어요</div>
+<div style="display: flex; align-items: center; justify-content: center; gap: 6px; height: 56px; border-radius: 16px; background: #6B5CFF; color: #ffffff; font-size: 17px; font-weight: 600"><span style="padding: 1px 5px; border-radius: 4px; background: #ffffff; color: #6B5CFF; font-size: 11px; font-weight: 700; line-height: 16px">AD</span><span>광고 보고 만들기</span></div>
+</div>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: rgba(0, 0, 0, 0.22)"></div>
+<div role="alertdialog" aria-modal="true" aria-labelledby="noad-title" aria-describedby="noad-body" style="position: absolute; left: 24px; right: 24px; top: 290px; padding: 24px 20px 20px; border-radius: 20px; background: #ffffff; box-sizing: border-box">
+<h2 id="noad-title" style="margin: 0 4px; font-size: 20px; line-height: 1.4; font-weight: 700; color: #191f28">지금은 광고를 불러올 수 없어요</h2>
+<p id="noad-body" style="margin: 8px 4px 0; font-size: 15px; line-height: 1.55; color: #4e5968">AI 초안은 광고를 끝까지 본 뒤에 만들어요. 잠시 뒤에 다시 해 주세요.</p>
+<div style="display: flex; gap: 8px; margin-top: 24px">
+<button type="button" style="flex: 1; height: 52px; border: 0; border-radius: 14px; background: #f2f4f6; color: #333d4b; font-family: inherit; font-size: 16px; font-weight: 600">닫기</button>
+<button type="button" style="flex: 1; height: 52px; border: 0; border-radius: 14px; background: #6B5CFF; color: #ffffff; font-family: inherit; font-size: 16px; font-weight: 600">예시로 시작하기</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

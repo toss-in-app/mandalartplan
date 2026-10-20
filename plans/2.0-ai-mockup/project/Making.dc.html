@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>초안 만드는 중</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6B5CFF}a:hover{color:#5443e6}
+.b9{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;border-radius:8px;overflow:hidden}
+.c9{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;min-width:0;padding:2px;border-radius:3px;font-size:10px;line-height:1.2;text-align:center;word-break:keep-all;overflow-wrap:anywhere;overflow:hidden;box-sizing:border-box}
+.c9 span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.g{background:#6B5CFF;color:#ffffff;font-weight:700}
+.s{background:rgba(107,92,255,0.14);color:#191f28;font-weight:600}
+.a{background:#f2f4f6;color:#333d4b}
+.k{background:#eceef1;animation:mg-pulse 1.4s ease-in-out infinite}
+@keyframes mg-pulse{0%,100%{opacity:1}50%{opacity:0.45}}
+@media (prefers-reduced-motion: reduce){.k{animation:none}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #191f28">
+<a href="Preview.dc.html" aria-label="다 만들어진 것으로 하고 미리보기로" style="display: block; width: 390px; height: 844px; color: #191f28; text-decoration: none">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 20px 24px 24px">
+<h1 style="margin: 0; font-size: 22px; line-height: 1.36; font-weight: 700; color: #191f28">초안을 만들고 있어요</h1>
+<p style="margin: 0; font-size: 17px; line-height: 1.45; color: #4e5968; text-wrap: balance">세부 목표 8개를 정했어요. 실천을 채우고 있어요</p>
+</div>
+<div style="padding: 0 20px 20px">
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px">
+<span style="font-size: 13px; color: #6b7684">실천 채우는 중</span>
+<span style="font-size: 13px; font-weight: 600; color: #333d4b">3 / 8</span>
+</div>
+<div role="progressbar" aria-label="실천 채우는 중" aria-valuemin="0" aria-valuemax="8" aria-valuenow="3" style="height: 6px; border-radius: 3px; background: #f2f4f6; overflow: hidden">
+<div style="width: 37.5%; height: 6px; border-radius: 3px; background: #6B5CFF"></div>
+</div>
+</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 0 20px">
+<sc-for list="{{blocks}}" as="block" hint-placeholder-count="9">
+<div class="b9">
+<sc-for list="{{block.cells}}" as="cell" hint-placeholder-count="9">
+<div class="{{cell.cls}}"><span>{{cell.text}}</span></div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+<p style="margin: 0; padding: 24px 24px 0; font-size: 13px; line-height: 1.5; color: #6b7684; text-wrap: balance">10초쯤 걸려요. 화면을 나가면 만들던 초안은 사라져요.</p>
+</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const goal = '8구단 드래프트 1순위';
+    const subs = ['체력 강화', '제구력', '구위', '멘탈', '구속 향상', '변화구', '몸 관리', '인성과 태도'];
+    const actions = [
+      ['스쿼트 50회', '하체 근력 주 3회', '코어 운동 20분', '러닝 5km', '줄넘기 1000회', '플랭크 2분 3세트', '계단 20층 오르기', '체중 기록하기'],
+      ['불펜 투구 50개', '같은 폼 반복 연습', '릴리스 포인트 점검', '투구 영상 확인', '하체 고정 연습', '코너 투구 20개', '섀도 피칭 30회', '투구 결과 기록'],
+      ['공 회전수 측정', '손목 강화 운동', '악력 기르기', '롱토스 30분', '체중 이동 연습', '몸통 회전 연습', '공 끝 점검하기', '팔 스윙 연습'],
+    ];
+    const ring = [0, 1, 2, 3, 5, 6, 7, 8];
+    const done = actions.length;
+    const blocks = [];
+    for (let b = 0; b < 9; b += 1) {
+      const cells = [];
+      for (let c = 0; c < 9; c += 1) {
+        if (b === 4) {
+          cells.push(c === 4 ? { text: goal, cls: 'c9 g' } : { text: subs[ring.indexOf(c)], cls: 'c9 s' });
+        } else {
+          const s = ring.indexOf(b);
+          if (c === 4) cells.push({ text: subs[s], cls: 'c9 s' });
+          else if (s < done) cells.push({ text: actions[s][ring.indexOf(c)], cls: 'c9 a' });
+          else cells.push({ text: '', cls: 'c9 k' });
+        }
+      }
+      blocks.push({ cells: cells });
+    }
+    return { blocks: blocks };
+  }
+}
+</script>
+</body>
+</html>

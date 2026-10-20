@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>AI 초안 미리보기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6B5CFF}a:hover{color:#5443e6}
+.b9{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;border-radius:8px;overflow:hidden}
+.c9{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;min-width:0;padding:2px;border-radius:3px;font-size:10px;line-height:1.2;text-align:center;word-break:keep-all;overflow-wrap:anywhere;overflow:hidden;box-sizing:border-box}
+.c9 span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.g{background:#6B5CFF;color:#ffffff;font-weight:700}
+.s{background:rgba(107,92,255,0.14);color:#191f28;font-weight:600}
+.a{background:#f2f4f6;color:#333d4b}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: #191f28">
+<div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 20px 24px 20px">
+<span style="padding: 3px 8px; border-radius: 6px; background: rgba(107, 92, 255, 0.12); color: #5443e6; font-size: 12px; font-weight: 700; line-height: 16px">AI 초안</span>
+<h1 style="margin: 0; font-size: 22px; line-height: 1.36; font-weight: 700; color: #191f28">8구단 드래프트 1순위</h1>
+<p style="margin: 0; font-size: 17px; line-height: 1.45; color: #4e5968">시작한 뒤에도 칸을 눌러 고칠 수 있어요</p>
+</div>
+<div role="img" aria-label="AI 초안 9×9 미리보기: 세부 목표 8개와 실천 64개" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 0 20px">
+<sc-for list="{{blocks}}" as="block" hint-placeholder-count="9">
+<div class="b9">
+<sc-for list="{{block.cells}}" as="cell" hint-placeholder-count="9">
+<div class="{{cell.cls}}"><span>{{cell.text}}</span></div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 20px 28px; background: #ffffff">
+<p style="margin: 0; text-align: center; font-size: 13px; line-height: 1.5; color: #6b7684">다시 만들기는 광고를 한 번 더 봐요 · 오늘 9번 남았어요</p>
+<div style="display: flex; gap: 8px">
+<a href="Ad.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 56px; border-radius: 16px; background: #f2f4f6; color: #333d4b; font-size: 17px; font-weight: 600; text-decoration: none"><span aria-hidden="true" style="padding: 1px 5px; border-radius: 4px; background: #6B5CFF; color: #ffffff; font-size: 11px; font-weight: 700; line-height: 16px">AD</span><span>다시 만들기</span></a>
+<a href="Applied.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; height: 56px; border-radius: 16px; background: #6B5CFF; color: #ffffff; font-size: 17px; font-weight: 600; text-decoration: none">이대로 시작하기</a>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const goal = '8구단 드래프트 1순위';
+    const subs = ['체력 강화', '제구력', '구위', '멘탈', '구속 향상', '변화구', '몸 관리', '인성과 태도'];
+    const actions = [
+      ['스쿼트 50회', '하체 근력 주 3회', '코어 운동 20분', '러닝 5km', '줄넘기 1000회', '플랭크 2분 3세트', '계단 20층 오르기', '체중 기록하기'],
+      ['불펜 투구 50개', '같은 폼 반복 연습', '릴리스 포인트 점검', '투구 영상 확인', '하체 고정 연습', '코너 투구 20개', '섀도 피칭 30회', '투구 결과 기록'],
+      ['공 회전수 측정', '손목 강화 운동', '악력 기르기', '롱토스 30분', '체중 이동 연습', '몸통 회전 연습', '공 끝 점검하기', '팔 스윙 연습'],
+      ['경기 전 루틴', '호흡 명상 10분', '목표 일기 쓰기', '실수 뒤 리셋 연습', '위기 상황 연습', '경기 복기 30분', '긍정 혼잣말', '감정 기록하기'],
+      ['메디신볼 던지기', '어깨 가동성 운동', '점프 운동 20회', '스프린트 10회', '웨이트 주 3회', '스피드건 측정', '투구 밸런스 연습', '가속 구간 늘리기'],
+      ['커브 그립 연습', '슬라이더 20개', '체인지업 연습', '직구와 같은 폼', '결정구 만들기', '카운트 잡는 공', '타자 반응 분석', '좌타자 상대 연습'],
+      ['수면 8시간', '세 끼 챙겨 먹기', '단백질 챙기기', '투구 뒤 아이싱', '스트레칭 20분', '부상 부위 점검', '물 2리터 마시기', '휴식일 지키기'],
+      ['먼저 인사하기', '장비 정리하기', '동료 응원하기', '감사 표현하기', '심판 존중하기', '운동장 정리하기', '약속 시간 지키기', '책 20쪽 읽기'],
+    ];
+    const ring = [0, 1, 2, 3, 5, 6, 7, 8];
+    const blocks = [];
+    for (let b = 0; b < 9; b += 1) {
+      const cells = [];
+      for (let c = 0; c < 9; c += 1) {
+        if (b === 4) {
+          cells.push(c === 4 ? { text: goal, cls: 'c9 g' } : { text: subs[ring.indexOf(c)], cls: 'c9 s' });
+        } else {
+          const s = ring.indexOf(b);
+          cells.push(c === 4 ? { text: subs[s], cls: 'c9 s' } : { text: actions[s][ring.indexOf(c)], cls: 'c9 a' });
+        }
+      }
+      blocks.push({ cells: cells });
+    }
+    return { blocks: blocks };
+  }
+}
+</script>
+</body>
+</html>
