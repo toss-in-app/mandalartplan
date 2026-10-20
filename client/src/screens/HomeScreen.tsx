@@ -8,7 +8,7 @@ import { editTarget } from '../lib/cellEdit';
 import { activeSeason, type Content } from '../content';
 import { nextEmptyCell } from '../lib/cells';
 import { checkedInSub, formatDateLabel, todaySet } from '../lib/checkin';
-import { CENTER, getProgress, type Board } from '../lib/mandalart';
+import { CENTER, getProgress, hasAiText, type Board } from '../lib/mandalart';
 import { boardLabel, dateKey, streak, type CheckinRecord } from '../lib/state';
 import { brandColor } from '../theme';
 
@@ -98,7 +98,7 @@ export function HomeScreen({
   return (
     <>
       <Top
-        subtitleTop={board.aiDraft ? <AiDraftBadge /> : undefined}
+        subtitleTop={hasAiText(board) ? <AiDraftBadge /> : undefined}
         title={
           boardCount > 1 ? (
             <Top.TitleSelector size={22} onClick={onSwitchBoard}>

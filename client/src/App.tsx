@@ -23,7 +23,7 @@ import { canSaveImage, createShareLink, haptic, openUrl, saveImageToPhotos, shar
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
 import { notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { todaySet, toggleCheck } from './lib/checkin';
-import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, ringIndex } from './lib/mandalart';
+import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, hasAiText, ringIndex } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
 import { atHistoryBottom, goBack, navigate, useRoute } from './lib/router';
 import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
@@ -277,7 +277,7 @@ function App() {
     const filled = getProgress(activeBoard).filled;
     const prev = filledRef.current;
     if (prev && prev.id === activeBoard.id && prev.filled < TOTAL_CELLS && filled === TOTAL_CELLS) {
-      logEvent('board_filled', { templateId: activeBoard.templateId ?? 'none', ai: activeBoard.aiDraft !== null });
+      logEvent('board_filled', { templateId: activeBoard.templateId ?? 'none', ai: hasAiText(activeBoard) });
     }
     filledRef.current = { id: activeBoard.id, filled };
   }, [activeBoard]);

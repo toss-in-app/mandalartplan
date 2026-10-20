@@ -1,5 +1,5 @@
 import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
@@ -226,5 +226,32 @@ describe('App (AI 초안)', () => {
     expect(logEvent).toHaveBeenCalledWith('ai_draft_apply', { mode: 'subs', filled: 3 });
     // 다 채워지면 버튼이 사라져요
     await waitFor(() => expect(screen.queryByRole('button', { name: '광고 보고 빈 칸 AI로 채우기' })).not.toBeInTheDocument());
+  });
+
+  it("'AI 초안' 표시는 AI 가 쓴 칸을 사용자가 다 고치면 사라져요(칸 단위)", async () => {
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('8구단 드래프트 1순위', ['체력 강화', '제구력', '구위', '멘탈', '구속 향상']);
+    renderAt('#/block/4');
+    fireEvent.click(await screen.findByRole('button', { name: '광고 보고 빈 칸 AI로 채우기' }));
+    await waitFor(() => expect(savedBoard().aiDraft?.cells).toEqual([6, 7, 8])); // 세부 목표 6~8 = AI_CELL 6·7·8
+
+    /** 칸을 눌러 시트에서 글을 바꾸고 시트의 '완료' */
+    const rewrite = async (name: string, text: string) => {
+      fireEvent.click(await screen.findByRole('button', { name }));
+      fireEvent.change(await screen.findByRole('textbox'), { target: { value: text } });
+      let node: HTMLElement | null = document.getElementById('mandalart-cell-editor');
+      while (node && !within(node).queryByText('완료')) node = node.parentElement;
+      fireEvent.click(within(node!).getByText('완료'));
+      await waitFor(() => expect(document.getElementById('mandalart-cell-editor')).toBeNull());
+    };
+    await rewrite('영역 6', '내가 쓴 영역');
+    await waitFor(() => expect(savedBoard().aiDraft?.cells).toEqual([7, 8]));
+    await rewrite('영역 7', '두 번째');
+    await rewrite('영역 8', '세 번째');
+    await waitFor(() => expect(savedBoard().aiDraft).toBeNull());
+
+    window.location.hash = '#/';
+    await screen.findByRole('heading', { level: 1, name: '8구단 드래프트 1순위' });
+    expect(screen.queryByText('AI 초안')).not.toBeInTheDocument();
   });
 });

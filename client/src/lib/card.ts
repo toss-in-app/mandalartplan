@@ -10,7 +10,7 @@ import { colors } from '@toss/tds-colors';
 
 import { brandColor, withAlpha } from '../theme';
 import { cellView, type CellView } from './cells';
-import { getProgress, type Board } from './mandalart';
+import { getProgress, hasAiText, type Board } from './mandalart';
 
 export const CARD_WIDTH = 1080;
 export const CARD_HEIGHT = 1350;
@@ -107,7 +107,7 @@ export function layoutCard(input: CardInput, options: CardOptions = BASIC_CARD):
   if (checked.size > 0) parts.push(`오늘 ${checked.size}개 실천`);
   if (streakDays > 0) parts.push(`${streakDays}일째`);
   // AI 가 쓴 글이 들어간 판은 이미지에도 표시해요(서비스 오픈 정책 2-4). 고화질은 바닥글이 없어서 머리글에 둬요
-  if (board.aiDraft) parts.push('AI 초안 포함');
+  if (hasAiText(board)) parts.push('AI 초안 포함');
 
   return {
     width: CARD_WIDTH,

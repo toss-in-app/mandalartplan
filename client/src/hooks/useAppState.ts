@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BackupPayload } from '../backup/payload';
 import type { ContentTemplate } from '../content';
-import { clampText, createEmptyBoard, type Board } from '../lib/mandalart';
+import { AI_CELL, clampText, createEmptyBoard, releaseAiCell, type Board } from '../lib/mandalart';
 import { boardFromTemplate } from '../lib/template';
 import {
   addBoard as addBoardTo,
@@ -98,25 +98,38 @@ export function useAppState() {
     [patch],
   );
 
-  const setGoal = useCallback((goal: string) => updateBoard((b) => ({ ...b, goal: clampText(goal) })), [updateBoard]);
+  // 사용자가 칸 글을 바꾸면 그 칸은 사용자의 글 → 'AI 초안' 기록에서 빼요(AI 칸이 하나도 안 남으면 표시가 사라져요)
+  const setGoal = useCallback(
+    (goal: string) =>
+      updateBoard((b) => {
+        const next = clampText(goal);
+        return next === b.goal ? b : releaseAiCell({ ...b, goal: next }, AI_CELL.goal);
+      }),
+    [updateBoard],
+  );
 
   const setSubTitle = useCallback(
     (subIndex: number, title: string) =>
-      updateBoard((b) => ({
-        ...b,
-        subs: b.subs.map((sub, i) => (i === subIndex ? { ...sub, title: clampText(title) } : sub)),
-      })),
+      updateBoard((b) => {
+        const next = clampText(title);
+        if (b.subs[subIndex].title === next) return b;
+        const board = { ...b, subs: b.subs.map((sub, i) => (i === subIndex ? { ...sub, title: next } : sub)) };
+        return releaseAiCell(board, AI_CELL.sub(subIndex));
+      }),
     [updateBoard],
   );
 
   const setAction = useCallback(
     (subIndex: number, actionIndex: number, text: string) =>
-      updateBoard((b) => ({
-        ...b,
-        subs: b.subs.map((sub, i) =>
-          i === subIndex ? { ...sub, actions: sub.actions.map((a, j) => (j === actionIndex ? clampText(text) : a)) } : sub,
-        ),
-      })),
+      updateBoard((b) => {
+        const next = clampText(text);
+        if (b.subs[subIndex].actions[actionIndex] === next) return b;
+        const board = {
+          ...b,
+          subs: b.subs.map((sub, i) => (i === subIndex ? { ...sub, actions: sub.actions.map((a, j) => (j === actionIndex ? next : a)) } : sub)),
+        };
+        return releaseAiCell(board, AI_CELL.action(subIndex, actionIndex));
+      }),
     [updateBoard],
   );
 

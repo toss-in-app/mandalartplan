@@ -2,18 +2,22 @@ import { describe, expect, it } from 'vitest';
 
 import { cellView } from './cells';
 import {
-  MAX_TEXT,
-  TOTAL_ACTIONS,
-  TOTAL_CELLS,
   actionIndex,
+  AI_CELL,
   boardToText,
   cellOfRing,
+  cellTextAt,
   createEmptyBoard,
   getProgress,
+  hasAiText,
   makeBoardId,
+  MAX_TEXT,
   normalizeBoard,
+  releaseAiCell,
   ringIndex,
   splitActionIndex,
+  TOTAL_ACTIONS,
+  TOTAL_CELLS,
 } from './mandalart';
 
 const NOW = 1759000000000;
@@ -79,7 +83,7 @@ describe('createEmptyBoard / normalizeBoard', () => {
     board.templateId = 'job-change';
     board.subs[2].title = '글쓰기 습관';
     board.subs[2].actions[5] = '매일 300자';
-    board.aiDraft = { at: NOW + 3, model: 'claude-haiku-5-5', promptVersion: 1 };
+    board.aiDraft = { at: NOW + 3, model: 'claude-haiku-5-5', promptVersion: 1, cells: [3, 30] };
     expect(normalizeBoard(JSON.parse(JSON.stringify(board)), NOW + 1)).toEqual(board);
   });
 
@@ -90,7 +94,26 @@ describe('createEmptyBoard / normalizeBoard', () => {
     expect(normalizeBoard({ ...base, aiDraft: { at: -1, model: 'x', promptVersion: 1 } }, NOW)?.aiDraft).toBeNull();
     expect(normalizeBoard({ ...base, aiDraft: { at: NOW, model: '', promptVersion: 1 } }, NOW)?.aiDraft).toBeNull();
     expect(normalizeBoard({ ...base, aiDraft: { at: NOW, model: 'm', promptVersion: 0 } }, NOW)?.aiDraft).toBeNull();
-    expect(normalizeBoard({ ...base, aiDraft: { at: NOW + 0.5, model: 'm', promptVersion: 2 } }, NOW)?.aiDraft).toEqual({ at: NOW, model: 'm', promptVersion: 2 });
+    // 칸 목록이 없던 기록(2.0 QR 초기)은 글이 있는 세부 목표·실천 칸 전부로, 빈 칸은 빼고
+    const filled = { ...base, subs: base.subs.map((sub: { title: string; actions: string[] }, i: number) => (i === 0 ? { ...sub, title: '체력', actions: ['스쿼트', ...sub.actions.slice(1)] } : sub)) };
+    expect(normalizeBoard({ ...filled, aiDraft: { at: NOW + 0.5, model: 'm', promptVersion: 2 } }, NOW)?.aiDraft).toEqual({ at: NOW, model: 'm', promptVersion: 2, cells: [1, 9] });
+    expect(normalizeBoard({ ...filled, aiDraft: { at: NOW, model: 'm', promptVersion: 2, cells: [9, 9, 50, 99, -1, 1.5] } }, NOW)?.aiDraft?.cells).toEqual([9]);
+    expect(normalizeBoard({ ...filled, aiDraft: { at: NOW, model: 'm', promptVersion: 2, cells: [50] } }, NOW)?.aiDraft).toBeNull();
+  });
+
+  it('사용자가 AI 칸을 고치면 그 칸만 빠지고, 다 빠지면 기록이 사라져요', () => {
+    const board = createEmptyBoard(NOW);
+    board.subs[0].title = '체력';
+    board.subs[1].title = '제구';
+    board.aiDraft = { at: NOW, model: 'm', promptVersion: 3, cells: [AI_CELL.sub(0), AI_CELL.sub(1)] };
+    expect(hasAiText(board)).toBe(true);
+    const one = releaseAiCell(board, AI_CELL.sub(0));
+    expect(one.aiDraft?.cells).toEqual([2]);
+    expect(releaseAiCell(one, AI_CELL.action(3, 3))).toBe(one); // AI 칸이 아니면 그대로
+    const none = releaseAiCell(one, AI_CELL.sub(1));
+    expect(none.aiDraft).toBeNull();
+    expect(hasAiText(none)).toBe(false);
+    expect(cellTextAt(board, AI_CELL.sub(1))).toBe('제구');
   });
 });
 
@@ -99,7 +122,8 @@ describe('boardToText AI 표시', () => {
     const board = createEmptyBoard(NOW);
     board.goal = '토익 900점';
     expect(boardToText(board)).not.toContain('AI 초안');
-    board.aiDraft = { at: NOW, model: 'claude-haiku-5-5', promptVersion: 1 };
+    board.subs[0].title = '듣기';
+    board.aiDraft = { at: NOW, model: 'claude-haiku-5-5', promptVersion: 1, cells: [1] };
     expect(boardToText(board).endsWith('\n\n(AI 초안 포함)')).toBe(true);
   });
 });

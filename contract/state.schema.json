@@ -343,7 +343,8 @@
           "required": [
             "at",
             "model",
-            "promptVersion"
+            "promptVersion",
+            "cells"
           ],
           "properties": {
             "at": {
@@ -359,11 +360,21 @@
             "promptVersion": {
               "type": "integer",
               "minimum": 1
+            },
+            "cells": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 72
+              },
+              "description": "AI 가 쓰고 사용자가 아직 고치지 않은 칸 번호(0 = 핵심 목표, 1~8 = 세부 목표, 9~72 = 실천 9 + 세부 목표×8 + 실천). 사용자가 고친 칸은 빠지고, 하나도 안 남으면 aiDraft 를 null 로(표시 사라짐). 2026-10-20 사용자 결정"
             }
           }
         }
       ],
-      "description": "2.0 추가(2026-10-20). AI 초안·빈 칸 채우기 결과를 이 판에 넣었으면 기록, 아니면 null 또는 없음. 있으면 홈·전체 보기·공유 이미지에 'AI 초안' 표시(서비스 오픈 정책 2-4)"
+      "description": "2.0 추가(2026-10-20). AI 초안·빈 칸 채우기 결과를 넣은 판의 기록. AI 가 쓴 칸(cells)이 남아 있는 동안 홈·전체 보기·공유 이미지·공유 글에 'AI 초안' 표시(서비스 오픈 정책 2-4). 없으면 null"
     }
   }
 }

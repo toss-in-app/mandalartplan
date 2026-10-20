@@ -2,7 +2,7 @@
  * AI 초안 규칙 (설계 plans/2.0-ai-draft-design.md, 계약 contract/ai-draft.api.md).
  * 광고 1회 = AI 1회, 사람(기기)당 하루 10회, 빈 칸만 채우고 사용자가 적은 칸은 건드리지 않아요.
  */
-import { ACTION_COUNT, clampText, type AiDraftMeta, type Board } from '../lib/mandalart';
+import { ACTION_COUNT, AI_CELL, clampText, type AiDraftMeta, type Board } from '../lib/mandalart';
 import type { AiSettings } from '../lib/state';
 
 /** 하루 AI 실행 상한 (2026-10-20 사용자 결정) */
@@ -51,35 +51,37 @@ export interface MergeResult {
   board: Board;
   /** 이번에 새로 채운 칸 수 */
   filled: number;
+  /** 이번에 AI 글로 채운 칸(AI_CELL 번호) — 'AI 초안' 기록에 더해요. 사용자가 입력한 핵심 목표는 넣지 않아요 */
+  cells: number[];
 }
 
 /** AI 가 준 세부 목표 8개 가운데 판에서 비어 있는 칸만 채워요 */
 export function mergeSubs(board: Board, subs: readonly string[]): MergeResult {
-  let filled = 0;
+  const cells: number[] = [];
   const next = board.subs.map((sub, i) => {
     if (sub.title.trim()) return sub;
     const text = cleanCell(subs[i] ?? '');
     if (!text) return sub;
-    filled += 1;
+    cells.push(AI_CELL.sub(i));
     return { ...sub, title: text };
   });
-  return { board: filled > 0 ? { ...board, subs: next } : board, filled };
+  return { board: cells.length > 0 ? { ...board, subs: next } : board, filled: cells.length, cells };
 }
 
 /** 세부 목표 하나(subIndex)의 실천 8개 가운데 비어 있는 칸만 채워요 */
 export function mergeActions(board: Board, subIndex: number, actions: readonly string[]): MergeResult {
   const sub = board.subs[subIndex];
-  let filled = 0;
+  const cells: number[] = [];
   const nextActions = Array.from({ length: ACTION_COUNT }, (_, j) => {
     const current = sub.actions[j];
     if (current.trim()) return current;
     const text = cleanCell(actions[j] ?? '');
     if (!text) return current;
-    filled += 1;
+    cells.push(AI_CELL.action(subIndex, j));
     return text;
   });
-  if (filled === 0) return { board, filled };
-  return { board: { ...board, subs: board.subs.map((s, i) => (i === subIndex ? { ...s, actions: nextActions } : s)) }, filled };
+  if (cells.length === 0) return { board, filled: 0, cells };
+  return { board: { ...board, subs: board.subs.map((s, i) => (i === subIndex ? { ...s, actions: nextActions } : s)) }, filled: cells.length, cells };
 }
 
 /** 미리보기의 초안을 지금 판에 넣어요. 핵심 목표는 입력한 글로, 세부 목표·실천은 빈 칸만 */
@@ -90,15 +92,19 @@ export function mergeDraft(board: Board, goal: string, draft: Board): MergeResul
   const subs = mergeSubs(next, draft.subs.map((sub) => sub.title));
   next = subs.board;
   filled += subs.filled;
+  const cells = [...subs.cells];
   draft.subs.forEach((sub, i) => {
     const actions = mergeActions(next, i, sub.actions);
     next = actions.board;
     filled += actions.filled;
+    cells.push(...actions.cells);
   });
-  return { board: next, filled };
+  return { board: next, filled, cells };
 }
 
-/** AI 결과를 넣은 판에 'AI 초안' 기록을 남겨요(시각은 마지막으로 넣은 때) */
-export function markAiDraft(board: Board, meta: Pick<AiDraftMeta, 'model' | 'promptVersion'>, now: number): Board {
-  return { ...board, aiDraft: { at: now, model: meta.model, promptVersion: meta.promptVersion } };
+/** AI 결과를 넣은 판에 'AI 초안' 기록을 남겨요(시각은 마지막으로 넣은 때, 칸은 이전 기록과 합쳐요) */
+export function markAiDraft(board: Board, meta: Pick<AiDraftMeta, 'model' | 'promptVersion'>, now: number, cells: readonly number[]): Board {
+  if (cells.length === 0) return board;
+  const merged = Array.from(new Set([...(board.aiDraft?.cells ?? []), ...cells])).sort((a, b) => a - b);
+  return { ...board, aiDraft: { at: now, model: meta.model, promptVersion: meta.promptVersion, cells: merged } };
 }

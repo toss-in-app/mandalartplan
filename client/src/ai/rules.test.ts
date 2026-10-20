@@ -128,7 +128,21 @@ describe('편집 화면 버튼 조건', () => {
   });
 });
 
-it('AI 기록을 남겨요', () => {
-  const board = markAiDraft(createEmptyBoard(NOW), { model: 'claude-haiku-5-5', promptVersion: 1 }, NOW + 5);
-  expect(board.aiDraft).toEqual({ at: NOW + 5, model: 'claude-haiku-5-5', promptVersion: 1 });
+describe('AI 기록(칸 단위)', () => {
+  it('채운 칸 번호를 남기고, 다음에 채우면 합쳐요. 채운 칸이 없으면 그대로', () => {
+    const meta = { model: 'claude-haiku-5-5', promptVersion: 3 };
+    const first = markAiDraft(createEmptyBoard(NOW), meta, NOW + 5, [3, 1]);
+    expect(first.aiDraft).toEqual({ at: NOW + 5, model: 'claude-haiku-5-5', promptVersion: 3, cells: [1, 3] });
+    expect(markAiDraft(first, meta, NOW + 9, [3, 20]).aiDraft?.cells).toEqual([1, 3, 20]);
+    const empty = createEmptyBoard(NOW);
+    expect(markAiDraft(empty, meta, NOW, [])).toBe(empty);
+  });
+
+  it('병합 결과가 AI 로 채운 칸 번호를 알려줘요(핵심 목표는 넣지 않음)', () => {
+    const board = boardWith((b) => (b.subs[1].title = '제구'));
+    expect(mergeSubs(board, ['체력', '바꾸면 안 됨', '', '', '', '', '', '멘탈']).cells).toEqual([1, 8]);
+    expect(mergeActions(board, 1, ['a', '', '', '', '', '', '', 'h']).cells).toEqual([17, 24]); // 1 + 8 + 1×8 + 0 · +7
+    const draft = boardWith((b) => b.subs.forEach((sub, i) => (sub.title = `영역 ${i}`)));
+    expect(mergeDraft(createEmptyBoard(NOW), '목표', draft).cells).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
 });

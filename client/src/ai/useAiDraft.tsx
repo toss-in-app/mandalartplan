@@ -195,7 +195,10 @@ export function useAiDraft(app: AppState, reward: Reward) {
     if (!current) return 0;
     const { filled } = mergeDraft(current, goal, draft.board);
     const now = Date.now();
-    app.updateBoard((board) => markAiDraft(mergeDraft(board, goal, draft.board).board, draft.meta, now));
+    app.updateBoard((board) => {
+      const merged = mergeDraft(board, goal, draft.board);
+      return markAiDraft(merged.board, draft.meta, now, merged.cells);
+    });
     logEvent('ai_draft_apply', { mode: 'draft', filled });
     return filled;
   };
@@ -219,13 +222,21 @@ export function useAiDraft(app: AppState, reward: Reward) {
           const latest = app.getState();
           const current = latest ? latest.boards.boards[latest.boards.active] : board;
           filled = mergeSubs(current, res.subs).filled;
-          if (filled > 0) app.updateBoard((b) => markAiDraft(mergeSubs(b, res.subs).board, res, now));
+          if (filled > 0)
+            app.updateBoard((b) => {
+              const merged = mergeSubs(b, res.subs);
+              return markAiDraft(merged.board, res, now, merged.cells);
+            });
         } else if (subIndex !== null) {
           const res = await once(() => requestActions(prep.key, board.goal, titles, subIndex, board.subs[subIndex].actions));
           const latest = app.getState();
           const current = latest ? latest.boards.boards[latest.boards.active] : board;
           filled = mergeActions(current, subIndex, res.actions).filled;
-          if (filled > 0) app.updateBoard((b) => markAiDraft(mergeActions(b, subIndex, res.actions).board, res, now));
+          if (filled > 0)
+            app.updateBoard((b) => {
+              const merged = mergeActions(b, subIndex, res.actions);
+              return markAiDraft(merged.board, res, now, merged.cells);
+            });
         }
       } catch (error) {
         const code = codeOf(error);

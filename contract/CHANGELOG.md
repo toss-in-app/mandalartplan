@@ -88,3 +88,4 @@
 - `ai-draft.api.md` 신설(`plans/` 에서 옮김): Edge Function `POST /functions/v1/mandalart-draft`, `mode` subs/actions, 오류 코드 6개. 구현하며 정함: 실천은 요청 하나에 세부 목표 하나(`only` 필수, 판 전체는 클라가 8개 동시 요청 → 진행 n/8), 한도는 호출 기준 키당 하루 100·전체 30,000.
 - `events.md`: AI 이벤트 5개(`ai_notice_agree`·`ai_draft_start`·`ai_draft_reward`·`ai_draft_result`·`ai_draft_apply`), 자해 표현 감지는 기록하지 않음. `board_filled` 에 `ai` 파라미터(AI 가 핵심 전환에 주는 효과를 보려고). 광고 그룹 `rewarded-ai-draft`. 알림 템플릿 제목 "실천 체크 시간"(8자) → "실천 체크"(7자 규칙). 발송은 매일 20:00(사용자 결정 — 21~08시는 다음 날 08시로 밀릴 수 있어서), 앱 문구·동의문 "저녁 8시".
 - 클라 구현(2026-10-20): `client/src/ai/`(rules·safety·api·key·config·messages·useAiDraft), 화면 `#/draft`(DraftScreen), 고지 시트(AiNoticeSheet), 'AI 초안' 배지(홈·전체 보기·미리보기), 공유 이미지 머리글·공유 글 끝 'AI 초안 포함'. 예시 템플릿을 넣으면 `aiDraft` 를 지움.
+- 2026-10-20 사용자 결정 'AI 칸을 다 고치면 표시 없애기': `aiDraft.cells`(AI 가 쓰고 아직 안 고친 칸 번호) 추가 — 사용자가 칸을 고치면 빠지고, 다 빠지면 `aiDraft = null`. 한 칸만 고쳐도 없애는 안은 나머지 AI 글이 표시 없이 남아 정책 2-4 위반 소지라 채택하지 않음.

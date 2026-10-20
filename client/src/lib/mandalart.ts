@@ -20,13 +20,22 @@ export interface SubGoal {
   actions: string[];
 }
 
-/** AI 결과를 판에 넣은 기록 (계약 board.aiDraft, 2.0). 있으면 'AI 초안' 표시를 붙여요(서비스 오픈 정책 2-4) */
+/** AI 결과를 판에 넣은 기록 (계약 board.aiDraft, 2.0). AI 가 쓴 칸이 남아 있는 동안 'AI 초안' 표시를 붙여요(서비스 오픈 정책 2-4) */
 export interface AiDraftMeta {
   /** AI 결과를 판에 마지막으로 넣은 시각 */
   at: number;
   model: string;
   promptVersion: number;
+  /** AI 가 쓰고 사용자가 아직 고치지 않은 칸(`AI_CELL` 번호). 사용자가 고친 칸은 빠지고, 하나도 안 남으면 기록을 지워요 */
+  cells: number[];
 }
+
+/** 칸 번호(AI 기록용): 0 = 핵심 목표, 1~8 = 세부 목표, 9~72 = 실천(9 + 세부 목표 × 8 + 실천) */
+export const AI_CELL = {
+  goal: 0,
+  sub: (subIndex: number) => 1 + subIndex,
+  action: (subIndex: number, action: number) => 1 + SUB_COUNT + subIndex * ACTION_COUNT + action,
+} as const;
 
 export interface Board {
   /** 'b' + 생성 시각(ms 13자리) */
@@ -100,15 +109,48 @@ function cleanTime(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.floor(value) : fallback;
 }
 
-/** 저장돼 있던 AI 기록. 모양이 다르면 null(표시 없음) */
-function cleanAiDraft(value: unknown): AiDraftMeta | null {
+/** 칸 번호의 글 (AI_CELL 번호 → 판의 글) */
+export function cellTextAt(board: Board, cell: number): string {
+  if (cell === AI_CELL.goal) return board.goal;
+  if (cell >= 1 && cell <= SUB_COUNT) return board.subs[cell - 1].title;
+  const index = cell - 1 - SUB_COUNT;
+  if (index < 0 || index >= TOTAL_ACTIONS) return '';
+  return board.subs[Math.floor(index / ACTION_COUNT)].actions[index % ACTION_COUNT];
+}
+
+/** 이 판에 아직 AI 가 쓴 글이 남아 있는지('AI 초안' 표시 기준 — 홈·전체 보기·공유) */
+export function hasAiText(board: Board): boolean {
+  return board.aiDraft !== null && board.aiDraft.cells.length > 0;
+}
+
+/** 사용자가 칸 하나를 고쳤어요: 그 칸은 이제 사용자의 글이에요. 남은 AI 칸이 없으면 기록을 지워요 */
+export function releaseAiCell(board: Board, cell: number): Board {
+  const ai = board.aiDraft;
+  if (!ai || !ai.cells.includes(cell)) return board;
+  const cells = ai.cells.filter((c) => c !== cell);
+  return { ...board, aiDraft: cells.length > 0 ? { ...ai, cells } : null };
+}
+
+/** 저장돼 있던 AI 기록. 모양이 다르면 null(표시 없음). cells 가 없으면(2.0 QR 초기 판) null 로 두고 판을 읽은 뒤 채워요 */
+function cleanAiDraft(value: unknown): (Omit<AiDraftMeta, 'cells'> & { cells: number[] | null }) | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
   const { at, model, promptVersion } = raw;
   if (typeof at !== 'number' || !Number.isFinite(at) || at < 0) return null;
   if (typeof model !== 'string' || model.length === 0 || model.length > 64) return null;
   if (typeof promptVersion !== 'number' || !Number.isInteger(promptVersion) || promptVersion < 1) return null;
-  return { at: Math.floor(at), model, promptVersion };
+  const cells = Array.isArray(raw.cells)
+    ? Array.from(new Set(raw.cells.filter((c): c is number => Number.isInteger(c) && (c as number) >= 0 && (c as number) < TOTAL_CELLS))).sort((a, b) => a - b)
+    : null;
+  return { at: Math.floor(at), model, promptVersion, cells };
+}
+
+/** 판을 읽은 뒤 AI 기록 정리: 비어 있는 칸은 AI 글이 아니에요. cells 가 없던 기록은 글이 있는 세부 목표·실천 칸 전부로 봐요(보수적으로) */
+function settleAiDraft(board: Board, raw: ReturnType<typeof cleanAiDraft>): AiDraftMeta | null {
+  if (!raw) return null;
+  const all = Array.from({ length: TOTAL_CELLS - 1 }, (_, i) => i + 1);
+  const cells = (raw.cells ?? all).filter((cell) => cellTextAt(board, cell).trim().length > 0);
+  return cells.length > 0 ? { at: raw.at, model: raw.model, promptVersion: raw.promptVersion, cells } : null;
 }
 
 /**
@@ -124,7 +166,7 @@ export function normalizeBoard(input: unknown, now: number = Date.now()): Board 
   if (typeof raw.id === 'string' && BOARD_ID_RE.test(raw.id)) board.id = raw.id;
   board.goal = cleanText(raw.goal);
   board.templateId = typeof raw.templateId === 'string' && raw.templateId ? raw.templateId : null;
-  board.aiDraft = cleanAiDraft(raw.aiDraft);
+  const aiDraft = cleanAiDraft(raw.aiDraft);
   board.createdAt = cleanTime(raw.createdAt, now);
   board.updatedAt = cleanTime(raw.updatedAt, board.createdAt);
 
@@ -135,6 +177,7 @@ export function normalizeBoard(input: unknown, now: number = Date.now()): Board 
     board.subs[i].title = cleanText(sub.title);
     for (let a = 0; a < ACTION_COUNT; a++) board.subs[i].actions[a] = cleanText(actions[a]);
   });
+  board.aiDraft = settleAiDraft(board, aiDraft);
   return board;
 }
 
@@ -176,6 +219,6 @@ export function boardToText(board: Board, checkedToday: ReadonlySet<number> = ne
     lines.push('', `${i + 1}. ${sub.title.trim() || `세부 목표 ${i + 1}`}`, ...actions);
   });
   // AI 가 쓴 글이 들어간 판은 밖으로 보내는 글에도 표시해요(서비스 오픈 정책 2-4)
-  if (board.aiDraft) lines.push('', '(AI 초안 포함)');
+  if (hasAiText(board)) lines.push('', '(AI 초안 포함)');
   return lines.join('\n');
 }
