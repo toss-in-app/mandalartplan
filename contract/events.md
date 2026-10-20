@@ -38,6 +38,7 @@
 | `mandalartplan-daily-checkin` | 매일 20:00 (정기 발송, 2026-10-20 사용자 결정 — MCP 설명상 21~08시 발송은 다음 날 08시로 밀려서 21시 대신) | "실천 체크" / "오늘 한 실천을 만다라트에 체크해요." | `intoss://mandalartplan` |
 
 - 2026-10-20: 제목을 공식 규칙(7자 이내)에 맞춰 "실천 체크 시간"(8자) → "실천 체크". 2.0.0 에 알림을 같이 켠다(사용자 결정).
+- 2026-10-20 콘솔 MCP 로 생성(사용자 확인): 알림 동의문 termsId `131417`(정기·매일 20:00, 알림 유형 "실천 체크" → 동의 화면 "매일 실천 체크 알림을 보내드릴까요?", 발송 시점 "매일 저녁 8시에 오늘 실천을 체크하라고 알려요") · 정기 템플릿 templateSetGroupNo `202053`(REGULAR·기능성, AI 자동 검수 통과 → APPROVED, 10/21 20:00 부터). 실제 푸시 본문은 뒤에 "(만다라트 알림)" 이 붙어요. 코드는 `client/.env` 의 `VITE_NOTIFICATION_TEMPLATE_CODE`.
 
 - 발송 코드는 공식 규칙대로 `{appName}-` 로 시작. 콘솔에서 만든 뒤 `client/.env` 의 `VITE_NOTIFICATION_TEMPLATE_CODE` 에 넣는다(비어 있으면 출시 번들에서 알림 기능 숨김, 개발 빌드는 이 코드로 대신). 알림 동의문(발송 시점 "매일 저녁 8시", 철회 경로 "토스 앱 알림 설정")이 연결돼 있어야 저장된다.
 - 클라 호출: `Notification.requestAgreement({ options: { templateCode } })` — 홈 행·기록 화면(오늘 탭) 버튼·설정 행에서 사용자가 누른 뒤에만. 결과 `newAgreement`/`alreadyAgreed` → `settings.notification = agreed`, `agreementRejected` → `declined`.
