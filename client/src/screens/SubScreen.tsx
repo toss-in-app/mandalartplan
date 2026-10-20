@@ -4,6 +4,7 @@ import { Text, Top } from '@toss/tds-mobile';
 import { Block } from '../components/Block';
 import { useCellEditor } from '../hooks/useCellEditor';
 import { editTarget } from '../lib/cellEdit';
+import { nextEmptyCell } from '../lib/cells';
 import { checkedInSub, todaySet } from '../lib/checkin';
 import { cellOfRing, type Board } from '../lib/mandalart';
 import { dateKey, type CheckinRecord } from '../lib/state';
@@ -53,6 +54,7 @@ export function SubScreen({ board, subIndex, checkin, onToggle, onEdit, onChange
           block={cellOfRing(subIndex)}
           size="main"
           checked={checked}
+          nextCell={nextEmptyCell(board, cellOfRing(subIndex))}
           interactive={(_cell, view) => view.kind === 'action'}
           onSelectCell={(cell, view) => {
             if (view.kind !== 'action' || view.index === null) return;

@@ -48,6 +48,26 @@ function cellStyle(view: CellView, size: BlockSize): CSSProperties {
   }
 }
 
+/**
+ * 누를 수 있는 빈 칸(세부 목표·실천)의 모양: 점선 테두리 + 옅은 틴트 + '+' 아이콘.
+ * 비어 있다는 것보다 '눌러서 적을 수 있다' 는 걸 보여줘요(2026-10-20 사용자 피드백: 비면 너무 휑함).
+ */
+function inviteStyle(view: CellView): CSSProperties {
+  return {
+    background: view.kind === 'sub' ? withAlpha(brandColor, 0.06) : colors.white,
+    color: brandColor,
+    border: `1.5px dashed ${withAlpha(brandColor, 0.45)}`,
+  };
+}
+
+function PlusIcon() {
+  return (
+    <svg className="mg-cell-plus" viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path d="M12 5v14M5 12h14" stroke={brandColor} strokeWidth={2.2} strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
 /** 전체 보기 블록 버튼의 이름. aria-label 이 안의 글을 가리니 제목과 오늘 체크 수를 담아요. */
 function blockButtonLabel(views: CellView[], label: string): string {
   const title = views[CENTER].text.trim();
@@ -74,13 +94,34 @@ interface BlockProps {
   onSelectCell?: (cell: number, view: CellView) => void;
   /** onSelectCell 격자에서 누를 수 없는 칸을 정해요 (예: 세부 목표 화면의 가운데 이름표). 없으면 모두 눌러요 */
   interactive?: (cell: number, view: CellView) => boolean;
+  /** 다음에 채울 칸(0~8): 은은하게 퍼지는 테두리와 '눌러서 적기' 를 보여줘요. `nextEmptyCell` */
+  nextCell?: number | null;
 }
 
-function CellContent({ view, caption, size }: { view: CellView; caption: string | null; size: BlockSize }) {
+interface CellContentProps {
+  view: CellView;
+  caption: string | null;
+  size: BlockSize;
+  /** 누를 수 있는 빈 칸(세부 목표·실천): '+' 아이콘 */
+  invite?: boolean;
+  /** 다음에 채울 칸: '눌러서 적기' */
+  next?: boolean;
+}
+
+function CellContent({ view, caption, size, invite = false, next = false }: CellContentProps) {
+  if (invite) {
+    return (
+      <>
+        <PlusIcon />
+        {next && <span className="mg-cell-hint">눌러서 적기</span>}
+      </>
+    );
+  }
   const text = view.text || view.placeholder || (size === 'main' && view.kind === 'action' ? '비어 있어요' : '');
   return (
     <>
       <span className="mg-cell-text">{text}</span>
+      {next && !view.text && <span className="mg-cell-hint">눌러서 적기</span>}
       {caption && <span className="mg-cell-caption">{caption}</span>}
       {view.checked && size === 'main' && (
         <span className="mg-cell-check" style={{ background: brandColor, color: colors.white }} aria-hidden>
@@ -91,7 +132,7 @@ function CellContent({ view, caption, size }: { view: CellView; caption: string 
   );
 }
 
-export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive }: BlockProps) {
+export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null }: BlockProps) {
   const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
   const className = `mg-block mg-block-${size}`;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
@@ -119,12 +160,16 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
           view.text ||
           view.placeholder ||
           (view.kind === 'sub' && view.index !== null ? `세부 목표 ${view.index + 1}` : view.kind === 'action' && view.index !== null ? `실천 ${(view.index % 8) + 1}` : '');
-        return onSelectCell && (interactive?.(cell, view) ?? true) ? (
+        const pressable = Boolean(onSelectCell) && (interactive?.(cell, view) ?? true);
+        // 누를 수 있는 빈 세부 목표·실천 칸은 '+' 로 초대하고, 다음에 채울 칸은 은은하게 깜빡여요(동작 줄이기면 멈춤)
+        const invite = pressable && size === 'main' && view.kind !== 'goal' && !view.text.trim();
+        const next = pressable && size === 'main' && nextCell === cell;
+        return onSelectCell && pressable ? (
           <button
             key={cell}
             type="button"
-            className="mg-cell"
-            style={cellStyle(view, size)}
+            className={next ? 'mg-cell mg-cell-next' : 'mg-cell'}
+            style={{ ...(invite ? inviteStyle(view) : cellStyle(view, size)), ['--mg-invite' as string]: withAlpha(brandColor, 0.4) }}
             onClick={() => onSelectCell(cell, view)}
             aria-label={
               checkMode && view.kind === 'action' && view.text
@@ -133,7 +178,7 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
             }
             aria-pressed={checkMode && view.kind === 'action' && view.text ? view.checked : undefined}
           >
-            <CellContent view={view} caption={cap} size={size} />
+            <CellContent view={view} caption={cap} size={size} invite={invite} next={next} />
           </button>
         ) : (
           <span key={cell} className="mg-cell" style={cellStyle(view, size)}>

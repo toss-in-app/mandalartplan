@@ -67,7 +67,10 @@ describe('HomeScreen (홈 마무리)', () => {
     const onChangeGoal = vi.fn();
     renderHome(createEmptyBoard(1759000000000), content, undefined, { onEditCore, onOverview, onChangeGoal });
     expect(screen.queryByText('목표 1')).not.toBeInTheDocument(); // "목표 n" 자리 표시 없음
-    expect(screen.getByRole('button', { name: '세부 목표 1' })).toHaveTextContent('');
+    expect(screen.getByRole('button', { name: '세부 목표 1' }).textContent).toBe(''); // '+' 아이콘만
+    // 다음에 채울 칸은 가운데(핵심 목표)라 '눌러서 적기' 는 가운데에만
+    expect(screen.getAllByText('눌러서 적기')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: '핵심 목표' })).toHaveTextContent('눌러서 적기');
     expect(screen.getByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요')).toBeInTheDocument();
     expect(screen.getByText('예시로 시작하기').closest('button')).not.toBeDisabled();
     expect(screen.queryByText('기록 보기')).not.toBeInTheDocument();
@@ -84,6 +87,15 @@ describe('HomeScreen (홈 마무리)', () => {
     expect(onOverview).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('편집'));
     expect(onEditCore).toHaveBeenCalledTimes(1);
+  });
+
+  it('핵심 목표만 있으면 둘레 칸을 눌러 세부 목표를 정하라고 안내하고, 첫 빈 칸에 눌러서 적기가 붙어요', () => {
+    const board = createEmptyBoard(1759000000000);
+    board.goal = '자격증 따기';
+    renderHome(board, content);
+    expect(screen.getByText('둘레 칸을 눌러 세부 목표를 정해 보세요')).toBeInTheDocument();
+    expect(screen.getAllByText('눌러서 적기')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: '세부 목표 1' })).toHaveTextContent('눌러서 적기');
   });
 
   it('빈 세부 목표 칸을 누르면 그 자리에서 정하고, 채워진 칸은 그 세부 목표 화면으로 가요', async () => {

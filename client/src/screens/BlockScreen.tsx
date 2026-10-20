@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 import { Block } from '../components/Block';
 import { useCellEditor } from '../hooks/useCellEditor';
+import { nextEmptyCell } from '../lib/cells';
 import { editTarget } from '../lib/cellEdit';
 import { CENTER, MAX_TEXT, ringIndex, type Board } from '../lib/mandalart';
 
@@ -51,7 +52,7 @@ export function BlockScreen(props: BlockScreenProps) {
       />
 
       <div style={{ padding: '0 20px' }}>
-        <Block board={board} block={block} size="main" onSelectCell={(cell) => editor.openFromTap(editTarget(board, block, cell))} />
+        <Block board={board} block={block} size="main" nextCell={nextEmptyCell(board, block)} onSelectCell={(cell) => editor.openFromTap(editTarget(board, block, cell))} />
       </div>
 
       <div style={{ padding: '16px 24px 120px' }}>

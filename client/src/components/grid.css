@@ -122,3 +122,41 @@ button.mg-cell:focus:not(:focus-visible),
 button.mg-block:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* 누를 수 있는 빈 칸: '+' 아이콘과 다음 칸 안내 글 */
+.mg-cell-plus {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.mg-block-main .mg-cell-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 0.9;
+}
+
+/* 다음에 채울 칸: 바깥으로 퍼지는 옅은 테두리. 색은 칸이 --mg-invite 로 넣어요 */
+.mg-cell-next {
+  animation: mg-invite 1.8s ease-in-out infinite;
+}
+
+@keyframes mg-invite {
+  0% {
+    box-shadow: 0 0 0 0 var(--mg-invite);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-cell-next {
+    animation: none;
+  }
+}

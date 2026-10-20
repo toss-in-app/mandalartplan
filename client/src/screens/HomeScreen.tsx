@@ -5,6 +5,7 @@ import { Block } from '../components/Block';
 import { useCellEditor } from '../hooks/useCellEditor';
 import { editTarget } from '../lib/cellEdit';
 import { activeSeason, type Content } from '../content';
+import { nextEmptyCell } from '../lib/cells';
 import { checkedInSub, formatDateLabel, todaySet } from '../lib/checkin';
 import { CENTER, getProgress, type Board } from '../lib/mandalart';
 import { boardLabel, dateKey, streak, type CheckinRecord } from '../lib/state';
@@ -73,9 +74,12 @@ export function HomeScreen({
   const season = activeSeason(content, today);
   const titleText = hasGoal ? board.goal : boardCount > 1 ? boardLabel(activeIndex) : '만다라트';
 
+  const hasSubs = board.subs.some((sub) => sub.title.trim().length > 0);
   const subtitle = isEmpty
     ? '가운데 칸을 눌러 핵심 목표부터 정해 보세요'
-    : progress.actionsFilled === 0
+    : !hasSubs
+      ? '둘레 칸을 눌러 세부 목표를 정해 보세요'
+      : progress.actionsFilled === 0
       ? '세부 목표 칸을 눌러 실천을 적어 보세요'
       : checked.size > 0 && checked.size >= progress.actionsFilled
         ? `${days}일째 · 오늘 실천을 다 했어요`
@@ -120,6 +124,7 @@ export function HomeScreen({
           block={CENTER}
           size="main"
           checked={checked}
+          nextCell={nextEmptyCell(board, CENTER)}
           caption={(view) => {
             if (view.kind !== 'sub' || view.index === null || !view.text) return null;
             const total = board.subs[view.index].actions.filter((a) => a.trim()).length;
