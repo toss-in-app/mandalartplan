@@ -58,17 +58,28 @@ const EMAIL_LIKE = /\S+@\S+/;
 const PHONE_LIKE = /\d{2,4}-\d{3,4}-\d{4}/;
 const EMOJI = /\p{Extended_Pictographic}/u;
 
+/** 모델 칸을 비운 이유(글 내용 없이 개수만 로그·응답에 남겨요) */
+export type RejectReason = 'not_string' | 'blank' | 'too_long' | 'url' | 'email' | 'phone' | 'emoji' | 'dup';
+
 /**
- * 모델이 준 칸 하나. 따옴표·느낌표·물음표와 끝의 마침표는 지우고, URL·이메일·전화번호·이모지가 있거나 40자를 넘으면 비워요('').
+ * 모델이 준 칸 하나. 따옴표·느낌표·물음표와 끝의 마침표는 지우고, URL·이메일·전화번호·이모지가 있거나 40자를 넘으면 비워요.
  * (숫자 안의 점 '2.5km' 는 남겨요)
  */
+export function classifyOutputCell(value: unknown): { text: string } | { reason: RejectReason } {
+  if (typeof value !== 'string') return { reason: 'not_string' };
+  const text = cleanInput(value).replace(QUOTES, '').replace(/[!?！？]/g, '').replace(/[.。]+$/u, '').trim().replace(/\s+/g, ' ');
+  if (!text) return { reason: 'blank' };
+  if (text.length > MAX_TEXT) return { reason: 'too_long' };
+  if (URL_LIKE.test(text)) return { reason: 'url' };
+  if (EMAIL_LIKE.test(text)) return { reason: 'email' };
+  if (PHONE_LIKE.test(text)) return { reason: 'phone' };
+  if (EMOJI.test(text)) return { reason: 'emoji' };
+  return { text };
+}
+
 export function cleanOutputCell(value: unknown): string {
-  if (typeof value !== 'string') return '';
-  let text = cleanInput(value).replace(QUOTES, '').replace(/[!?！？]/g, '').replace(/[.。]+$/u, '').trim();
-  text = text.replace(/\s+/g, ' ');
-  if (!text || text.length > MAX_TEXT) return '';
-  if (URL_LIKE.test(text) || EMAIL_LIKE.test(text) || PHONE_LIKE.test(text) || EMOJI.test(text)) return '';
-  return text;
+  const result = classifyOutputCell(value);
+  return 'text' in result ? result.text : '';
 }
 
 export interface MergedCells {
@@ -77,6 +88,8 @@ export interface MergedCells {
   filled: number;
   /** 빈 칸이었는데 결과가 없거나 검사에 걸려 비운 칸 수 */
   empty: number;
+  /** 비운 이유별 개수 */
+  reasons: Partial<Record<RejectReason, number>>;
 }
 
 /**
@@ -88,19 +101,23 @@ export function mergeOutput(input: readonly string[], output: unknown, avoid: re
   const seen = new Set([...input, ...avoid].map((text) => text.replace(/\s+/g, '')).filter(Boolean));
   let filled = 0;
   let empty = 0;
+  const reasons: Partial<Record<RejectReason, number>> = {};
+  const reject = (reason: RejectReason) => {
+    empty += 1;
+    reasons[reason] = (reasons[reason] ?? 0) + 1;
+    return '';
+  };
   const merged = input.map((current, i) => {
     if (current !== '') return current;
-    const text = cleanOutputCell(output[i]);
-    const compact = text.replace(/\s+/g, '');
-    if (!text || seen.has(compact)) {
-      empty += 1;
-      return '';
-    }
+    const result = classifyOutputCell(output[i]);
+    if (!('text' in result)) return reject(result.reason);
+    const compact = result.text.replace(/\s+/g, '');
+    if (seen.has(compact)) return reject('dup');
     seen.add(compact);
     filled += 1;
-    return text;
+    return result.text;
   });
-  return { cells: merged, filled, empty };
+  return { cells: merged, filled, empty, reasons };
 }
 
 /** 구조화 출력 글({ refused, items }) → { refused, list }. 형식이 다르면 null */

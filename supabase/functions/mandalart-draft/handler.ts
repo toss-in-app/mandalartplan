@@ -43,13 +43,14 @@ function fail(error: DraftError, status = 200): DraftResult {
 
 /** Claude 1~2회. 형식이 틀리거나 비운 칸이 많으면 한 번 더, 그래도 형식이 틀리면 invalid_output */
 async function generate(req: DraftRequest, deps: DraftDeps): Promise<MergedCells | DraftError> {
-  const user = req.mode === 'subs' ? subsMessage(req.goal, req.subs) : actionsMessage(req.goal, req.subs, req.only, req.actions);
+  const message = (retry: boolean) =>
+    req.mode === 'subs' ? subsMessage(req.goal, req.subs, retry) : actionsMessage(req.goal, req.subs, req.only, req.actions, retry);
   const input = req.mode === 'subs' ? req.subs : req.actions;
   // 실천은 세부 목표 이름을 그대로 반복하지 않게
   const avoid = req.mode === 'subs' ? [req.goal] : [req.goal, req.subs[req.only]];
   let best: MergedCells | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const outcome = await deps.callClaude(user, DRAFT_SCHEMA);
+    const outcome = await deps.callClaude(message(attempt > 0), DRAFT_SCHEMA);
     if (outcome.kind === 'error') return best ?? 'busy';
     await deps.addCost(1, outcome.usage).catch(() => {});
     if (outcome.kind === 'refusal') return 'refused';
@@ -78,6 +79,8 @@ export async function handleDraft(body: unknown, deps: DraftDeps): Promise<Draft
   const merged = await generate(req, deps);
   if (typeof merged === 'string') return fail(merged);
   const meta = { model: MODEL, promptVersion: PROMPT_VERSION };
-  if (req.mode === 'subs') return { status: 200, body: { ok: true, mode: 'subs', subs: merged.cells, ...meta }, result: 'ok' };
-  return { status: 200, body: { ok: true, mode: 'actions', only: req.only, actions: merged.cells, filled: merged.filled, ...meta }, result: 'ok' };
+  // 비운 칸이 있으면 이유별 개수만 붙여요(글 없음) — 앱은 쓰지 않고 운영·평가에서 원인 보기용
+  const diag = merged.empty > 0 ? { diag: { empty: merged.empty, reasons: merged.reasons } } : {};
+  if (req.mode === 'subs') return { status: 200, body: { ok: true, mode: 'subs', subs: merged.cells, ...meta, ...diag }, result: 'ok' };
+  return { status: 200, body: { ok: true, mode: 'actions', only: req.only, actions: merged.cells, filled: merged.filled, ...meta, ...diag }, result: 'ok' };
 }

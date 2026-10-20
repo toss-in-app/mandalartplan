@@ -27,7 +27,14 @@ async function call(body) {
       headers: { apikey: KEY, 'Content-Type': 'application/json', Origin: 'http://localhost:5180' },
       body: JSON.stringify(body),
     });
-    const json = await res.json().catch(() => ({}));
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = { ok: false, error: `http_${res.status} ${text.slice(0, 80).replace(/\s+/g, ' ')}` };
+    }
+    if (!json.ok && !json.error) json.error = `http_${res.status}`;
     return { ms: Date.now() - started, status: res.status, json };
   } catch (error) {
     return { ms: Date.now() - started, status: 0, json: { ok: false, error: `network ${error}` } };

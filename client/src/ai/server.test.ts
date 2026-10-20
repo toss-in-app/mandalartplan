@@ -63,7 +63,7 @@ describe('모델 출력 칸 정리', () => {
 
   it('사용자가 적은 칸은 원래 글로, 겹치는 결과는 버려요', () => {
     const merged = mergeOutput(['제구', '', '', '', '', '', '', ''], ['바뀐 글', '구위', '구위', '제구', '멘탈', '', '변화구', '몸 관리'], ['8구단 드래프트 1순위']);
-    expect(merged).toEqual({ cells: ['제구', '구위', '', '', '멘탈', '', '변화구', '몸 관리'], filled: 4, empty: 3 });
+    expect(merged).toEqual({ cells: ['제구', '구위', '', '', '멘탈', '', '변화구', '몸 관리'], filled: 4, empty: 3, reasons: { dup: 2, blank: 1 } });
     expect(mergeOutput(EMPTY8, ['하나'])).toBeNull();
   });
 });
@@ -73,7 +73,7 @@ describe('handleDraft', () => {
     const deps = fakeDeps([text({ refused: false, items: ['바꾸면 안 됨', ...SUBS.slice(1)] })]);
     const res = await handleDraft({ mode: 'subs', key: KEY, goal: '8구단 드래프트 1순위', subs: ['체력', '', '', '', '', '', '', ''] }, deps);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true, mode: 'subs', subs: ['체력', ...SUBS.slice(1)], model: 'claude-haiku-5-5', promptVersion: 1 });
+    expect(res.body).toEqual({ ok: true, mode: 'subs', subs: ['체력', ...SUBS.slice(1)], model: 'claude-haiku-5-5', promptVersion: 3 });
     expect(deps.take).toHaveBeenCalledWith(KEY);
     expect(deps.addCost).toHaveBeenCalledWith(1, USAGE);
   });
@@ -118,6 +118,20 @@ describe('handleDraft', () => {
     expect((await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, broken)).body).toEqual({ ok: false, error: 'invalid_output' });
 
     expect((await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, fakeDeps([{ kind: 'error' }]))).body).toEqual({ ok: false, error: 'busy' });
+  });
+
+  it('비운 칸이 있으면 이유별 개수(diag)만 붙여요', async () => {
+    const items = ['좋은 실천', 'www.example.com 보기', '', '운동하기 💪', '좋은 실천', '가'.repeat(41), '둘째 실천', '셋째 실천'];
+    const res = await handleDraft({ mode: 'actions', key: KEY, goal: '목표', subs: SUBS, only: 0, actions: EMPTY8 }, fakeDeps([text({ refused: false, items }), text({ refused: false, items })]));
+    expect(res.body).toMatchObject({ ok: true, filled: 3, diag: { empty: 5, reasons: { url: 1, blank: 1, emoji: 1, dup: 1, too_long: 1 } } });
+  });
+
+  it('다시 요청할 때는 빈 칸을 채우라는 말을 덧붙여요', async () => {
+    const deps = fakeDeps([text({ refused: false, items: EMPTY8 }), text({ refused: false, items: SUBS })]);
+    await handleDraft({ mode: 'subs', key: KEY, goal: '목표', subs: EMPTY8 }, deps);
+    const [first, second] = deps.callClaude.mock.calls.map((call) => (call as unknown as [string])[0]);
+    expect(first).not.toContain('지난 응답에 빈 칸');
+    expect(second).toContain('지난 응답에 빈 칸');
   });
 
   it('비운 칸이 3칸을 넘으면 한 번 더 요청하고 더 많이 채운 쪽을 써요', async () => {

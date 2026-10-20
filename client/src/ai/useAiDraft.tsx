@@ -51,6 +51,20 @@ function codeOf(error: unknown): AiErrorCode {
   return error instanceof AiDraftError ? error.code : 'network';
 }
 
+/** 연결이 끊기거나 서버가 잠깐 못 받은 경우(network·busy)만 1번 다시 해요. 정책 2-5 는 무제한 재시도를 막아요(1회까지) */
+const RETRY_DELAY_MS = 800;
+
+async function once<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    const code = codeOf(error);
+    if (code !== 'network' && code !== 'busy') throw error;
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    return call();
+  }
+}
+
 /** 판의 글 전부 (자해 표현 사전 검사용) */
 function boardTexts(board: Board): string[] {
   return [board.goal, ...board.subs.flatMap((sub) => [sub.title, ...sub.actions])];
@@ -136,7 +150,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
     let meta: AiMeta | null = null;
     if (emptySubCount(preview) > 0) {
       try {
-        const res = await requestSubs(prep.key, cleanGoal, preview.subs.map((sub) => sub.title));
+        const res = await once(() => requestSubs(prep.key, cleanGoal, preview.subs.map((sub) => sub.title)));
         preview = mergeSubs(preview, res.subs).board;
         meta = res;
       } catch (error) {
@@ -154,7 +168,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
     await Promise.all(
       targets.map(async (subIndex) => {
         try {
-          const res = await requestActions(prep.key, cleanGoal, titles, subIndex, preview.subs[subIndex].actions);
+          const res = await once(() => requestActions(prep.key, cleanGoal, titles, subIndex, preview.subs[subIndex].actions));
           preview = mergeActions(preview, subIndex, res.actions).board;
           meta = meta ?? res;
         } catch (error) {
@@ -201,13 +215,13 @@ export function useAiDraft(app: AppState, reward: Reward) {
       try {
         const now = Date.now();
         if (mode === 'subs') {
-          const res = await requestSubs(prep.key, board.goal, titles);
+          const res = await once(() => requestSubs(prep.key, board.goal, titles));
           const latest = app.getState();
           const current = latest ? latest.boards.boards[latest.boards.active] : board;
           filled = mergeSubs(current, res.subs).filled;
           if (filled > 0) app.updateBoard((b) => markAiDraft(mergeSubs(b, res.subs).board, res, now));
         } else if (subIndex !== null) {
-          const res = await requestActions(prep.key, board.goal, titles, subIndex, board.subs[subIndex].actions);
+          const res = await once(() => requestActions(prep.key, board.goal, titles, subIndex, board.subs[subIndex].actions));
           const latest = app.getState();
           const current = latest ? latest.boards.boards[latest.boards.active] : board;
           filled = mergeActions(current, subIndex, res.actions).filled;

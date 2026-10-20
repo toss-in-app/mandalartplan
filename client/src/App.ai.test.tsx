@@ -31,7 +31,7 @@ vi.mock('./ads/useRewardedAd', async (importOriginal) => {
   };
 });
 
-const server = vi.hoisted(() => ({ error: null as string | null, calls: [] as Record<string, unknown>[] }));
+const server = vi.hoisted(() => ({ error: null as string | null, calls: [] as Record<string, unknown>[], failOnce: null as number | null }));
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -43,6 +43,11 @@ const fakeFetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
   const body = JSON.parse(String(init?.body)) as { mode: string; subs: string[]; only: number; actions: string[] };
   server.calls.push(body);
   if (server.error) return json({ ok: false, error: server.error });
+  // 실천 한 묶음이 처음 한 번만 플랫폼 오류(546)로 실패하는 경우
+  if (body.mode === 'actions' && server.failOnce === body.only) {
+    server.failOnce = null;
+    return new Response(JSON.stringify({ code: 'WORKER_LIMIT' }), { status: 546 });
+  }
   const meta = { model: 'claude-haiku-5-5', promptVersion: 1 };
   if (body.mode === 'subs') return json({ ok: true, mode: 'subs', subs: body.subs.map((t, i) => t || `영역 ${i + 1}`), ...meta });
   const actions = body.actions.map((t, j) => t || `실천 ${body.only + 1}-${j + 1}`);
@@ -54,6 +59,7 @@ beforeEach(() => {
   ad.watched = 0;
   server.error = null;
   server.calls = [];
+  server.failOnce = null;
   vi.stubGlobal('fetch', fakeFetch);
 });
 
@@ -148,6 +154,19 @@ describe('App (AI 초안)', () => {
     expect(ad.watched).toBe(1);
     expect(server.calls.filter((c) => c.mode === 'subs')).toHaveLength(1);
     await waitFor(() => expect(savedAi().runs.count).toBe(1));
+  });
+
+  it('실천 한 묶음이 서버 일시 오류로 실패하면 한 번만 다시 받아 판을 다 채워요', async () => {
+    server.failOnce = 3;
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('토익 900점');
+    renderAt('#/draft');
+    fireEvent.click(await screen.findByRole('button', { name: '광고 보고 AI 초안 만들기' }));
+    await screen.findByText('시작한 뒤에도 칸을 눌러 고칠 수 있어요');
+    expect(server.calls.filter((c) => c.mode === 'actions' && c.only === 3)).toHaveLength(2);
+    expect(server.calls.filter((c) => c.mode === 'actions')).toHaveLength(9);
+    fireEvent.click(screen.getByText('이대로 시작하기'));
+    await waitFor(() => expect(savedBoard().subs[3].actions[7]).toBe('실천 4-8'));
   });
 
   it('광고를 못 불러오면 AI 를 쓰지 않고 예시를 권해요', async () => {
