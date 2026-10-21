@@ -182,10 +182,62 @@ button.mg-block:focus:not(:focus-visible) {
   }
 }
 
-/* 편집 화면 여러 칸 지우기(2.1): 끌어서 고르는 동안 화면이 스크롤되거나 글자가 선택되지 않게 */
-.mg-select-area {
-  touch-action: none;
+/* 편집 화면 여러 칸 지우기(2.1): 길게 누르기·쓸기로 고르기 */
+/* 칸 위에서는 길게 눌러도 글자 선택·메뉴가 뜨지 않게, 위아래 스크롤만 브라우저가 맡고 옆으로 쓸기는 앱이 받아요 */
+.mg-press-area {
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+/* 고르기 모드: 어느 방향으로 끌어도 스크롤 대신 고르기 */
+.mg-select-area {
+  touch-action: none;
+}
+
+/* 아이폰 홈 화면 편집처럼 고를 수 있는 칸이 살짝 흔들려요(칸마다 박자를 엇갈리게) */
+@keyframes mg-jiggle {
+  0% { transform: rotate(-1.2deg); }
+  50% { transform: rotate(1.2deg); }
+  100% { transform: rotate(-1.2deg); }
+}
+.mg-jiggle button.mg-cell {
+  animation: mg-jiggle 0.32s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+.mg-jiggle button.mg-cell[data-cell='1'],
+.mg-jiggle button.mg-cell[data-cell='3'],
+.mg-jiggle button.mg-cell[data-cell='5'],
+.mg-jiggle button.mg-cell[data-cell='7'] {
+  animation-delay: -0.16s;
+  animation-direction: reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mg-jiggle button.mg-cell {
+    animation: none;
+  }
+}
+
+/* 키보드·스크린리더용 입구: 평소엔 안 보이고 포커스하면 3×3 위에 보여요 */
+.mg-reveal-on-focus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.mg-reveal-on-focus:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  clip: auto;
+  margin: 0 20px 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #f2f4f6;
+  color: #333d4b;
+  font-size: 14px;
 }

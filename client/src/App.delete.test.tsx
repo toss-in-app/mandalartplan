@@ -53,7 +53,7 @@ describe('App (편집 화면 여러 칸 지우기)', () => {
         <App />
       </TDSMobileAITProvider>,
     );
-    fireEvent.click(await screen.findByRole('button', { name: '선택' }));
+    fireEvent.click(await screen.findByRole('button', { name: '여러 칸 골라 지우기' })); // 길게 누르기와 같은 고르기 모드(키보드 입구)
     fireEvent.click(screen.getByRole('button', { name: '받아쓰기' }));
     fireEvent.click(screen.getByRole('button', { name: '쉐도잉' }));
     fireEvent.click(screen.getByRole('button', { name: '2칸 삭제' }));
