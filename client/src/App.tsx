@@ -22,7 +22,8 @@ import { logEvent } from './lib/analytics';
 import { canSaveImage, createShareLink, haptic, openUrl, saveImageToPhotos, shareText } from './lib/bridge';
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
 import { notificationAvailable, requestNotificationAgreement } from './notification/agreement';
-import { todaySet, toggleCheck } from './lib/checkin';
+import { clearBlockCells, editTarget } from './lib/cellEdit';
+import { applyCheckin, todayChecked, todaySet, toggleCheck } from './lib/checkin';
 import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, hasAiText, ringIndex } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
 import { atHistoryBottom, goBack, navigate, useRoute } from './lib/router';
@@ -503,6 +504,50 @@ function App() {
     if (call) void openUrl(CARE_PHONE_URL);
   };
 
+  /**
+   * 편집 화면 여러 칸 지우기(2.1): 고른 칸의 글을 지우고, 지운 실천은 오늘 체크에서도 빼요.
+   * 돌려주는 함수 = 되돌리기(토스트 버튼). 그 사이 다른 칸을 고치지 않았으면 판을 지우기 전으로, 고쳤으면 지운 칸 글만 되살려요.
+   */
+  const deleteCells = (block: number, cells: number[]): (() => void) => {
+    const state = app.getState();
+    if (!state) return () => {};
+    const before = state.boards.boards[state.boards.active];
+    const result = clearBlockCells(before, block, cells);
+    if (result.cleared === 0) return () => {};
+    app.clearCells(block, cells);
+    const date = dateKey();
+    const checksBefore = todayChecked(state.checkins.byBoard[before.id], date);
+    const checksAfter = checksBefore.filter((index) => !result.actions.includes(index));
+    if (checksAfter.length !== checksBefore.length) app.updateCheckins((checkins) => applyCheckin(checkins, before.id, date, checksAfter, Date.now()));
+    logEvent('cells_delete', { count: result.cleared, area: block === CENTER ? 'goals' : 'actions' });
+    void haptic('success');
+    const sameContent = (a: typeof before, b: typeof before) => JSON.stringify([a.goal, a.subs, a.aiDraft]) === JSON.stringify([b.goal, b.subs, b.aiDraft]);
+    return () => {
+      app.updateBoard((current) => {
+        if (current.id !== before.id) return current;
+        if (sameContent(current, result.board)) return before;
+        // 그사이 다른 칸을 고쳤으면 지운 칸만, 아직 비어 있을 때 되살려요('AI 초안' 표시는 되살리지 않아요)
+        let next = current;
+        for (const cell of cells) {
+          const field = editTarget(before, block, cell).field;
+          if (field.kind === 'goal') {
+            if (!next.goal) next = { ...next, goal: before.goal };
+          } else if (field.kind === 'sub') {
+            const s = field.subIndex;
+            if (!next.subs[s].title) next = { ...next, subs: next.subs.map((sub, i) => (i === s ? { ...sub, title: before.subs[s].title } : sub)) };
+          } else {
+            const { subIndex: s, actionIndex: a } = field;
+            if (!next.subs[s].actions[a])
+              next = { ...next, subs: next.subs.map((sub, i) => (i === s ? { ...sub, actions: sub.actions.map((t, j) => (j === a ? before.subs[s].actions[a] : t)) } : sub)) };
+          }
+        }
+        return next;
+      });
+      if (checksAfter.length !== checksBefore.length) app.updateCheckins((checkins) => applyCheckin(checkins, before.id, date, checksBefore, Date.now()));
+      logEvent('cells_delete_undo', { count: result.cleared });
+    };
+  };
+
   /** 편집 화면 채우기 결과 안내 */
   const afterFill = async (result: AiResult<number>) => {
     if (result.kind === 'ok') {
@@ -589,6 +634,7 @@ function App() {
           onDone={goBack}
           initialCell={route.cell ?? null}
           aiFill={aiFillFor(route.block)}
+          onDeleteCells={(cells) => deleteCells(route.block, cells)}
         />
       );
       break;

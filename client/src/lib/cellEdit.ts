@@ -1,4 +1,4 @@
-import { CENTER, ringIndex, type Board } from './mandalart';
+import { AI_CELL, CENTER, actionIndex, releaseAiCell, ringIndex, type Board } from './mandalart';
 
 /**
  * 칸 하나를 적는 바텀시트의 내용(편집 화면·홈·세부 목표 화면 공용). 화면은 `hooks/useCellEditor`.
@@ -75,4 +75,45 @@ export function focusEditor() {
   el.focus();
   const end = el.value.length;
   el.setSelectionRange(end, end);
+}
+
+/**
+ * 편집 화면에서 고른 칸(0~8)의 글을 한꺼번에 지워요(2.1 여러 칸 지우기). 지운 칸은 'AI 초안' 기록에서도 빠져요.
+ * 세부 목표 이름을 지워도 그 아래 실천은 그대로예요(고른 칸만 지워요).
+ * 돌려주는 `actions` = 지운 실천 번호(0~63) — 오늘 체크에서도 빼려고요.
+ */
+export function clearBlockCells(board: Board, block: number, cells: readonly number[]): { board: Board; cleared: number; actions: number[] } {
+  let next = board;
+  let cleared = 0;
+  const actions: number[] = [];
+  const clearSub = (s: number) => {
+    if (!next.subs[s].title) return;
+    next = releaseAiCell({ ...next, subs: next.subs.map((sub, i) => (i === s ? { ...sub, title: '' } : sub)) }, AI_CELL.sub(s));
+    cleared += 1;
+  };
+  for (const cell of new Set(cells)) {
+    if (!Number.isInteger(cell) || cell < 0 || cell > 8) continue;
+    if (block === CENTER) {
+      if (cell === CENTER) {
+        if (!next.goal) continue;
+        next = releaseAiCell({ ...next, goal: '' }, AI_CELL.goal);
+        cleared += 1;
+      } else clearSub(ringIndex(cell));
+      continue;
+    }
+    const s = ringIndex(block);
+    if (cell === CENTER) {
+      clearSub(s);
+      continue;
+    }
+    const a = ringIndex(cell);
+    if (!next.subs[s].actions[a]) continue;
+    next = releaseAiCell(
+      { ...next, subs: next.subs.map((sub, i) => (i === s ? { ...sub, actions: sub.actions.map((t, j) => (j === a ? '' : t)) } : sub)) },
+      AI_CELL.action(s, a),
+    );
+    cleared += 1;
+    actions.push(actionIndex(s, a));
+  }
+  return { board: next, cleared, actions };
 }

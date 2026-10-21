@@ -24,6 +24,13 @@
 - 구현(2026-10-08, `client/src/lib/analytics.ts`): `Analytics.log({ log_name, log_type, params })`. `log_type` 은 `home_view`·`today_view` 만 `screen`, 나머지 `event`(`stats_view` 포함). 값은 문자열, null·undefined 제외, 개인정보 없음(`anonymous_key` 는 SDK 가 붙임). 토스앱 5.208.0 미만·브라우저는 조용히 무시.
 - 보충: `board_filled` 는 채운 칸이 73 미만 → 73 이 되는 순간(`templateId` 없으면 `none`). `board_edit` 는 block 에 들어올 때와 나갈 때 `updatedAt` 이 다르면 1회. `ad_interstitial` 은 전면 조건이 맞아 시도했을 때만(shown / skipped = 미로딩 / failed = 띄우기 실패).
 
+### 편집 화면 여러 칸 지우기 (2.1)
+
+| 이름 | 언제 | 파라미터 |
+|------|------|----------|
+| `cells_delete` | 고르기 모드에서 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수), `area`(goals = 가운데 블록: 핵심 목표·세부 목표 / actions = 둘레 블록: 세부 목표 이름·실천) |
+| `cells_delete_undo` | 토스트의 '되돌리기' | `count` |
+
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 | 이름 | 유형 | 지점 | 규칙 |
 |------|------|------|------|

@@ -15,6 +15,10 @@ export type BlockSize = 'small' | 'large' | 'main';
 function cellStyle(view: CellView, size: BlockSize): CSSProperties {
   switch (view.kind) {
     case 'goal':
+      if (view.checked) {
+        // 핵심 목표는 체크가 없어서 checked = 편집 화면에서 지울 칸으로 고른 것(2.1). 브랜드 바탕 위에 흰 안쪽 테두리
+        return { background: brandColor, color: colors.white, fontWeight: 700, boxShadow: `inset 0 0 0 ${size === 'main' ? 3 : 2}px ${colors.white}` };
+      }
       return { background: brandColor, color: colors.white, fontWeight: view.text ? 700 : 600 };
     case 'sub':
       if (view.checked) {
@@ -98,6 +102,11 @@ interface BlockProps {
   nextCell?: number | null;
   /** AI 초안을 만드는 중: 아직 빈 칸이 은은하게 깜빡여요(동작 줄이기면 멈춤) */
   loading?: boolean;
+  /**
+   * 여러 칸 지우기의 선택 모드(편집 화면, 2.1). 있으면 고른 칸을 '오늘 다 했어요'와 같은 모양(진한 틴트·테두리·✓)으로 그리고,
+   * 누를 수 있는 칸을 '선택됨/안 됨' 토글로 읽어요. 칸마다 `data-cell` 이 있어 끌어서 고르기가 손가락 아래 칸을 찾아요.
+   */
+  selected?: ReadonlySet<number>;
 }
 
 interface CellContentProps {
@@ -126,7 +135,11 @@ function CellContent({ view, caption, size, invite = false, next = false }: Cell
       {next && !view.text && <span className="mg-cell-hint">눌러서 적기</span>}
       {caption && <span className="mg-cell-caption">{caption}</span>}
       {view.checked && size === 'main' && (
-        <span className="mg-cell-check" style={{ background: brandColor, color: colors.white }} aria-hidden>
+        <span
+          className="mg-cell-check"
+          style={view.kind === 'goal' ? { background: colors.white, color: brandColor } : { background: brandColor, color: colors.white }}
+          aria-hidden
+        >
           ✓
         </span>
       )}
@@ -137,8 +150,13 @@ function CellContent({ view, caption, size, invite = false, next = false }: Cell
 /** 만드는 중인 빈 칸: 회색 자리 + 깜빡임(grid.css .mg-cell-loading) */
 const LOADING_STYLE: CSSProperties = { background: colors.grey100 };
 
-export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null, loading = false }: BlockProps) {
-  const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
+export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null, loading = false, selected }: BlockProps) {
+  // 선택 모드에서 고른 칸은 '다 했어요'와 같은 모양으로(checked 표시를 빌려 써요)
+  const views = Array.from({ length: 9 }, (_, cell) => {
+    const view = cellView(board, block, cell, checked);
+    return selected?.has(cell) ? { ...view, checked: true } : view;
+  });
+  const selectMode = selected !== undefined;
   const className = `mg-block mg-block-${size}`;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
   // 오늘 체크를 넘긴 화면(홈·세부 목표)만 실천 칸을 '오늘 했어요/아직' 토글로 읽어요. 편집 화면은 칸 글만
@@ -173,22 +191,25 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
           <button
             key={cell}
             type="button"
+            data-cell={cell}
             className={next ? 'mg-cell mg-cell-next' : 'mg-cell'}
             style={{ ...(invite ? inviteStyle(view) : cellStyle(view, size)), ['--mg-invite' as string]: withAlpha(brandColor, 0.4) }}
             onClick={() => onSelectCell(cell, view)}
             aria-label={
-              checkMode && view.kind === 'action' && view.text
-                ? `${name}, 오늘 ${view.checked ? '했어요' : '아직'}`
-                : `${name}${cap ? `, ${spokenCaption(cap)}` : ''}`
+              selectMode
+                ? name
+                : checkMode && view.kind === 'action' && view.text
+                  ? `${name}, 오늘 ${view.checked ? '했어요' : '아직'}`
+                  : `${name}${cap ? `, ${spokenCaption(cap)}` : ''}`
             }
-            aria-pressed={checkMode && view.kind === 'action' && view.text ? view.checked : undefined}
+            aria-pressed={selectMode ? selected.has(cell) : checkMode && view.kind === 'action' && view.text ? view.checked : undefined}
           >
             <CellContent view={view} caption={cap} size={size} invite={invite} next={next} />
           </button>
         ) : loading && !view.text.trim() ? (
           <span key={cell} className="mg-cell mg-cell-loading" style={LOADING_STYLE} />
         ) : (
-          <span key={cell} className="mg-cell" style={cellStyle(view, size)}>
+          <span key={cell} data-cell={cell} className="mg-cell" style={cellStyle(view, size)}>
             <CellContent view={view} caption={cap} size={size} />
           </span>
         );

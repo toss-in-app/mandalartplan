@@ -27,7 +27,10 @@ export type EventName =
   | 'ai_draft_start'
   | 'ai_draft_reward'
   | 'ai_draft_result'
-  | 'ai_draft_apply';
+  | 'ai_draft_apply'
+  /** 편집 화면 여러 칸 지우기(2.1) */
+  | 'cells_delete'
+  | 'cells_delete_undo';
 
 export type EventParams = Record<string, string | number | boolean | null | undefined>;
 

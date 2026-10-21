@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BackupPayload } from '../backup/payload';
 import type { ContentTemplate } from '../content';
+import { clearBlockCells } from '../lib/cellEdit';
 import { AI_CELL, clampText, createEmptyBoard, releaseAiCell, type Board } from '../lib/mandalart';
 import { boardFromTemplate } from '../lib/template';
 import {
@@ -133,6 +134,16 @@ export function useAppState() {
     [updateBoard],
   );
 
+  /** 편집 화면에서 고른 칸(0~8)의 글을 한꺼번에 지워요(2.1). 'AI 초안' 기록에서도 빠져요 */
+  const clearCells = useCallback(
+    (block: number, cells: readonly number[]) =>
+      updateBoard((b) => {
+        const result = clearBlockCells(b, block, cells);
+        return result.cleared > 0 ? result.board : b;
+      }),
+    [updateBoard],
+  );
+
   /** 빈 판을 하나 더 만들고 그 판을 보여줘요(두 번째 판 잠금 해제 뒤). 이미 2개면 false. */
   const addBoard = useCallback((): boolean => {
     const prev = stateRef.current;
@@ -229,6 +240,7 @@ export function useAppState() {
     setGoal,
     setSubTitle,
     setAction,
+    clearCells,
     applyTemplate,
     importBackup,
     updateSettings,
