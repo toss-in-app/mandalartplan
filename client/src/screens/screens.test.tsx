@@ -199,7 +199,7 @@ describe('SettingsScreen (설정 행 상태)', () => {
     );
     expect(screen.getAllByText('준비 중')).toHaveLength(2); // 알림 · 서버 백업
     expect(screen.getByText('처음부터 다시 만들기').closest('[aria-disabled="true"], button[disabled], [disabled]') ?? screen.getByText('처음부터 다시 만들기')).toBeInTheDocument();
-    expect(screen.getByText(/앱 \d+\.\d+\.\d+ · 콘텐츠 \d+/)).toBeInTheDocument();
+    expect(screen.getByText(/앱 버전 \d+\.\d+\.\d+ · 문구 버전 \d+/)).toBeInTheDocument();
     expect(screen.getByText('이용약관')).toBeInTheDocument();
     expect(screen.getByText('개인정보처리방침')).toBeInTheDocument();
   });

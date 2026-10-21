@@ -158,7 +158,8 @@ export function SettingsScreen({
         </Text>
         <div style={{ height: 8 }} />
         <Text typography="t7" color={colors.grey600} display="block">
-          앱 {__APP_VERSION__} · 콘텐츠 {content.contentVersion} ({content.updatedAt})
+          {/* 콘텐츠(응원 문구·공지·예시 판 글)는 '문구'로 불러요 — '콘텐츠 1'은 무엇인지 알기 어려워서(사용자 2026-10-21) */}
+          앱 버전 {__APP_VERSION__} · 문구 버전 {content.contentVersion} ({content.updatedAt.split('-').map(Number).join('.')})
         </Text>
       </div>
     </>

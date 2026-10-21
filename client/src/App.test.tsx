@@ -61,7 +61,7 @@ describe('App (설정·처음부터 다시 만들기)', () => {
     fireEvent.click(screen.getByText('설정'));
     await screen.findByText('처음부터 다시 만들기');
     expect(screen.queryByText('예시 템플릿 불러오기')).not.toBeInTheDocument(); // 2.1: 설정에서 뺐어요
-    expect(screen.getByText(/앱 \d+\.\d+\.\d+ · 콘텐츠 1/)).toBeInTheDocument();
+    expect(screen.getByText(/앱 버전 \d+\.\d+\.\d+ · 문구 버전 1 \(\d{4}\.\d{1,2}\.\d{1,2}\)/)).toBeInTheDocument();
     fireEvent.click(screen.getByText('처음부터 다시 만들기'));
     await screen.findByText('처음부터 다시 만들까요?');
     expect(screen.getByText('닫기')).toBeInTheDocument();
