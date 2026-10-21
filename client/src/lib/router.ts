@@ -138,6 +138,26 @@ export function goBack(): void {
 }
 
 /**
+ * 홈으로(3.0, 세부 목표 화면 가운데 이름표의 '핵심 목표로' — 사용자 2026-10-21 시안 9).
+ * 히스토리를 새로 쌓지 않고 바닥까지 되감아요(홈 → 전체 보기 → 세부 목표처럼 몇 단계를 거쳤어도 한 번에).
+ * 딥링크로 들어와 바닥이 다른 화면이면 바닥이 홈을 그리게 바꿔요(goBack 과 같은 방식 — replaceState 는 쓰지 않아요, 위 설명).
+ */
+export function goHome(): void {
+  const depth = currentDepth();
+  baseRoute = HOME;
+  if (depth > 0) {
+    window.history.go(-depth);
+    return;
+  }
+  // 바닥인데 해시가 다른 화면을 가리키면(개발 서버에서 주소로 바로 연 경우) 되감을 게 없어 홈을 쌓아요
+  if (currentRoute().name !== 'home') {
+    navigate(HOME);
+    return;
+  }
+  emit();
+}
+
+/**
  * 개발 빌드 전용. AIT Devtools 의 모의 네비게이션 바 뒤로가기(‹)는 히스토리를 움직이지 않고
  * `backEvent` 만 쏘기 때문에, 여기서 받아 실제 토스앱과 같은 동작(히스토리 뒤로가기)을 흉내 내요.
  * 출시 번들에는 들어가지 않아요 — 토스앱에서는 backEvent 를 구독하면 기본 뒤로가기·종료 창이 막혀요.

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseRoute, resolveHash, routeFromSchemeUrl, routeToHash } from './router';
+import { atHistoryBottom, goHome, navigate, parseRoute, resolveHash, routeFromSchemeUrl, routeToHash } from './router';
+
+/** jsdom 의 히스토리 되감기는 비동기라 잠깐 기다려요 */
+const settled = () => new Promise((resolve) => setTimeout(resolve, 20));
 
 describe('parseRoute / routeToHash', () => {
   it('해시와 라우트가 서로 바뀌어요', () => {
@@ -56,5 +59,27 @@ describe('resolveHash', () => {
     expect(resolveHash('#', base)).toEqual(base);
     expect(resolveHash('#/', base)).toEqual(base);
     expect(resolveHash('#/sub/3', base)).toEqual({ name: 'sub', sub: 3 });
+  });
+});
+
+describe('goHome (3.0 — 세부 목표 화면 가운데 이름표)', () => {
+  it('몇 단계를 거쳤어도 히스토리를 바닥(홈)까지 되감아요', async () => {
+    window.history.replaceState(null, '', '#/');
+    navigate({ name: 'overview' });
+    navigate({ name: 'sub', sub: 2 });
+    expect(atHistoryBottom()).toBe(false);
+    expect(window.location.hash).toBe('#/sub/2');
+    goHome();
+    await settled();
+    expect(atHistoryBottom()).toBe(true);
+    expect(window.location.hash).toBe('#/');
+  });
+
+  it('이미 바닥이면 히스토리를 움직이지 않아요', async () => {
+    window.history.replaceState(null, '', '#/');
+    goHome();
+    await settled();
+    expect(atHistoryBottom()).toBe(true);
+    expect(window.location.hash).toBe('#/');
   });
 });

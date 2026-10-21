@@ -54,7 +54,7 @@ function reduceMotion(): boolean {
   }
 }
 
-type BlockModeProps = Pick<ComponentProps<typeof Block>, 'checked' | 'caption' | 'nextCell' | 'interactive' | 'selected' | 'lift'>;
+type BlockModeProps = Pick<ComponentProps<typeof Block>, 'checked' | 'caption' | 'nextCell' | 'interactive' | 'selected' | 'lift' | 'link'>;
 
 interface UseGridEditOptions {
   board: Board;
@@ -451,7 +451,7 @@ export function useGridEdit({ board, block, screen, onEditCell, onDeleteCells, o
 
   /**
    * Block 에 넘길 값. 평소엔 화면의 값 그대로, 편집 모드에선 오늘 체크·칸 아래 글·다음 칸 안내를 빼요(✓ 는 '고른 칸'만 뜻하게).
-   * 편집 모드에선 모든 칸을 누를 수 있고(고치기), 고르는 중엔 글이 있는 칸만 눌러요. 든 칸과 놓을 칸은 lift 로 그려요.
+   * 편집 모드에선 모든 칸을 누를 수 있고(고치기), 고르는 중엔 글이 있는 칸만 눌러요. 든 칸과 놓을 칸은 lift 로 그려요. 평소의 길 표시(link)는 빼요.
    */
   const blockProps = (normal: Omit<BlockModeProps, 'selected' | 'lift'>): BlockModeProps =>
     editing

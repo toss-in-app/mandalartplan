@@ -102,4 +102,15 @@ describe('App (제자리 편집 모드 — 자리 바꾸기, 3.0)', () => {
     expect(screen.getByRole('button', { name: '쉐도잉, 오늘 아직' })).not.toHaveClass('mg-cell-done');
     expect(logEvent).toHaveBeenCalledWith('board_edit', { block: 0 });
   });
+
+  it("세부 목표 화면 가운데 '핵심 목표로'를 누르면 홈으로 돌아가요(3.0 시안 9)", async () => {
+    seed();
+    renderAt('#/');
+    // 홈 → 세부 목표 '듣기'
+    fireEvent.click(await screen.findByRole('button', { name: /^듣기/ }));
+    await screen.findByRole('heading', { level: 1, name: '듣기' });
+    fireEvent.click(screen.getByRole('button', { name: '듣기, 핵심 목표로' }));
+    await screen.findByRole('heading', { level: 1, name: '토익 900점' });
+    expect(screen.queryByRole('button', { name: '듣기, 핵심 목표로' })).not.toBeInTheDocument();
+  });
 });

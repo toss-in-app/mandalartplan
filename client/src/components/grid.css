@@ -386,6 +386,29 @@ button.mg-cell.mg-cell-lifted:active {
   }
 }
 
+/* 세부 목표 화면 가운데 이름표의 '핵심 목표로'(3.0, 사용자 2026-10-21 시안 9): 누르면 홈. 칸이 오늘 한 만큼 보라로 차올라도
+   읽히게 흰 바탕 조각(72%) 위에 도장 잉크 색으로 — 어느 진하기에서도 글자 대비 5:1 이상 */
+.mg-cell-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-top: 5px;
+  padding: 2px 7px 2px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--mg-stamp, currentColor);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mg-cell-link svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
 /* 키보드·스크린리더용 입구: 평소엔 안 보이고 포커스하면 3×3 위에 보여요 */
 .mg-reveal-on-focus {
   position: absolute;

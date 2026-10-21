@@ -26,6 +26,8 @@ interface SubOptions {
   onDeleteCells?: (cells: number[]) => () => void;
   /** 자리 바꾸기(3.0). 넘기지 않으면 꾹 눌러 끌기·'자리 바꾸기' 입구가 없어요 */
   onSwapCells?: (a: number, b: number) => void;
+  /** 가운데 이름표로 홈(3.0 시안 9). 넘기지 않으면(체험판) 가운데는 이름표 */
+  onHome?: () => void;
   editLink?: { cell: number | null; onDone: () => void };
 }
 
@@ -33,7 +35,7 @@ function subScreen(subIndex: number, options: SubOptions = {}) {
   const handlers = { onToggle: vi.fn(), onChangeAction: vi.fn(), onChangeSubTitle: vi.fn(), onDeleteCells: options.onDeleteCells ?? vi.fn(() => vi.fn()) };
   const ui = (b: Board) => (
     <TDSMobileAITProvider brandPrimaryColor="#6B5CFF">
-      <SubScreen board={b} subIndex={subIndex} checkin={undefined} {...handlers} onSwapCells={options.onSwapCells} editLink={options.editLink} />
+      <SubScreen board={b} subIndex={subIndex} checkin={undefined} {...handlers} onSwapCells={options.onSwapCells} onHome={options.onHome} editLink={options.editLink} />
     </TDSMobileAITProvider>
   );
   const utils = render(ui(options.board ?? board()));
@@ -406,11 +408,54 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(screen.getByText('토익 900점 칸의 세부 목표는 무엇인가요?')).toBeInTheDocument();
   });
 
-  it('세부 목표 화면 가운데(세부 목표 이름)는 평소엔 이름표, 편집 모드에선 눌러서 고쳐요', () => {
+  it('세부 목표 화면 가운데(세부 목표 이름)는 홈이 없으면(체험판) 평소엔 이름표, 편집 모드에선 눌러서 고쳐요', () => {
     subScreen(0);
-    expect(screen.queryByRole('button', { name: '듣기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^듣기/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('핵심 목표로')).not.toBeInTheDocument();
     reveal('편집');
     expect(cell('듣기')).toBeInTheDocument();
+  });
+});
+
+describe("가운데 이름표로 홈 (3.0, 사용자 2026-10-21 시안 9 — '핵심 목표로')", () => {
+  it("평소엔 가운데에 '핵심 목표로'가 붙고 누르면 홈으로 가요(체크·입력창 아님)", () => {
+    const onHome = vi.fn();
+    const { onToggle } = subScreen(0, { onHome });
+    const center = screen.getByRole('button', { name: '듣기, 핵심 목표로' });
+    expect(center.querySelector('.mg-cell-link')).toHaveTextContent('핵심 목표로');
+    tap(center);
+    expect(onHome).toHaveBeenCalledTimes(1);
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(sheetOpen()).toBe(false);
+    expect(editingNow()).toBe(false);
+  });
+
+  it("편집 모드에선 '핵심 목표로'가 사라지고 가운데를 누르면 이름을 고쳐요. 길게 누른 손가락의 click 도 홈으로 가지 않아요", () => {
+    vi.useFakeTimers();
+    const onHome = vi.fn();
+    subScreen(0, { onHome });
+    const center = screen.getByRole('button', { name: '듣기, 핵심 목표로' });
+    fingerOver(center);
+    fireEvent.pointerDown(center, { clientX: 10, clientY: 10 });
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.pointerUp(center);
+    fireEvent.click(center);
+    expect(editingNow()).toBe(true);
+    expect(onHome).not.toHaveBeenCalled();
+    expect(screen.queryByText('핵심 목표로')).not.toBeInTheDocument();
+    tap(cell('듣기'));
+    expect(screen.getByText('세부 목표 1')).toBeInTheDocument();
+    expect(onHome).not.toHaveBeenCalled();
+  });
+
+  it('세부 목표 이름이 비어 있으면 가운데는 그대로 이름표예요', () => {
+    const b = createEmptyBoard(NOW);
+    b.subs[2].actions[0] = '단어장';
+    subScreen(2, { board: b, onHome: vi.fn() });
+    expect(screen.queryByText('핵심 목표로')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /세부 목표 3/ })).not.toBeInTheDocument();
   });
 });
 
