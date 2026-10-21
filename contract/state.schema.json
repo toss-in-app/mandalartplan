@@ -324,7 +324,7 @@
                 "count": {
                   "type": "integer",
                   "minimum": 0,
-                  "description": "date(기기 날짜)에 AI 를 성공적으로 돌린 횟수. 하루 10회 상한"
+                  "description": "date(기기 날짜)에 AI 를 성공적으로 돌린 횟수. 하루 20회 상한(2.1, 2.0 은 10회)"
                 }
               }
             }

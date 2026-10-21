@@ -46,7 +46,7 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
     ├── backup/              #   Supabase 백업·복원: config(URL·publishable 키) · key(익명 키 sha256) · api(RPC fetch) · useBackup
     ├── ads/                 #   광고: config(그룹 ID, 비면 테스트 ID) · fullScreen(load/show 약속) · useInterstitial · useRewardedAd · banner(TossAds 초기화) · rules(하루 1회)
     ├── notification/        #   알림 동의: Notification.requestAgreement 약속 래퍼, 템플릿 코드(.env)
-    ├── ai/                  #   AI 초안(2.0.0): rules(빈 칸만·하루 10회) · safety(자해 표현) · api · key · useAiDraft(고지 → 리워드 → 요청)
+    ├── ai/                  #   AI 초안(2.0.0): rules(빈 칸만·하루 20회, 2.0 은 10회) · safety(자해 표현) · api · key · useAiDraft(고지 → 리워드 → 요청)
     ├── lib/
     │   ├── mandalart.ts     #   판 모델·검증·진행률·공유 텍스트
     │   ├── state.ts         #   boards · checkins · settings 정규화, 날짜 키, 연속 일수

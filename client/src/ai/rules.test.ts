@@ -29,18 +29,19 @@ function boardWith(edit: (board: Board) => void): Board {
 }
 
 describe('하루 횟수', () => {
-  it('하루 10번, 날짜가 바뀌면 다시 10번', () => {
+  it('하루 20번(2.1), 날짜가 바뀌면 다시 20번', () => {
+    expect(AI_DAILY_RUNS).toBe(20);
     let ai = createDefaultSettings().ai;
     expect(runsLeft(ai, TODAY)).toBe(AI_DAILY_RUNS);
     for (let i = 0; i < AI_DAILY_RUNS; i += 1) ai = recordRun(ai, TODAY);
-    expect(ai.runs).toEqual({ date: TODAY, count: 10 });
+    expect(ai.runs).toEqual({ date: TODAY, count: AI_DAILY_RUNS });
     expect(runsLeft(ai, TODAY)).toBe(0);
-    expect(runsLeft(ai, '2026-10-21')).toBe(10);
+    expect(runsLeft(ai, '2026-10-21')).toBe(AI_DAILY_RUNS);
     expect(recordRun(ai, '2026-10-21').runs).toEqual({ date: '2026-10-21', count: 1 });
   });
 
   it('넘쳐도 음수가 되지 않아요', () => {
-    const ai = { noticeAt: null, runs: { date: TODAY, count: 15 } };
+    const ai = { noticeAt: null, runs: { date: TODAY, count: AI_DAILY_RUNS + 5 } };
     expect(runsLeft(ai, TODAY)).toBe(0);
   });
 });

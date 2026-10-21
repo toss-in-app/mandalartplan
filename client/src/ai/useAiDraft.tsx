@@ -76,7 +76,7 @@ function boardTexts(board: Board): string[] {
 }
 
 /**
- * AI 한 번 = 사전 검사(하루 10회·자해 표현) → 처음이면 생성형 AI 고지 → 키 → 리워드 광고 → 서버.
+ * AI 한 번 = 사전 검사(하루 20회·자해 표현) → 처음이면 생성형 AI 고지 → 키 → 리워드 광고 → 서버.
  * 광고를 못 불러오면 AI 를 쓰지 않고(2026-10-20 결정), 서버가 결과를 돌려줬을 때만 하루 횟수에 넣어요.
  */
 export function useAiDraft(app: AppState, reward: Reward) {

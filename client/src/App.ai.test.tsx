@@ -110,7 +110,7 @@ describe('App (AI 초안)', () => {
     renderAt();
     fireEvent.click(await screen.findByText('AI로 초안 만들기'));
     await screen.findByText('핵심 목표를 적으면 세부 목표 8개와 실천 64개를 채워요');
-    expect(screen.getByText('광고를 끝까지 보면 AI가 초안을 만들어요 · 오늘 10번 남았어요')).toBeInTheDocument();
+    expect(screen.getByText('광고를 끝까지 보면 AI가 초안을 만들어요 · 오늘 20번 남았어요')).toBeInTheDocument();
     expect(ad.watched).toBe(0); // 들어오기만 해서는 광고도 고지도 없어요
 
     fireEvent.click(screen.getByText('토익 900점')); // 예시 칩 → 입력칸
@@ -126,7 +126,7 @@ describe('App (AI 초안)', () => {
     expect(screen.getByText('AI 초안')).toBeInTheDocument();
     expect(server.calls.filter((c) => c.mode === 'subs')).toHaveLength(1);
     expect(server.calls.filter((c) => c.mode === 'actions')).toHaveLength(8); // 세부 목표마다 하나씩
-    expect(screen.getByText('다시 만들기는 광고를 한 번 더 봐요 · 오늘 9번 남았어요')).toBeInTheDocument();
+    expect(screen.getByText('다시 만들기는 광고를 한 번 더 봐요 · 오늘 19번 남았어요')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('이대로 시작하기'));
     await screen.findByRole('heading', { level: 1, name: '토익 900점' });
@@ -201,16 +201,16 @@ describe('App (AI 초안)', () => {
     renderAt('#/draft');
     fireEvent.click(await screen.findByRole('button', { name: '광고 보고 AI 초안 만들기' }));
     await screen.findByText('이 목표로는 초안을 만들 수 없어요. 다른 목표로 적어 보세요.');
-    expect(screen.getByText('방금 본 광고는 오늘 횟수에서 빼지 않았어요 · 10번 남았어요')).toBeInTheDocument();
+    expect(screen.getByText('방금 본 광고는 오늘 횟수에서 빼지 않았어요 · 20번 남았어요')).toBeInTheDocument();
     expect(ad.watched).toBe(1);
     expect(savedAi().runs.count).toBe(0);
   });
 
-  it('오늘 10번을 다 썼으면 버튼이 잠기고 안내해요', async () => {
-    saveAi({ noticeAt: 1, runs: { date: dateKey(), count: 10 } });
+  it('오늘 20번(2.1)을 다 썼으면 버튼이 잠기고 안내해요', async () => {
+    saveAi({ noticeAt: 1, runs: { date: dateKey(), count: 20 } });
     saveBoard('토익 900점');
     renderAt('#/draft');
-    await screen.findByText('오늘 AI 초안 10번을 다 썼어요. 내일 다시 만들 수 있어요');
+    await screen.findByText('오늘 AI 초안 20번을 다 썼어요. 내일 다시 만들 수 있어요');
     expect(screen.getByRole('button', { name: '광고 보고 AI 초안 만들기' })).toBeDisabled();
   });
 
@@ -247,7 +247,7 @@ describe('App (AI 초안)', () => {
     saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
     saveBoard('토익 900점', ['듣기', '', '읽기']); // 빈 칸 = 세부 목표 6 + 실천 64
     renderAt();
-    expect(await screen.findByText('빈 칸 70개만 채우고, 적어 둔 칸은 그대로예요. 광고를 끝까지 보면 채워져요 · 오늘 10번 남았어요')).toBeInTheDocument();
+    expect(await screen.findByText('빈 칸 70개만 채우고, 적어 둔 칸은 그대로예요. 광고를 끝까지 보면 채워져요 · 오늘 20번 남았어요')).toBeInTheDocument();
     expect(screen.queryByText('AI로 초안 만들기')).not.toBeInTheDocument();
     expect(ad.watched).toBe(0);
     fireEvent.click(screen.getByRole('button', { name: '광고 보고 AI로 빈 칸 채우기' }));
@@ -293,7 +293,7 @@ describe('App (AI 초안)', () => {
     saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
     saveBoard('토익 900점', ['듣기']);
     renderAt('#/sub/0');
-    await screen.findByText("'듣기'의 빈 실천 8칸을 채워요. 광고를 끝까지 보면 채워져요 · 오늘 10번 남았어요");
+    await screen.findByText("'듣기'의 빈 실천 8칸을 채워요. 광고를 끝까지 보면 채워져요 · 오늘 20번 남았어요");
     fireEvent.click(screen.getByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' }));
     await waitFor(() => expect(savedBoard().subs[0].actions).toEqual(Array.from({ length: 8 }, (_, j) => `실천 1-${j + 1}`)));
     expect(server.calls).toEqual([expect.objectContaining({ mode: 'actions', only: 0 })]);

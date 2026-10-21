@@ -231,7 +231,7 @@ describe('HomeScreen 맨 위 1분 체험 안내 카드 (2.1)', () => {
 describe("HomeScreen 'AI로 빈 칸 채우기' (2.1 초안 화면 없이 바로 광고)", () => {
   const fill = {
     label: 'AI로 빈 칸 채우기',
-    caption: '빈 칸 71개만 채우고, 적어 둔 칸은 그대로예요. 광고를 끝까지 보면 채워져요 · 오늘 10번 남았어요',
+    caption: '빈 칸 71개만 채우고, 적어 둔 칸은 그대로예요. 광고를 끝까지 보면 채워져요 · 오늘 20번 남았어요',
     disabled: false,
     onPress: vi.fn(),
   };

@@ -93,7 +93,8 @@ grant execute on function public.backup_delete(text) to anon;
 --  · 목표 글·칸 글·AI 결과는 어디에도 저장하지 않아요. 남기는 것은 키 해시별 날짜·호출 수(7일 보관)와 날짜별 토큰 합계뿐.
 --  · 키는 'k' + sha256('ai:' + 토스 익명 키) — 백업 키와 다른 값이라 둘을 이어 붙일 수 없어요.
 --  · 두 함수는 서버 키(Edge Function)만 실행해요. anon(publishable key)에 주면 누구나 상한을 다 써 버릴 수 있어서 주지 않아요.
---  · 상한(요청 1개 = Claude 1번, 형식이 틀리면 재요청까지 최대 2번): 키당 하루 100, 전체 하루 3,000 — 서울 날짜 기준(contract/ai-draft.api.md '한도').
+--  · 상한(요청 1개 = Claude 1번, 형식이 틀리면 재요청까지 최대 2번): 키당 하루 200, 전체 하루 3,000 — 서울 날짜 기준(contract/ai-draft.api.md '한도').
+--    2026-10-21 키당 100 → 200: 앱의 하루 AI 횟수를 10 → 20 으로 올려서(판 전체 1회 = 최대 9 호출 → 20회 = 180 + 다시 받기 여유).
 --    2026-10-20 전체 상한을 30,000 → 3,000 으로 낮춤: 키는 앱이 만들어 보내는 값이라 가짜 키로 키당 상한을 우회할 수 있어, 전체 상한이 비용·남용의 실제 상한이에요.
 
 create table if not exists public.ai_draft_usage (
@@ -137,7 +138,7 @@ begin
   insert into public.ai_draft_usage as u (key_hash, day, calls)
   values (p_key, v_day, 1)
   on conflict (key_hash, day) do update set calls = u.calls + 1
-    where u.calls < 100
+    where u.calls < 200
   returning calls into v_mine;
   -- 7일 지난 기록은 가끔(약 1%) 지워요
   if random() < 0.01 then

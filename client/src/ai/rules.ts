@@ -1,12 +1,12 @@
 /**
  * AI 초안 규칙 (설계 plans/2.0-ai-draft-design.md, 계약 contract/ai-draft.api.md).
- * 광고 1회 = AI 1회, 사람(기기)당 하루 10회, 빈 칸만 채우고 사용자가 적은 칸은 건드리지 않아요.
+ * 광고 1회 = AI 1회, 사람(기기)당 하루 20회(2.1 에서 10 → 20, 사용자 2026-10-21), 빈 칸만 채우고 사용자가 적은 칸은 건드리지 않아요.
  */
 import { ACTION_COUNT, AI_CELL, clampText, type AiDraftMeta, type Board } from '../lib/mandalart';
 import type { AiSettings } from '../lib/state';
 
 /** 하루 AI 실행 상한 (2026-10-20 사용자 결정) */
-export const AI_DAILY_RUNS = 10;
+export const AI_DAILY_RUNS = 20;
 
 export function runsLeft(ai: AiSettings, today: string): number {
   const used = ai.runs.date === today ? ai.runs.count : 0;
