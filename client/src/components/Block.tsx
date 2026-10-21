@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 
 import { cellView, type CellView } from '../lib/cells';
 import { CENTER, ringIndex, type Board } from '../lib/mandalart';
-import { brandColor, stampInk, withAlpha } from '../theme';
+import { brandColor, stampInk, subProgressFill, withAlpha } from '../theme';
 import './grid.css';
 
 export type BlockSize = 'small' | 'large' | 'main';
@@ -14,24 +14,27 @@ export type BlockSize = 'small' | 'large' | 'main';
  *  - 오늘 한 실천: 옅어진 칸 위에 '완료' 도장이 쿵 찍히고 아래 글씨는 흐려져요(.mg-cell-done, grid.css .mg-cell-stamp).
  *    사용자 결정(2026-10-21): 하나하나 지우는 재미 + 블라인드처럼 덮는 느낌 → 시안 넷(롤 블라인드·회색 가림막·완료 도장·뒤집기) 중 도장.
  *    끝낸 일을 그 자리에서 덮되 글씨는 남겨 무엇을 했는지 보이고, 9×9·공유 이미지에서도 읽혀요
- *  - 실천을 오늘 다 한 세부 목표: 더 진한 틴트 + 칸 아래 '오늘 다 했어요'(화면이 caption 으로 넣어요) + 이름을 가리지 않게
+ *  - 세부 목표 칸: 아직 하나도 안 했으면 실천 칸처럼 회색, 오늘 한 비율만큼 회색에서 보라로 차올라요(theme subProgressFill —
+ *    하위 실천에 도장을 찍을수록 위 칸이 차올라요). 오늘 정보가 없는 화면(편집 모드·AI 초안 미리보기)은 옅은 보라
+ *  - 실천을 오늘 다 한 세부 목표: 가장 진한 보라 + 칸 아래 '오늘 다 했어요'(화면이 caption 으로 넣어요) + 이름을 가리지 않게
  *    칸 모서리에 작은 '완료' 도장(.mg-cell-complete, grid.css .mg-cell-seal). 세부 목표는 끝나는 일이 아니라 큰 도장 대신 오늘 몫을 다 했다는 표시
  *  - 테두리 강조와 ✓ 는 편집 모드에서 지울 칸으로 고른 것만(selectedStyle). 편집 모드에선 오늘 한 표시를 빼서 둘이 같이 보이지 않아요
  */
-function cellStyle(view: CellView): CSSProperties {
+function cellStyle(view: CellView, today: boolean): CSSProperties {
   switch (view.kind) {
     case 'goal':
       return { background: brandColor, color: colors.white, fontWeight: view.text ? 700 : 600 };
     case 'sub':
-      if (view.checked) {
-        // 글이 있는 실천을 오늘 전부 체크한 세부 목표: 진한 틴트 (grey900 글자 대비 10:1)
-        return { background: withAlpha(brandColor, 0.36), color: colors.grey900, fontWeight: 700 };
+      if (!today) {
+        // 오늘 정보가 없는 화면(편집 모드·AI 초안 미리보기): 세부 목표 자리를 옅은 보라로
+        return { background: withAlpha(brandColor, 0.14), color: view.text ? colors.grey900 : colors.grey700, fontWeight: view.text ? 600 : 500 };
       }
-      return {
-        background: withAlpha(brandColor, 0.14),
-        color: view.text ? colors.grey900 : colors.grey700,
-        fontWeight: view.text ? 600 : 500,
-      };
+      if (!view.text.trim()) {
+        // 이름이 없는 세부 목표(전체 보기처럼 누를 수 없는 자리): 빈 실천 칸처럼
+        return { background: colors.white, color: colors.grey600, boxShadow: `inset 0 0 0 1px ${colors.grey200}` };
+      }
+      // 아직이면 회색, 오늘 한 비율만큼 회색에서 보라로 차오르고, 다 하면 가장 진하게(grey900 글자 대비 8:1 이상)
+      return { background: subProgressFill(view.progress, view.checked), color: colors.grey900, fontWeight: view.checked ? 700 : 600 };
     default:
       if (view.checked) {
         // 오늘 한 실천: 한 단계 옅어진 칸. 도장과 흐려지는 글씨는 grid.css(굵기는 그대로라 줄바꿈이 바뀌지 않아요)
@@ -172,13 +175,14 @@ const LOADING_STYLE: CSSProperties = { background: colors.grey100 };
 export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null, loading = false, selected }: BlockProps) {
   const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
   const selectMode = selected !== undefined;
-  const styleOf = (view: CellView, cell: number) => (selected?.has(cell) ? selectedStyle(view, size) : cellStyle(view));
+  // 오늘 체크를 넘긴 화면(홈·세부 목표·전체 보기)만 오늘 진행을 칸 색으로 보여요. 편집 모드·AI 초안 미리보기는 칸 글만
+  const checkMode = checked !== undefined;
+  const styleOf = (view: CellView, cell: number) => (selected?.has(cell) ? selectedStyle(view, size) : cellStyle(view, checkMode));
   const className = `mg-block mg-block-${size}`;
   // 오늘 한 실천에 찍는 도장 잉크 색(grid.css .mg-cell-stamp)
   const stampVar = { ['--mg-stamp' as string]: stampInk } as CSSProperties;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
-  // 오늘 체크를 넘긴 화면(홈·세부 목표)만 실천 칸을 '오늘 했어요/아직' 토글로 읽어요. 편집 모드는 칸 글만
-  const checkMode = checked !== undefined;
+  // 같은 기준으로 실천 칸을 '오늘 했어요/아직' 토글로 읽어요
 
   if (onSelect) {
     return (

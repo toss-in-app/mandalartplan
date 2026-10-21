@@ -8,7 +8,7 @@
  */
 import { colors } from '@toss/tds-colors';
 
-import { brandColor, stampInk, withAlpha } from '../theme';
+import { brandColor, stampInk, subProgressFill } from '../theme';
 import { cellView, type CellView } from './cells';
 import { getProgress, hasAiText, type Board } from './mandalart';
 
@@ -182,18 +182,14 @@ interface CellStyle {
   stamped: boolean;
 }
 
-/** 앱 화면(components/Block.tsx)과 같은 모양: 오늘 한 실천 = 옅은 칸 + 흐린 글씨 + '완료' 도장, 다 한 세부 목표 = 더 진한 틴트. ✓ 는 쓰지 않아요 */
+/** 앱 화면(components/Block.tsx)과 같은 모양: 오늘 한 실천 = 옅은 칸 + 흐린 글씨 + '완료' 도장, 세부 목표 = 아직이면 회색·오늘 한 비율만큼 보라(다 하면 모서리 도장). ✓ 는 쓰지 않아요 */
 function cellStyle(view: CellView): CellStyle {
   switch (view.kind) {
     case 'goal':
       return { background: brandColor, color: colors.white, weight: 700, stamped: false };
     case 'sub':
-      return {
-        background: withAlpha(brandColor, view.checked ? 0.36 : 0.14),
-        color: view.text ? colors.grey900 : colors.grey500,
-        weight: view.checked ? 700 : 600,
-        stamped: false,
-      };
+      if (!view.text.trim()) return { background: colors.grey50, color: colors.grey500, weight: 600, stamped: false };
+      return { background: subProgressFill(view.progress, view.checked), color: colors.grey900, weight: view.checked ? 700 : 600, stamped: false };
     default:
       if (view.checked) return { background: colors.grey50, color: colors.grey400, weight: 500, stamped: true };
       return { background: view.text ? colors.grey100 : colors.grey50, color: colors.grey800, weight: 500, stamped: false };

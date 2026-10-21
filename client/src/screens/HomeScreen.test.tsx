@@ -143,9 +143,15 @@ describe('HomeScreen (홈 마무리)', () => {
     board.subs[0].actions[1] = '저녁 산책';
     const today = dateKey();
     const half: CheckinRecord = { days: { [today]: [actionIndex(0, 0)] }, lastCompletedAt: 1 };
+    // 아직 하나도 안 했으면 실천 칸처럼 회색
+    const { unmount: unmountNone } = renderHome(board, content, { days: {}, lastCompletedAt: null });
+    expect(screen.getByRole('button', { name: '운동, 오늘 2개 중 0개' })).toHaveStyle({ backgroundColor: 'rgb(242, 244, 246)' });
+    unmountNone();
     const { unmount } = renderHome(board, content, half);
     const partial = screen.getByRole('button', { name: '운동, 오늘 2개 중 1개' });
     expect(partial.querySelector('.mg-cell-check')).toBeNull();
+    // 오늘 한 비율만큼 회색에서 보라로 차올라요: 2개 중 1개 = 그 사이 50% 지점(아직 0 이면 회색, 다 하면 브랜드 48%)
+    expect(partial).toHaveStyle({ backgroundColor: 'rgb(213, 211, 251)' });
     expect(screen.getByText(/오늘 1개 했어요/)).toBeInTheDocument();
     unmount();
     const all: CheckinRecord = { days: { [today]: [actionIndex(0, 0), actionIndex(0, 1)] }, lastCompletedAt: 1 };
@@ -154,6 +160,7 @@ describe('HomeScreen (홈 마무리)', () => {
     expect(done.querySelector('.mg-cell-check')).toBeNull();
     // 이름을 가리지 않게 모서리에 작은 '완료' 도장(.mg-cell-complete 일 때만 보여요)
     expect(done).toHaveClass('mg-cell-complete');
+    expect(done).toHaveStyle({ backgroundColor: 'rgb(184, 177, 255)' });
     expect(done.querySelector('.mg-cell-seal')).toHaveAttribute('data-label', '완료');
     expect(partial).not.toHaveClass('mg-cell-complete');
     expect(within(done).getByText('오늘 다 했어요')).toBeInTheDocument();
