@@ -1,10 +1,13 @@
 import { colors } from '@toss/tds-colors';
 import { Button, List, ListRow, ProgressBar, Text, Top } from '@toss/tds-mobile';
+import { useEffect } from 'react';
 
 import { emptyCellCount, hasBoardText } from '../ai/rules';
 import { AiDraftBadge } from '../components/AiDraftBadge';
 import { Block } from '../components/Block';
+import { EditDoneButton } from '../components/EditDoneButton';
 import { useCellEditor } from '../hooks/useCellEditor';
+import { useGridEdit } from '../hooks/useGridEdit';
 import { editTarget } from '../lib/cellEdit';
 import { activeSeason, type Content } from '../content';
 import { nextEmptyCell } from '../lib/cells';
@@ -26,9 +29,8 @@ interface HomeScreenProps {
   todayBusy?: boolean;
   /** 다음 '기록 보기' 탭에 전면 광고가 나올 수 있으면 true → 버튼에 AD 표시, 아래에 안내 한 줄(노출 정책 UX 원칙 2) */
   todayAdNotice?: boolean;
-  onEditCore: () => void;
   onSelectSub: (subIndex: number) => void;
-  /** 빈 핵심 목표·세부 목표 칸을 눌러 시트에서 정했을 때 */
+  /** 칸을 눌러 시트에서 적었을 때(빈 칸, 또는 편집 모드에서 고친 칸) */
   onChangeGoal: (goal: string) => void;
   onChangeSubTitle: (subIndex: number, title: string) => void;
   onToday: () => void;
@@ -41,12 +43,17 @@ interface HomeScreenProps {
   onStartWithTemplate: () => void;
   /** AI 초안 화면으로 — 빈 판·핵심 목표만이면 'AI로 초안 만들기'(2.0), 칸을 일부 채운 뒤에는 빈 칸이 남아 있는 동안 'AI로 빈 칸 채우기'(2.1). 없으면(서버 설정 없음·광고 미지원) 버튼을 숨겨요 */
   onAiDraft?: () => void;
+  /** 편집 모드에서 고른 칸(0~8)을 지우고 되돌리기 함수를 돌려줘요(2.1) */
+  onDeleteCells?: (cells: number[]) => () => void;
+  /** 예전 편집 화면 링크(`block/4`, 콘솔 앱 내 기능 '만다라트 작성')로 들어왔을 때: 편집 모드로 시작, cell 이 있으면 그 칸 입력창, '완료'는 편집 모드를 끝내고 onDone */
+  editLink?: { cell: number | null; onDone: () => void };
 }
 
 /**
  * 홈 = 가운데 3×3 (핵심 목표 + 세부 목표 8). 세부 목표를 누르면 그 목표의 3×3 으로.
  * 가운데(핵심 목표)는 글이 있으면 누를 수 없는 이름표 — 세부 목표 화면·전체 보기의 가운데와 같아요(2.1, 사용자 결정). 전체 보기는 '전체 보기' 버튼으로.
- * 비어 있는 칸(핵심 목표·세부 목표)은 누르면 그 자리에서 바텀시트로 정해요. 편집은 오른쪽 위 버튼.
+ * 비어 있는 칸(핵심 목표·세부 목표)은 누르면 그 자리에서 바텀시트로 정해요.
+ * 고치기·지우기는 편집 버튼 없이 칸을 길게 눌러 그 자리에서(2.1 제자리 편집 모드, `useGridEdit`) — 오른쪽 위 '완료'로 끝내요.
  * 글이 있는 실천을 오늘 전부 체크한 세부 목표 칸은 진해지고 체크 표시가 붙어요.
  */
 export function HomeScreen({
@@ -58,7 +65,6 @@ export function HomeScreen({
   notificationVisible,
   todayBusy = false,
   todayAdNotice = false,
-  onEditCore,
   onSelectSub,
   onChangeGoal,
   onChangeSubTitle,
@@ -69,8 +75,30 @@ export function HomeScreen({
   onNotification,
   onStartWithTemplate,
   onAiDraft,
+  onDeleteCells,
+  editLink,
 }: HomeScreenProps) {
   const editor = useCellEditor({ onChangeGoal, onChangeSubTitle });
+  const edit = useGridEdit({
+    board,
+    block: CENTER,
+    screen: 'home',
+    onEditCell: (cell) => editor.openFromTap(editTarget(board, CENTER, cell)),
+    onDeleteCells,
+    startEditing: Boolean(editLink),
+  });
+  // 링크로 들어왔으면 편집 모드를 끝내고 이전 화면으로(이전 화면이 없어도 편집 모드는 끝나요)
+  const finishEditing = () => {
+    edit.exit();
+    editLink?.onDone();
+  };
+  // 링크에 칸이 정해져 있으면(`block/4/:cell`) 그 칸의 입력창을 바로 열어요(키보드는 입력칸을 한 번 누르면 올라와요)
+  const linkCell = editLink?.cell ?? null;
+  useEffect(() => {
+    if (linkCell !== null) editor.open(editTarget(board, CENTER, linkCell));
+    // 화면이 처음 뜰 때 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const today = dateKey();
   const progress = getProgress(board);
   const checked = todaySet(checkin, today);
@@ -114,12 +142,8 @@ export function HomeScreen({
           )
         }
         subtitleBottom={<Top.SubtitleParagraph size={17}>{subtitle}</Top.SubtitleParagraph>}
-        right={
-          // 편집은 잠기지 않으니 빈 판에서도 보여요. 공유는 전체 보기 화면 오른쪽 위에 있어요
-          <Top.RightButton color="dark" variant="weak" onClick={onEditCore}>
-            편집
-          </Top.RightButton>
-        }
+        // 편집 버튼은 없어요(칸을 길게 누르기). 편집 모드에서만 끝내는 '완료'. 공유는 전체 보기 화면 오른쪽 위에 있어요
+        right={<EditDoneButton editing={edit.editing} onClick={finishEditing} />}
       />
 
       {(content.notice || season) && (
@@ -130,30 +154,47 @@ export function HomeScreen({
         </div>
       )}
 
+      {edit.revealButton}
+
       <div style={{ padding: '0 20px' }}>
-        <Block
-          board={board}
-          block={CENTER}
-          size="main"
-          checked={checked}
-          nextCell={nextEmptyCell(board, CENTER)}
-          caption={(view) => {
-            if (view.kind !== 'sub' || view.index === null || !view.text) return null;
-            const total = board.subs[view.index].actions.filter((a) => a.trim()).length;
-            if (total === 0) return '실천을 적어요';
-            return `오늘 ${checkedInSub(checked, view.index)}/${total}`;
-          }}
-          // 글이 있는 가운데(핵심 목표)는 누름 없음 — 어느 화면이든 가운데는 이름표(2.1)
-          interactive={(_cell, view) => !(view.kind === 'goal' && view.text.trim())}
-          onSelectCell={(cell, view) => {
-            // 비어 있는 칸은 그 자리에서 정하고, 채워진 세부 목표는 그 목표의 3×3 으로
-            if (!view.text.trim()) {
-              editor.openFromTap(editTarget(board, CENTER, cell));
-              return;
-            }
-            if (view.kind === 'sub' && view.index !== null) onSelectSub(view.index);
-          }}
-        />
+        <div {...edit.gridProps}>
+          <Block
+            board={board}
+            block={CENTER}
+            size="main"
+            {...edit.blockProps({
+              checked,
+              nextCell: nextEmptyCell(board, CENTER),
+              caption: (view) => {
+                if (view.kind !== 'sub' || view.index === null || !view.text) return null;
+                const total = board.subs[view.index].actions.filter((a) => a.trim()).length;
+                if (total === 0) return '실천을 적어요';
+                return `오늘 ${checkedInSub(checked, view.index)}/${total}`;
+              },
+              // 글이 있는 가운데(핵심 목표)는 누름 없음 — 어느 화면이든 가운데는 이름표(2.1). 편집 모드에선 눌러서 고쳐요
+              interactive: (_cell, view) => !(view.kind === 'goal' && view.text.trim()),
+            })}
+            onSelectCell={(cell, view) => {
+              // 편집 모드(고치기·고르기)와 길게 누른 뒤의 click 은 편집 쪽이 받아요
+              if (edit.handleTap(cell)) return;
+              // 비어 있는 칸은 그 자리에서 정하고, 채워진 세부 목표는 그 목표의 3×3 으로
+              if (!view.text.trim()) {
+                editor.openFromTap(editTarget(board, CENTER, cell));
+                return;
+              }
+              if (view.kind === 'sub' && view.index !== null) onSelectSub(view.index);
+            }}
+          />
+        </div>
+      </div>
+
+      {/* 편집 버튼 대신 길게 누르기를 알려 주고, 편집 모드에선 할 수 있는 일을 알려 줘요 */}
+      <div className="text-balance" aria-live="polite" style={{ padding: edit.hint ? '12px 24px 0' : 0 }}>
+        {edit.hint && (
+          <Text typography="t7" color={colors.grey600} display="block">
+            {edit.hint}
+          </Text>
+        )}
       </div>
 
       {/* 실천을 하나라도 적은 뒤에만 진행률을 보여요 (0 / 0 은 뜻이 없어요) */}
@@ -256,6 +297,7 @@ export function HomeScreen({
       )}
 
       {editor.sheet}
+      {edit.bottomBar}
 
       <List>
         {notificationVisible && (

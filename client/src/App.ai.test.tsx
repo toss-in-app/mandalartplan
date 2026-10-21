@@ -78,7 +78,7 @@ function renderAt(hash = '') {
   );
 }
 
-function saveBoard(goal: string, subs: string[] = []) {
+function saveBoard(goal: string, subs: string[] = [], actions: Record<number, string[]> = {}) {
   window.localStorage.setItem(
     '__ait_storage:mandalart.boards.v1',
     JSON.stringify({
@@ -88,7 +88,7 @@ function saveBoard(goal: string, subs: string[] = []) {
         {
           id: 'b1759000000000',
           goal,
-          subs: Array.from({ length: 8 }, (_, i) => ({ title: subs[i] ?? '', actions: Array(8).fill('') })),
+          subs: Array.from({ length: 8 }, (_, i) => ({ title: subs[i] ?? '', actions: Array.from({ length: 8 }, (__, j) => actions[i]?.[j] ?? '') })),
           templateId: null,
           createdAt: 1,
           updatedAt: 1,
@@ -213,27 +213,14 @@ describe('App (AI 초안)', () => {
     expect(screen.getByRole('button', { name: '광고 보고 AI 초안 만들기' })).toBeDisabled();
   });
 
-  it('편집 화면: 빈 세부 목표만 AI 로 채우고 바로 넣어요', async () => {
-    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
-    saveBoard('8구단 드래프트 1순위', ['체력 강화', '제구력', '구위', '멘탈', '구속 향상']);
-    renderAt('#/block/4');
-    await screen.findByText('비어 있는 세부 목표 3칸만 채워요. 광고를 끝까지 보면 채워져요 · 오늘 10번 남았어요');
-    fireEvent.click(screen.getByRole('button', { name: '광고 보고 빈 칸 AI로 채우기' }));
-    await waitFor(() => expect(screen.getAllByText('빈 칸 3개를 AI로 채웠어요').length).toBeGreaterThan(0));
-    await waitFor(() => expect(savedBoard().subs.map((s: { title: string }) => s.title)).toEqual(['체력 강화', '제구력', '구위', '멘탈', '구속 향상', '영역 6', '영역 7', '영역 8']));
-    expect(savedBoard().aiDraft).not.toBeNull();
-    expect(savedAi().runs.count).toBe(1);
-    expect(logEvent).toHaveBeenCalledWith('ai_draft_apply', { mode: 'subs', filled: 3 });
-    // 다 채워지면 버튼이 사라져요
-    await waitFor(() => expect(screen.queryByRole('button', { name: '광고 보고 빈 칸 AI로 채우기' })).not.toBeInTheDocument());
-  });
-
   it("'AI 초안' 표시는 AI 가 쓴 칸을 사용자가 다 고치면 사라져요(칸 단위)", async () => {
     saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
-    saveBoard('8구단 드래프트 1순위', ['체력 강화', '제구력', '구위', '멘탈', '구속 향상']);
-    renderAt('#/block/4');
-    fireEvent.click(await screen.findByRole('button', { name: '광고 보고 빈 칸 AI로 채우기' }));
-    await waitFor(() => expect(savedBoard().aiDraft?.cells).toEqual([6, 7, 8])); // 세부 목표 6~8 = AI_CELL 6·7·8
+    saveBoard('토익 900점', ['듣기'], { 0: ['받아쓰기', '쉐도잉', '팟캐스트', '단어장', '모의고사'] });
+    renderAt('#/sub/0');
+    fireEvent.click(await screen.findByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' }));
+    await waitFor(() => expect(savedBoard().aiDraft?.cells).toEqual([14, 15, 16])); // 실천 1-6~1-8 = AI_CELL 9 + 5·6·7
+    // 길게 누르기와 같은 편집 모드(키보드 입구)에서 칸을 눌러 고쳐요
+    fireEvent.click(screen.getByRole('button', { name: '편집' }));
 
     /** 칸을 눌러 시트에서 글을 바꾸고 시트의 '완료' */
     const rewrite = async (name: string, text: string) => {
@@ -244,14 +231,14 @@ describe('App (AI 초안)', () => {
       fireEvent.click(within(node!).getByText('완료'));
       await waitFor(() => expect(document.getElementById('mandalart-cell-editor')).toBeNull());
     };
-    await rewrite('영역 6', '내가 쓴 영역');
-    await waitFor(() => expect(savedBoard().aiDraft?.cells).toEqual([7, 8]));
-    await rewrite('영역 7', '두 번째');
-    await rewrite('영역 8', '세 번째');
+    await rewrite('실천 1-6', '내가 쓴 실천');
+    await waitFor(() => expect(savedBoard().aiDraft?.cells).toEqual([15, 16]));
+    await rewrite('실천 1-7', '두 번째');
+    await rewrite('실천 1-8', '세 번째');
     await waitFor(() => expect(savedBoard().aiDraft).toBeNull());
 
     window.location.hash = '#/';
-    await screen.findByRole('heading', { level: 1, name: '8구단 드래프트 1순위' });
+    await screen.findByRole('heading', { level: 1, name: '토익 900점' });
     expect(screen.queryByText('AI 초안')).not.toBeInTheDocument();
   });
 
@@ -302,7 +289,7 @@ describe('App (AI 초안)', () => {
     saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
     saveBoard('', ['듣기']);
     renderAt('#/sub/0');
-    await screen.findByText('핵심 목표는 홈의 편집에서 적어요');
+    await screen.findByText('핵심 목표는 홈 가운데 칸에서 적어요');
     expect(screen.queryByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' })).not.toBeInTheDocument();
   });
 

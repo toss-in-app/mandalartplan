@@ -1,5 +1,5 @@
 /* 만다라트 격자. TDS 에 없는 영역이라 직접 그려요. 색은 tds-colors 와 브랜드 색을 써요.
-   small: 9×9 전체 보기 안의 3×3 · large: 편집 화면 미리보기 · main: 홈·세부 목표 화면의 큰 3×3 */
+   small: 9×9 전체 보기 안의 3×3 · large: 지금은 쓰지 않아요 · main: 홈·세부 목표 화면의 큰 3×3 */
 
 .mg-board {
   display: grid;
@@ -182,7 +182,7 @@ button.mg-block:focus:not(:focus-visible) {
   }
 }
 
-/* 편집 화면 여러 칸 지우기(2.1): 길게 누르기·쓸기로 고르기 */
+/* 제자리 편집 모드(2.1, hooks/useGridEdit): 길게 누르면 편집, 옆으로 쓸거나 끌면 지울 칸 고르기 */
 /* 칸 위에서는 길게 눌러도 글자 선택·메뉴가 뜨지 않게, 위아래 스크롤만 브라우저가 맡고 옆으로 쓸기는 앱이 받아요 */
 .mg-press-area {
   touch-action: pan-y;
@@ -191,30 +191,30 @@ button.mg-block:focus:not(:focus-visible) {
   -webkit-touch-callout: none;
 }
 
-/* 고르기 모드: 어느 방향으로 끌어도 스크롤 대신 고르기 */
-.mg-select-area {
+/* 편집 모드: 칸 위에서는 어느 방향으로 끌어도 스크롤 대신 고르기(3×3 밖을 끌면 스크롤돼요) */
+.mg-edit-area {
   touch-action: none;
 }
 
-/* 아이폰 홈 화면 편집처럼 고를 수 있는 칸이 살짝 흔들려요(칸마다 박자를 엇갈리게) */
+/* 아이폰 홈 화면 편집처럼 글이 있는 칸이 살짝 흔들려요(칸마다 박자를 엇갈리게) */
 @keyframes mg-jiggle {
   0% { transform: rotate(-1.2deg); }
   50% { transform: rotate(1.2deg); }
   100% { transform: rotate(-1.2deg); }
 }
-.mg-jiggle button.mg-cell {
+.mg-jiggle button.mg-cell[data-filled] {
   animation: mg-jiggle 0.32s ease-in-out infinite;
   transform-origin: 50% 50%;
 }
-.mg-jiggle button.mg-cell[data-cell='1'],
-.mg-jiggle button.mg-cell[data-cell='3'],
-.mg-jiggle button.mg-cell[data-cell='5'],
-.mg-jiggle button.mg-cell[data-cell='7'] {
+.mg-jiggle button.mg-cell[data-filled][data-cell='1'],
+.mg-jiggle button.mg-cell[data-filled][data-cell='3'],
+.mg-jiggle button.mg-cell[data-filled][data-cell='5'],
+.mg-jiggle button.mg-cell[data-filled][data-cell='7'] {
   animation-delay: -0.16s;
   animation-direction: reverse;
 }
 @media (prefers-reduced-motion: reduce) {
-  .mg-jiggle button.mg-cell {
+  .mg-jiggle button.mg-cell[data-filled] {
     animation: none;
   }
 }

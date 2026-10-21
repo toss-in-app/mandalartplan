@@ -4,7 +4,7 @@
 | 이벤트 | 언제 | 파라미터 |
 |--------|------|----------|
 | `home_view` | `home` 렌더 | `filled`(0~73), `boards`(1~2) |
-| `board_edit` | `block` 에서 값이 바뀐 뒤 화면 이탈 | `block`(0~8) |
+| `board_edit` | 편집 모드(2.1 제자리 편집, 홈·세부 목표 화면)에서 값이 바뀐 뒤 '완료'·화면 이탈 | `block`(0~8: 4 = 홈, 둘레 = 그 세부 목표 화면) |
 | `board_filled` | 73칸이 처음 다 찼을 때(판마다 1회) | `templateId`, `ai`(true/false — AI 결과를 넣은 판인지, 2.0) |
 | `action_check` | 세부 목표 화면에서 실천 칸 탭 | `index`(0~63), `checked`(true/false), `todayCount`, `streak`, `first`(처음 체크한 순간이면 true) |
 | `today_view` | 홈 '기록 보기' 진입(기록 화면, 오늘 탭) | `todayCount`, `streak` |
@@ -22,13 +22,14 @@
 핵심 지표(콘솔 9단계): 활성 `action_check` · 전환 `board_filled`(대표), `share_image_save`, `notification_agree`.
 
 - 구현(2026-10-08, `client/src/lib/analytics.ts`): `Analytics.log({ log_name, log_type, params })`. `log_type` 은 `home_view`·`today_view` 만 `screen`, 나머지 `event`(`stats_view` 포함). 값은 문자열, null·undefined 제외, 개인정보 없음(`anonymous_key` 는 SDK 가 붙임). 토스앱 5.208.0 미만·브라우저는 조용히 무시.
-- 보충: `board_filled` 는 채운 칸이 73 미만 → 73 이 되는 순간(`templateId` 없으면 `none`). `board_edit` 는 block 에 들어올 때와 나갈 때 `updatedAt` 이 다르면 1회. `ad_interstitial` 은 전면 조건이 맞아 시도했을 때만(shown / skipped = 미로딩 / failed = 띄우기 실패).
+- 보충: `board_filled` 는 채운 칸이 73 미만 → 73 이 되는 순간(`templateId` 없으면 `none`). `board_edit` 는 편집 모드에 들어갈 때와 나올 때(완료·화면 이탈) `updatedAt` 이 다르면 1회(2.0 까지는 편집 화면 `block` 에 들어올 때와 나갈 때). `ad_interstitial` 은 전면 조건이 맞아 시도했을 때만(shown / skipped = 미로딩 / failed = 띄우기 실패).
 
-### 편집 화면 여러 칸 지우기 (2.1)
+### 제자리 편집 모드 (2.1 — 편집 버튼·편집 화면 대신, `client/src/hooks/useGridEdit.tsx`)
 
 | 이름 | 언제 | 파라미터 |
 |------|------|----------|
-| `cells_delete` | 고르기 모드에서 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수), `area`(goals = 가운데 블록: 핵심 목표·세부 목표 / actions = 둘레 블록: 세부 목표 이름·실천) |
+| `edit_mode_enter` | 홈·세부 목표 화면이 편집 모드로 바뀔 때 | `screen`(home/sub), `via`(longpress = 칸 길게 누르기 / swipe = 옆으로 쓸기 / button = 키보드·스크린리더 입구 '편집' / link = 예전 편집 화면 링크 `block/:n`) |
+| `cells_delete` | 편집 모드에서 고른 칸을 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수), `area`(goals = 홈: 핵심 목표·세부 목표 / actions = 세부 목표 화면: 세부 목표 이름·실천) |
 | `cells_delete_undo` | 토스트의 '되돌리기' | `count` |
 
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
@@ -73,16 +74,16 @@ Supabase RPC: `backup_get(p_key)` · `backup_upsert(p_key, p_payload, p_payload_
 | 이벤트 | 언제 | 파라미터 |
 |--------|------|----------|
 | `ai_notice_agree` | 생성형 AI 사전 고지 시트에서 '확인' | |
-| `ai_draft_start` | AD 버튼을 누르고 사전 검사(고지·하루 10회·입력)를 통과해 광고를 띄우기 직전 | `mode`(draft/subs/actions), `from`(2.1: draft 는 new = 빈 판·핵심 목표만 / partial = 칸을 일부 채운 판, subs·actions 는 edit = 편집 화면 / sub = 세부 목표 화면) |
+| `ai_draft_start` | AD 버튼을 누르고 사전 검사(고지·하루 10회·입력)를 통과해 광고를 띄우기 직전 | `mode`(draft/actions, 2.0 은 subs 도), `from`(2.1: draft 는 new = 빈 판·핵심 목표만 / partial = 칸을 일부 채운 판, actions 는 sub = 세부 목표 화면) |
 | `ai_draft_reward` | 리워드 광고 결과 | `mode`, `result`(rewarded/dismissed/unavailable) |
 | `ai_draft_result` | 서버 응답(보상을 받은 뒤에만 부름) | `mode`, `result`(ok/refused/limited/invalid_output/busy/network/invalid), `ms` |
-| `ai_draft_apply` | 결과를 판에 넣음(미리보기 '이대로 시작하기' 또는 편집 화면 채우기) | `mode`, `filled`(새로 채운 칸 수) |
+| `ai_draft_apply` | 결과를 판에 넣음(미리보기 '이대로 시작하기' 또는 세부 목표 화면 채우기) | `mode`, `filled`(새로 채운 칸 수) |
 
-- `mode`: `draft` = 목표 입력 화면에서 판 전체(세부 목표 → 실천 순서로 서버 2번), `subs` = 편집 화면 빈 세부 목표만, `actions` = 편집 화면 한 세부 목표의 빈 실천만.
+- `mode`: `draft` = 목표 입력 화면에서 판 전체(세부 목표 → 실천 순서로 서버 2번), `actions` = 한 세부 목표의 빈 실천만(2.1 세부 목표 화면, 2.0 은 편집 화면). `subs` = 2.0 편집 화면의 빈 세부 목표만 — 2.1 에서 편집 화면과 함께 없어짐(빈 세부 목표는 홈 'AI로 빈 칸 채우기' = `draft`). 서버 API 의 `subs` 모드는 `draft` 가 안에서 그대로 씀.
 - 자해·자살 표현 감지(앱 사전 검사·서버 `self_harm`)는 **이벤트를 남기지 않는다** — 민감한 정보라서. 목표 문구·칸 글도 어떤 이벤트에도 싣지 않는다.
 
 | 광고 그룹 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
-| `rewarded-ai-draft` | 리워드 | 목표 입력 '광고 보고 만들기' · 미리보기 '다시 만들기' · 편집 '빈 칸 AI로 채우기'·'실천 AI로 추천' | 보상 = AI 1회(이름 "AI 초안", 수량 1), `userEarnedReward` 에서만. 광고를 못 불러오면 AI 를 쓰지 않음(2026-10-20 결정). 사람당 하루 10회(`settings.ai.runs`). 라이브 ID `VITE_AD_GROUP_REWARDED_AI_DRAFT`. **임시(2026-10-20~)**: 전면·리워드 지면 신규 생성 오류(앱인토스 공지 54047) 동안 `rewarded-extra-board` 지면 ID 를 같이 씀 — 콘솔 보상 이름 '기회' 1, 앱은 같은 그룹을 한 번만 불러옴. 복구되면 전용 지면 생성 → 2.0.1 |
+| `rewarded-ai-draft` | 리워드 | 목표 입력 '광고 보고 만들기' · 미리보기 '다시 만들기' · 세부 목표 화면 '빈 실천 AI로 채우기'(2.1 — 2.0 은 편집 화면 '빈 칸 AI로 채우기'·'실천 AI로 추천') | 보상 = AI 1회(이름 "AI 초안", 수량 1), `userEarnedReward` 에서만. 광고를 못 불러오면 AI 를 쓰지 않음(2026-10-20 결정). 사람당 하루 10회(`settings.ai.runs`). 라이브 ID `VITE_AD_GROUP_REWARDED_AI_DRAFT`. **임시(2026-10-20~)**: 전면·리워드 지면 신규 생성 오류(앱인토스 공지 54047) 동안 `rewarded-extra-board` 지면 ID 를 같이 씀 — 콘솔 보상 이름 '기회' 1, 앱은 같은 그룹을 한 번만 불러옴. 복구되면 전용 지면 생성 → 2.0.1 |
 
 서버: Supabase Edge Function `mandalart-draft`(`supabase/functions/mandalart-draft/`), 남용 방지 테이블 `ai_draft_usage`·`ai_draft_cost` 와 RPC `ai_draft_take`·`ai_draft_cost_add`(서버 키만 실행) — `supabase/schema.sql`.

@@ -16,7 +16,7 @@ function filledBoard(actions: boolean): Board {
 }
 
 interface Handlers {
-  onEditCore?: () => void;
+  onDeleteCells?: (cells: number[]) => () => void;
   onOverview?: () => void;
   onSelectSub?: (subIndex: number) => void;
   onChangeGoal?: (goal: string) => void;
@@ -43,7 +43,7 @@ function renderHome(board: Board, content: Content, checkin?: CheckinRecord, han
         activeIndex={0}
         notificationVisible={false}
         todayAdNotice={handlers.todayAdNotice}
-        onEditCore={handlers.onEditCore ?? noop}
+        onDeleteCells={handlers.onDeleteCells}
         onSelectSub={handlers.onSelectSub ?? noop}
         onChangeGoal={handlers.onChangeGoal ?? noop}
         onChangeSubTitle={handlers.onChangeSubTitle ?? noop}
@@ -61,11 +61,13 @@ function renderHome(board: Board, content: Content, checkin?: CheckinRecord, han
 describe('HomeScreen (홈 마무리)', () => {
   const content = getBundledContent();
 
-  it('빈 판: 안내 한 줄 + 예시로 시작하기 버튼 + 편집만, 잠긴 버튼(기록·전체 보기)과 진행률은 숨겨요. 빈 세부 목표 칸에는 글이 없어요', () => {
-    const onEditCore = vi.fn();
+  it('빈 판: 안내 한 줄 + 예시로 시작하기 버튼만, 잠긴 버튼(기록·전체 보기)과 진행률·편집 안내는 숨겨요. 빈 세부 목표 칸에는 글이 없어요', () => {
     const onOverview = vi.fn();
     const onChangeGoal = vi.fn();
-    renderHome(createEmptyBoard(1759000000000), content, undefined, { onEditCore, onOverview, onChangeGoal });
+    renderHome(createEmptyBoard(1759000000000), content, undefined, { onOverview, onChangeGoal, onDeleteCells: vi.fn() });
+    // 편집 버튼은 없어요(2.1 칸을 길게 누르기). 고칠 글이 없으니 길게 누르기 안내도 없어요
+    expect(screen.queryByRole('button', { name: '완료' })).not.toBeInTheDocument();
+    expect(screen.queryByText('칸을 길게 누르면 고치거나 지울 수 있어요')).not.toBeInTheDocument();
     expect(screen.queryByText('목표 1')).not.toBeInTheDocument(); // "목표 n" 자리 표시 없음
     expect(screen.getByRole('button', { name: '세부 목표 1' }).textContent).toBe(''); // '+' 아이콘만
     // 다음에 채울 칸은 가운데(핵심 목표)라 '눌러서 적기' 는 가운데에만
@@ -83,10 +85,7 @@ describe('HomeScreen (홈 마무리)', () => {
     fireEvent.change(screen.getByPlaceholderText('예: 올해 안에 책 한 권 쓰기'), { target: { value: '자격증 따기' } });
     fireEvent.click(sheetDone());
     expect(onChangeGoal).toHaveBeenCalledWith('자격증 따기');
-    expect(onEditCore).not.toHaveBeenCalled();
     expect(onOverview).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByText('편집'));
-    expect(onEditCore).toHaveBeenCalledTimes(1);
   });
 
   it('핵심 목표만 있으면 둘레 칸을 눌러 세부 목표를 정하라고 안내하고, 첫 빈 칸에 눌러서 적기가 붙어요', () => {
@@ -114,19 +113,17 @@ describe('HomeScreen (홈 마무리)', () => {
     expect(onSelectSub).toHaveBeenCalledWith(0);
   });
 
-  it('목표가 있으면 가운데 칸은 누를 수 없는 이름표(2.1), 전체 보기는 버튼으로, 편집은 오른쪽 위 버튼으로만 가요', () => {
-    const onEditCore = vi.fn();
+  it('목표가 있으면 가운데 칸은 누를 수 없는 이름표(2.1), 전체 보기는 버튼으로. 편집 버튼 대신 길게 누르기를 알려 줘요', () => {
     const onOverview = vi.fn();
-    renderHome(filledBoard(true), content, undefined, { onEditCore, onOverview });
+    renderHome(filledBoard(true), content, undefined, { onOverview, onDeleteCells: vi.fn() });
     expect(screen.queryByRole('button', { name: '건강한 한 해' })).not.toBeInTheDocument();
     const centers = screen.getAllByText('건강한 한 해');
     fireEvent.click(centers[centers.length - 1]); // 가운데 칸 글을 눌러도
     expect(onOverview).not.toHaveBeenCalled();
-    expect(onEditCore).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '전체 보기' }));
     expect(onOverview).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByText('편집'));
-    expect(onEditCore).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: '완료' })).not.toBeInTheDocument();
+    expect(screen.getByText('칸을 길게 누르면 고치거나 지울 수 있어요')).toBeInTheDocument();
   });
 
   it('전면 광고가 나올 차례면 기록 보기 버튼에 AD 표시와 안내 한 줄, 아니면 둘 다 없어요', () => {

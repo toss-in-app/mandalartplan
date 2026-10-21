@@ -28,7 +28,8 @@ export type EventName =
   | 'ai_draft_reward'
   | 'ai_draft_result'
   | 'ai_draft_apply'
-  /** 편집 화면 여러 칸 지우기(2.1) */
+  /** 제자리 편집 모드(2.1): 들어가기, 여러 칸 지우기·되돌리기 */
+  | 'edit_mode_enter'
   | 'cells_delete'
   | 'cells_delete_undo';
 

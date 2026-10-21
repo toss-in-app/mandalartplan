@@ -19,10 +19,13 @@ interface Reward {
   watch: () => Promise<RewardedOutcome>;
 }
 
-/** draft = 목표 입력 화면에서 판 전체, subs = 편집 화면 빈 세부 목표, actions = 편집 화면 한 세부 목표의 빈 실천 */
-export type AiMode = 'draft' | 'subs' | 'actions';
-/** 분석 이벤트 `ai_draft_start` 의 from: 판 전체 초안은 빈 판에서(new)·칸을 일부 채운 판에서(partial), 채우기는 편집 화면(edit)·세부 목표 화면(sub) */
-export type AiFrom = 'new' | 'partial' | 'edit' | 'sub';
+/**
+ * draft = 목표 입력 화면에서 판 전체, actions = 세부 목표 화면에서 그 세부 목표의 빈 실천.
+ * (2.0 편집 화면의 빈 세부 목표 채우기 'subs' 는 편집 화면과 함께 없어졌어요(2.1) — 빈 세부 목표는 홈 'AI로 빈 칸 채우기' = draft)
+ */
+export type AiMode = 'draft' | 'actions';
+/** 분석 이벤트 `ai_draft_start` 의 from: 판 전체 초안은 빈 판에서(new)·칸을 일부 채운 판에서(partial), 빈 실천 채우기는 세부 목표 화면(sub) */
+export type AiFrom = 'new' | 'partial' | 'sub';
 
 /** 서버를 부르기 전에 멈춘 이유. dismissed 말고는 광고를 보지 않았어요. busy = 이미 진행 중(두 번 누름) */
 export type AiStopReason = 'limit' | 'self_harm' | 'notice_closed' | 'no_ad' | 'dismissed' | 'key' | 'busy';
@@ -79,7 +82,7 @@ function boardTexts(board: Board): string[] {
 export function useAiDraft(app: AppState, reward: Reward) {
   const [noticeOpen, setNoticeOpen] = useState(false);
   const noticeResolve = useRef<((agreed: boolean) => void) | null>(null);
-  /** 편집 화면 채우기가 진행 중(버튼 잠금) */
+  /** 세부 목표 화면 채우기가 진행 중(버튼 잠금) */
   const [busy, setBusy] = useState(false);
   /** AI 실행은 한 번에 하나만 — 두 번 누르거나 시트가 닫히며 아래 버튼이 눌려도 광고·횟수가 겹치지 않게(state 보다 먼저 바뀌는 ref) */
   const running = useRef(false);
@@ -127,7 +130,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
 
   /**
    * 목표 입력 화면: 세부 목표(빈 칸만) → 실천(세부 목표마다 동시에, 빈 칸만). 판에는 아직 넣지 않고 미리보기 판을 돌려줘요.
-   * 실천 일부가 실패해도 채운 만큼 돌려줘요(나머지는 편집 화면에서 다시 채울 수 있어요).
+   * 실천 일부가 실패해도 채운 만큼 돌려줘요(나머지는 홈 'AI로 빈 칸 채우기'·세부 목표 화면에서 다시 채울 수 있어요).
    */
   const runDraft = async (goal: string, base: Board, hooks: DraftHooks = {}): Promise<AiResult<DraftValue>> => {
     if (running.current) return { kind: 'stopped', reason: 'busy' };
@@ -205,49 +208,37 @@ export function useAiDraft(app: AppState, reward: Reward) {
     return filled;
   };
 
-  /** 편집 화면: 결과를 바로 판에 넣어요(빈 칸만). 돌려준 수 = 새로 채운 칸 */
-  const fill = async (mode: 'subs' | 'actions', subIndex: number | null, from: AiFrom): Promise<AiResult<number>> => {
+  /** 세부 목표 화면 '빈 실천 AI로 채우기': 결과를 바로 판에 넣어요(빈 칸만). 돌려준 수 = 새로 채운 칸 */
+  const fillActions = async (subIndex: number): Promise<AiResult<number>> => {
     const board = app.board;
     if (!board || running.current) return { kind: 'stopped', reason: 'busy' };
     running.current = true;
     setBusy(true);
     try {
-      const prep = await prepare(mode, boardTexts(board), from);
+      const prep = await prepare('actions', boardTexts(board), 'sub');
       if (!prep.ok) return { kind: 'stopped', reason: prep.reason };
       const startedAt = Date.now();
       const titles = board.subs.map((sub) => sub.title);
       let filled = 0;
       try {
         const now = Date.now();
-        if (mode === 'subs') {
-          const res = await once(() => requestSubs(prep.key, board.goal, titles));
-          const latest = app.getState();
-          const current = latest ? latest.boards.boards[latest.boards.active] : board;
-          filled = mergeSubs(current, res.subs).filled;
-          if (filled > 0)
-            app.updateBoard((b) => {
-              const merged = mergeSubs(b, res.subs);
-              return markAiDraft(merged.board, res, now, merged.cells);
-            });
-        } else if (subIndex !== null) {
-          const res = await once(() => requestActions(prep.key, board.goal, titles, subIndex, board.subs[subIndex].actions));
-          const latest = app.getState();
-          const current = latest ? latest.boards.boards[latest.boards.active] : board;
-          filled = mergeActions(current, subIndex, res.actions).filled;
-          if (filled > 0)
-            app.updateBoard((b) => {
-              const merged = mergeActions(b, subIndex, res.actions);
-              return markAiDraft(merged.board, res, now, merged.cells);
-            });
-        }
+        const res = await once(() => requestActions(prep.key, board.goal, titles, subIndex, board.subs[subIndex].actions));
+        const latest = app.getState();
+        const current = latest ? latest.boards.boards[latest.boards.active] : board;
+        filled = mergeActions(current, subIndex, res.actions).filled;
+        if (filled > 0)
+          app.updateBoard((b) => {
+            const merged = mergeActions(b, subIndex, res.actions);
+            return markAiDraft(merged.board, res, now, merged.cells);
+          });
       } catch (error) {
         const code = codeOf(error);
-        logEvent('ai_draft_result', { mode, result: code, ms: Date.now() - startedAt });
+        logEvent('ai_draft_result', { mode: 'actions', result: code, ms: Date.now() - startedAt });
         return { kind: 'failed', code };
       }
       countRun();
-      logEvent('ai_draft_result', { mode, result: 'ok', ms: Date.now() - startedAt });
-      logEvent('ai_draft_apply', { mode, filled });
+      logEvent('ai_draft_result', { mode: 'actions', result: 'ok', ms: Date.now() - startedAt });
+      logEvent('ai_draft_apply', { mode: 'actions', filled });
       return { kind: 'ok', value: filled };
     } finally {
       running.current = false;
@@ -265,8 +256,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
     busy,
     runDraft,
     applyDraft,
-    fillSubs: (from: AiFrom = 'edit') => fill('subs', null, from),
-    fillActions: (subIndex: number, from: AiFrom = 'edit') => fill('actions', subIndex, from),
+    fillActions,
     noticeSheet,
   };
 }

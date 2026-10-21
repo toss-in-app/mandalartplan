@@ -16,7 +16,7 @@ function cellStyle(view: CellView, size: BlockSize): CSSProperties {
   switch (view.kind) {
     case 'goal':
       if (view.checked) {
-        // 핵심 목표는 체크가 없어서 checked = 편집 화면에서 지울 칸으로 고른 것(2.1). 브랜드 바탕 위에 흰 안쪽 테두리
+        // 핵심 목표는 체크가 없어서 checked = 편집 모드에서 지울 칸으로 고른 것(2.1). 브랜드 바탕 위에 흰 안쪽 테두리
         return { background: brandColor, color: colors.white, fontWeight: 700, boxShadow: `inset 0 0 0 ${size === 'main' ? 3 : 2}px ${colors.white}` };
       }
       return { background: brandColor, color: colors.white, fontWeight: view.text ? 700 : 600 };
@@ -94,7 +94,7 @@ interface BlockProps {
   caption?: (view: CellView, cell: number) => string | null;
   /** 블록 전체를 하나의 버튼으로 (전체 보기 격자) */
   onSelect?: () => void;
-  /** 칸 하나씩 누를 수 있게 (홈·세부 목표·편집 미리보기) */
+  /** 칸 하나씩 누를 수 있게 (홈·세부 목표 화면) */
   onSelectCell?: (cell: number, view: CellView) => void;
   /** onSelectCell 격자에서 누를 수 없는 칸을 정해요 (예: 세부 목표 화면의 가운데 이름표). 없으면 모두 눌러요 */
   interactive?: (cell: number, view: CellView) => boolean;
@@ -103,8 +103,9 @@ interface BlockProps {
   /** AI 초안을 만드는 중: 아직 빈 칸이 은은하게 깜빡여요(동작 줄이기면 멈춤) */
   loading?: boolean;
   /**
-   * 여러 칸 지우기의 선택 모드(편집 화면, 2.1). 있으면 고른 칸을 '오늘 다 했어요'와 같은 모양(진한 틴트·테두리·✓)으로 그리고,
-   * 누를 수 있는 칸을 '선택됨/안 됨' 토글로 읽어요. 칸마다 `data-cell` 이 있어 끌어서 고르기가 손가락 아래 칸을 찾아요.
+   * 여러 칸 지우기의 선택 모드(제자리 편집 모드, 2.1 `useGridEdit`). 있으면 고른 칸을 '오늘 다 했어요'와 같은 모양(진한 틴트·테두리·✓)으로 그리고,
+   * 누를 수 있는 칸을 '선택됨/안 됨' 토글로 읽어요. 칸마다 `data-cell` 이 있어 끌어서 고르기가 손가락 아래 칸을 찾고,
+   * 글이 있는 칸 버튼의 `data-filled` 로 편집 모드에서 그 칸만 흔들어요.
    */
   selected?: ReadonlySet<number>;
 }
@@ -159,7 +160,7 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
   const selectMode = selected !== undefined;
   const className = `mg-block mg-block-${size}`;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
-  // 오늘 체크를 넘긴 화면(홈·세부 목표)만 실천 칸을 '오늘 했어요/아직' 토글로 읽어요. 편집 화면은 칸 글만
+  // 오늘 체크를 넘긴 화면(홈·세부 목표)만 실천 칸을 '오늘 했어요/아직' 토글로 읽어요. 편집 모드는 칸 글만
   const checkMode = checked !== undefined;
 
   if (onSelect) {
@@ -192,6 +193,7 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
             key={cell}
             type="button"
             data-cell={cell}
+            data-filled={view.text.trim() ? '' : undefined}
             className={next ? 'mg-cell mg-cell-next' : 'mg-cell'}
             style={{ ...(invite ? inviteStyle(view) : cellStyle(view, size)), ['--mg-invite' as string]: withAlpha(brandColor, 0.4) }}
             onClick={() => onSelectCell(cell, view)}

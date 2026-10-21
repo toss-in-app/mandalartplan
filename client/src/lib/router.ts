@@ -16,6 +16,10 @@ import { useEffect, useState } from 'react';
 export type Route =
   | { name: 'home' }
   | { name: 'sub'; sub: number }
+  /**
+   * 예전 편집 화면 링크(콘솔 앱 내 기능 '만다라트 작성' = `block/4`). 편집 화면은 2.1 에서 없어져
+   * 그 3×3 화면(가운데 = 홈, 둘레 = 세부 목표 화면)을 편집 모드로 열어요. cell 이 있으면 그 칸 입력창도
+   */
   | { name: 'block'; block: number; cell?: number }
   | { name: 'overview' }
   | { name: 'today' }
@@ -42,7 +46,7 @@ export function parseRoute(hash: string): Route {
 export function routeToHash(route: Route): string {
   switch (route.name) {
     case 'block':
-      // 뒤의 칸 번호는 편집 화면에 들어가며 커서를 둘 칸(세부 목표 화면에서 빈 실천 칸을 눌렀을 때)
+      // 뒤의 칸 번호는 편집 모드로 열며 입력창을 띄울 칸
       return route.cell === undefined ? `#/block/${route.block}` : `#/block/${route.block}/${route.cell}`;
     case 'sub':
       return `#/sub/${route.sub}`;

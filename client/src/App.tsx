@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AD_GROUPS } from './ads/config';
 import { isAiConfigured } from './ai/config';
 import { AI_MESSAGES, CARE_PHONE_URL } from './ai/messages';
-import { canFillActions, canFillSubs, emptyActionCount, emptySubCount } from './ai/rules';
+import { canFillActions, emptyActionCount } from './ai/rules';
 import { useAiDraft, type AiResult } from './ai/useAiDraft';
 import { interstitialEligible } from './ads/rules';
 import { useInterstitial } from './ads/useInterstitial';
@@ -28,7 +28,6 @@ import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, hasAiText, r
 import { formatDateTime } from './lib/format';
 import { atHistoryBottom, goBack, navigate, useRoute } from './lib/router';
 import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
-import { BlockScreen } from './screens/BlockScreen';
 import { DraftScreen } from './screens/DraftScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OverviewScreen } from './screens/OverviewScreen';
@@ -92,7 +91,9 @@ function App() {
   const extraBoardOpen = app.state ? app.state.settings.unlocks.extraBoard || app.state.boards.boards.length >= MAX_BOARDS : false;
   // AI 초안(2.0): 광고 1회 = AI 1회. 서버 설정이 없거나 광고를 못 쓰는 토스앱 버전이면 AI 버튼을 숨겨요
   const aiConfigured = isAiConfigured();
-  const aiAdActive = aiConfigured && (route.name === 'draft' || route.name === 'block');
+  // 리워드 광고는 AI 버튼이 있는 화면에서만 미리 불러와요: 초안 화면, 빈 실천을 채울 수 있는 세부 목표 화면(예전 편집 링크 block/:n 포함)
+  const aiSubIndex = route.name === 'sub' ? route.sub : route.name === 'block' && route.block !== CENTER ? ringIndex(route.block) : null;
+  const aiAdActive = aiConfigured && (route.name === 'draft' || (aiSubIndex !== null && activeBoard ? canFillActions(activeBoard, aiSubIndex) : false));
   const extraBoardAdActive = route.name === 'settings' && !extraBoardOpen;
   // AI 전용 지면을 만들 수 없는 동안(앱인토스 공지 54047) AI 는 '두 번째 판' 지면을 같이 써요 → 같은 그룹을 두 훅이 따로 불러오지 않게 하나로 묶어요
   const aiSharesExtraBoard = AD_GROUPS.rewardedAiDraft === AD_GROUPS.rewardedExtraBoard;
@@ -246,8 +247,8 @@ function App() {
     updateSettings((settings) => (settings.seenContentVersion >= contentVersion ? settings : { ...settings, seenContentVersion: contentVersion }));
   }, [stateLoaded, contentVersion, updateSettings]);
 
-  // 분석(contract/events.md): 화면 진입은 라우트가 바뀔 때 1회(home_view·today_view), 편집은 block 에서 나갈 때 값이 바뀌었으면(board_edit),
-  // board_filled 는 보고 있는 판이 73칸이 되는 순간(판마다 사실상 1회). 값은 ref 로 읽어 상태가 바뀔 때마다 다시 보내지 않아요.
+  // 분석(contract/events.md): 화면 진입은 라우트가 바뀔 때 1회(home_view·today_view), board_filled 는 보고 있는 판이 73칸이 되는 순간(판마다 사실상 1회).
+  // 값은 ref 로 읽어 상태가 바뀔 때마다 다시 보내지 않아요. 편집(board_edit·edit_mode_enter)은 화면의 제자리 편집 모드가 보내요(hooks/useGridEdit).
   const latest = useRef({ filled: 0, boards: 0, todayCount: 0, streak: 0 });
   latest.current = {
     filled: activeBoard ? getProgress(activeBoard).filled : 0,
@@ -262,20 +263,6 @@ function App() {
     if (screen === 'home') logEvent('home_view', { filled: latest.current.filled, boards: latest.current.boards });
     else if (screen === 'today') logEvent('today_view', { todayCount: latest.current.todayCount, streak: latest.current.streak });
   }, [loaded, screen]);
-
-  const blockEntry = useRef<{ block: number; updatedAt: number } | null>(null);
-  const { getState } = app;
-  useEffect(() => {
-    const snapshot = getState();
-    const current = snapshot ? snapshot.boards.boards[snapshot.boards.active] : null;
-    if (route.name === 'block') {
-      blockEntry.current = current ? { block: route.block, updatedAt: current.updatedAt } : null;
-      return;
-    }
-    const entry = blockEntry.current;
-    blockEntry.current = null;
-    if (entry && current && current.updatedAt !== entry.updatedAt) logEvent('board_edit', { block: entry.block });
-  }, [route, getState]);
 
   const filledRef = useRef<{ id: string; filled: number } | null>(null);
   useEffect(() => {
@@ -293,7 +280,6 @@ function App() {
   if (!state || !board) return null;
 
   const record = state.checkins.byBoard[board.id];
-  const editCore = () => navigate({ name: 'block', block: CENTER });
   const openSub = (subIndex: number) => navigate({ name: 'sub', sub: subIndex });
 
   /** 실천 칸 탭 = 오늘 했어요 체크/해제. 처음 체크한 순간을 settings 에 남겨요(알림 안내용). */
@@ -505,7 +491,7 @@ function App() {
   };
 
   /**
-   * 편집 화면 여러 칸 지우기(2.1): 고른 칸의 글을 지우고, 지운 실천은 오늘 체크에서도 빼요.
+   * 제자리 편집 모드의 여러 칸 지우기(2.1, 홈·세부 목표 화면): 고른 칸의 글을 지우고, 지운 실천은 오늘 체크에서도 빼요.
    * 돌려주는 함수 = 되돌리기(토스트 버튼). 그 사이 다른 칸을 고치지 않았으면 판을 지우기 전으로, 고쳤으면 지운 칸 글만 되살려요.
    */
   const deleteCells = (block: number, cells: number[]): (() => void) => {
@@ -548,7 +534,7 @@ function App() {
     };
   };
 
-  /** 편집 화면 채우기 결과 안내 */
+  /** 세부 목표 화면 '빈 실천 AI로 채우기' 결과 안내 */
   const afterFill = async (result: AiResult<number>) => {
     if (result.kind === 'ok') {
       if (result.value > 0) {
@@ -573,32 +559,66 @@ function App() {
     else toast.openToast(AI_MESSAGES.failBody);
   };
 
-  /** AI 채우기 버튼: 가운데 블록은 빈 세부 목표, 둘레 블록은 그 세부 목표의 빈 실천. 편집 화면과 세부 목표 화면(2.1)이 같이 써요 */
-  const aiFillFor = (block: number, from: 'edit' | 'sub' = 'edit') => {
-    if (!aiEnabled) return undefined;
+  /**
+   * 세부 목표 화면의 '빈 실천 AI로 채우기'(2.1): 핵심 목표·그 세부 목표가 있고 빈 실천이 있을 때만.
+   * 빈 세부 목표는 홈의 'AI로 빈 칸 채우기'(초안 화면)로 채워요 — 편집 화면이 없어지며 가운데 블록 채우기 버튼도 없어졌어요.
+   */
+  const aiFillFor = (subIndex: number) => {
+    if (!aiEnabled || !canFillActions(board, subIndex)) return undefined;
     const left = ai.runsLeft;
-    const disabled = left === 0 || ai.busy;
-    if (block === CENTER) {
-      if (!canFillSubs(board)) return undefined;
-      return {
-        label: '빈 칸 AI로 채우기',
-        caption: left === 0 ? AI_MESSAGES.limit : AI_MESSAGES.fillCaption(`비어 있는 세부 목표 ${emptySubCount(board)}칸만 채워요.`, left),
-        disabled,
-        onPress: () => void ai.fillSubs(from).then(afterFill),
-      };
-    }
-    const subIndex = ringIndex(block);
-    if (!canFillActions(board, subIndex)) return undefined;
     return {
       label: '빈 실천 AI로 채우기',
       caption:
         left === 0
           ? AI_MESSAGES.limit
           : AI_MESSAGES.fillCaption(`'${board.subs[subIndex].title.trim()}'의 빈 실천 ${emptyActionCount(board, subIndex)}칸을 채워요.`, left),
-      disabled,
-      onPress: () => void ai.fillActions(subIndex, from).then(afterFill),
+      disabled: left === 0 || ai.busy,
+      onPress: () => void ai.fillActions(subIndex).then(afterFill),
     };
   };
+
+  /** 홈. editLink = 예전 편집 화면 링크(block/4)로 들어와 편집 모드로 시작 */
+  const renderHome = (editLink?: { cell: number | null; onDone: () => void }) => (
+    <HomeScreen
+      key={editLink ? 'home-edit' : 'home'}
+      board={board}
+      content={content}
+      checkin={record}
+      boardCount={state.boards.boards.length}
+      activeIndex={state.boards.active}
+      notificationVisible={notificationPrompt}
+      onSelectSub={openSub}
+      onChangeGoal={app.setGoal}
+      onChangeSubTitle={app.setSubTitle}
+      todayBusy={todayBusy}
+      todayAdNotice={interstitial.upcoming}
+      onToday={() => void openToday()}
+      onOverview={() => navigate({ name: 'overview' })}
+      onSettings={() => navigate({ name: 'settings' })}
+      onSwitchBoard={openBoardPicker}
+      onNotification={() => void askNotification('home')}
+      onStartWithTemplate={openTemplatePicker}
+      onAiDraft={aiEnabled ? () => navigate({ name: 'draft' }) : undefined}
+      onDeleteCells={(cells) => deleteCells(CENTER, cells)}
+      editLink={editLink}
+    />
+  );
+
+  /** 세부 목표 화면. 세부 목표마다 따로 그려요(편집 모드가 다른 세부 목표로 옮겨 가지 않게) */
+  const renderSub = (subIndex: number, editLink?: { cell: number | null; onDone: () => void }) => (
+    <SubScreen
+      key={`${editLink ? 'sub-edit' : 'sub'}-${subIndex}`}
+      board={board}
+      subIndex={subIndex}
+      checkin={record}
+      onToggle={toggleToday}
+      onChangeAction={app.setAction}
+      onChangeSubTitle={app.setSubTitle}
+      aiFill={aiFillFor(subIndex)}
+      onDeleteCells={(cells) => deleteCells(cellOfRing(subIndex), cells)}
+      editLink={editLink}
+    />
+  );
 
   /** 미리보기 '이대로 시작하기': 지금 판의 빈 칸에 넣고 이전 화면(대개 홈)으로 */
   const applyAiDraft = (goal: string, draft: Parameters<typeof ai.applyDraft>[1]) => {
@@ -611,33 +631,15 @@ function App() {
   let view: JSX.Element;
   switch (route.name) {
     case 'sub':
-      view = (
-        <SubScreen
-          board={board}
-          subIndex={route.sub}
-          checkin={record}
-          onToggle={toggleToday}
-          onEdit={() => navigate({ name: 'block', block: cellOfRing(route.sub) })}
-          onChangeAction={app.setAction}
-          aiFill={aiFillFor(cellOfRing(route.sub), 'sub')}
-        />
-      );
+      view = renderSub(route.sub);
       break;
-    case 'block':
-      view = (
-        <BlockScreen
-          board={board}
-          block={route.block}
-          onChangeGoal={app.setGoal}
-          onChangeSubTitle={app.setSubTitle}
-          onChangeAction={app.setAction}
-          onDone={goBack}
-          initialCell={route.cell ?? null}
-          aiFill={aiFillFor(route.block)}
-          onDeleteCells={(cells) => deleteCells(route.block, cells)}
-        />
-      );
+    case 'block': {
+      // 예전 편집 화면 링크(콘솔 앱 내 기능 '만다라트 작성' = intoss://mandalartplan/block/4): 편집 화면은 없어지고(2.1),
+      // 그 3×3 화면(가운데 = 홈, 둘레 = 세부 목표 화면)을 편집 모드로 열어요. '완료'는 이전 화면, 링크로 바로 들어왔으면 홈
+      const editLink = { cell: route.cell ?? null, onDone: goBack };
+      view = route.block === CENTER ? renderHome(editLink) : renderSub(ringIndex(route.block), editLink);
       break;
+    }
     case 'overview':
       view = <OverviewScreen board={board} checkin={record} onSelectSub={openSub} onShare={() => navigate({ name: 'share' })} />;
       break;
@@ -711,29 +713,7 @@ function App() {
       );
       break;
     default:
-      view = (
-        <HomeScreen
-          board={board}
-          content={content}
-          checkin={record}
-          boardCount={state.boards.boards.length}
-          activeIndex={state.boards.active}
-          notificationVisible={notificationPrompt}
-          onEditCore={editCore}
-          onSelectSub={openSub}
-          onChangeGoal={app.setGoal}
-          onChangeSubTitle={app.setSubTitle}
-          todayBusy={todayBusy}
-          todayAdNotice={interstitial.upcoming}
-          onToday={() => void openToday()}
-          onOverview={() => navigate({ name: 'overview' })}
-          onSettings={() => navigate({ name: 'settings' })}
-          onSwitchBoard={openBoardPicker}
-          onNotification={() => void askNotification('home')}
-          onStartWithTemplate={openTemplatePicker}
-          onAiDraft={aiEnabled ? () => navigate({ name: 'draft' }) : undefined}
-        />
-      );
+      view = renderHome();
   }
   // 생성형 AI 고지 시트는 어느 화면에서 AI 를 눌러도 같은 것 하나
   return (
