@@ -129,8 +129,8 @@ interface BlockProps {
    */
   lift?: { cell: number; dx: number; dy: number; over: number | null } | null;
   /**
-   * 칸 아래 작은 길 표시(3.0, 사용자 2026-10-21 시안 9): 세부 목표 화면 가운데 이름표의 '핵심 목표로' — 누르면 홈(onSelectCell 이 받아요).
-   * 칸 이름에도 붙여 읽어요("꾸준한 운동, 핵심 목표로"). 칸이 보라로 차올라도 읽히게 흰 바탕 조각 위에 그려요(grid.css .mg-cell-link)
+   * 칸 왼쪽 위의 작은 ‹ 표시(3.0, 사용자 2026-10-21 시안 9-b — 글 없이 ‹ 만): 세부 목표 화면 가운데 이름표를 누르면 홈(onSelectCell 이 받아요).
+   * 돌려주는 글은 화면엔 안 그리고 칸 이름에만 붙여 읽어요("꾸준한 운동, 핵심 목표로"). 모양은 grid.css .mg-cell-way
    */
   link?: (view: CellView, cell: number) => string | null;
 }
@@ -156,7 +156,7 @@ interface CellContentProps {
   next?: boolean;
   /** 편집 모드에서 지울 칸으로 고름: ✓ */
   selected?: boolean;
-  /** 칸 아래 작은 길 표시('핵심 목표로') */
+  /** 왼쪽 위 ‹ 표시(글은 이름에만 붙여 읽어요) */
   link?: string | null;
 }
 
@@ -176,11 +176,10 @@ function CellContent({ view, caption, size, invite = false, next = false, select
       {next && !view.text && <span className="mg-cell-hint">눌러서 적기</span>}
       {caption && <span className="mg-cell-caption">{caption}</span>}
       {link && (
-        <span className="mg-cell-link">
-          <svg viewBox="0 0 24 24" aria-hidden focusable="false">
+        <span className="mg-cell-way" aria-hidden>
+          <svg viewBox="0 0 24 24" focusable="false">
             <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {link}
         </span>
       )}
       {/* 오늘 한 실천의 '완료' 도장. 체크하는 순간 찍히는 움직임이 나오게 늘 그려 두고 .mg-cell-done 일 때만 보여요(글자는 CSS 가 data-label 로) */}

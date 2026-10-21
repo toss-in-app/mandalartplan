@@ -417,12 +417,13 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
   });
 });
 
-describe("가운데 이름표로 홈 (3.0, 사용자 2026-10-21 시안 9 — '핵심 목표로')", () => {
-  it("평소엔 가운데에 '핵심 목표로'가 붙고 누르면 홈으로 가요(체크·입력창 아님)", () => {
+describe("가운데 이름표로 홈 (3.0, 사용자 2026-10-21 시안 9-b — 왼쪽 위 ‹ 만, 스크린리더는 '핵심 목표로')", () => {
+  it('평소엔 가운데 왼쪽 위에 ‹ 가 붙고 누르면 홈으로 가요(체크·입력창 아님)', () => {
     const onHome = vi.fn();
     const { onToggle } = subScreen(0, { onHome });
     const center = screen.getByRole('button', { name: '듣기, 핵심 목표로' });
-    expect(center.querySelector('.mg-cell-link')).toHaveTextContent('핵심 목표로');
+    expect(center.querySelector('.mg-cell-way svg')).not.toBeNull();
+    expect(screen.queryByText('핵심 목표로')).not.toBeInTheDocument(); // 글은 안 그리고 이름에만 붙여 읽어요
     tap(center);
     expect(onHome).toHaveBeenCalledTimes(1);
     expect(onToggle).not.toHaveBeenCalled();
@@ -430,7 +431,7 @@ describe("가운데 이름표로 홈 (3.0, 사용자 2026-10-21 시안 9 — '�
     expect(editingNow()).toBe(false);
   });
 
-  it("편집 모드에선 '핵심 목표로'가 사라지고 가운데를 누르면 이름을 고쳐요. 길게 누른 손가락의 click 도 홈으로 가지 않아요", () => {
+  it('편집 모드에선 ‹ 가 사라지고 가운데를 누르면 이름을 고쳐요. 길게 누른 손가락의 click 도 홈으로 가지 않아요', () => {
     vi.useFakeTimers();
     const onHome = vi.fn();
     subScreen(0, { onHome });
@@ -444,7 +445,7 @@ describe("가운데 이름표로 홈 (3.0, 사용자 2026-10-21 시안 9 — '�
     fireEvent.click(center);
     expect(editingNow()).toBe(true);
     expect(onHome).not.toHaveBeenCalled();
-    expect(screen.queryByText('핵심 목표로')).not.toBeInTheDocument();
+    expect(document.querySelector('.mg-cell-way')).toBeNull();
     tap(cell('듣기'));
     expect(screen.getByText('세부 목표 1')).toBeInTheDocument();
     expect(onHome).not.toHaveBeenCalled();
@@ -454,7 +455,7 @@ describe("가운데 이름표로 홈 (3.0, 사용자 2026-10-21 시안 9 — '�
     const b = createEmptyBoard(NOW);
     b.subs[2].actions[0] = '단어장';
     subScreen(2, { board: b, onHome: vi.fn() });
-    expect(screen.queryByText('핵심 목표로')).not.toBeInTheDocument();
+    expect(document.querySelector('.mg-cell-way')).toBeNull();
     expect(screen.queryByRole('button', { name: /세부 목표 3/ })).not.toBeInTheDocument();
   });
 });

@@ -386,27 +386,22 @@ button.mg-cell.mg-cell-lifted:active {
   }
 }
 
-/* 세부 목표 화면 가운데 이름표의 '핵심 목표로'(3.0, 사용자 2026-10-21 시안 9): 누르면 홈. 칸이 오늘 한 만큼 보라로 차올라도
-   읽히게 흰 바탕 조각(72%) 위에 도장 잉크 색으로 — 어느 진하기에서도 글자 대비 5:1 이상 */
-.mg-cell-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  margin-top: 5px;
-  padding: 2px 7px 2px 4px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+/* 세부 목표 화면 가운데 이름표의 왼쪽 위 ‹(3.0, 사용자 2026-10-21 시안 9-b — '핵심 목표로' 글 없이 ‹ 만): 누르면 홈.
+   도장 잉크 색, 오른쪽 위 작은 '완료' 도장(.mg-cell-seal)과 자리가 겹치지 않아요 */
+.mg-cell-way {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 14px;
+  height: 14px;
   color: var(--mg-stamp, currentColor);
-  font-size: 11px;
-  line-height: 1.2;
-  font-weight: 600;
-  white-space: nowrap;
+  pointer-events: none;
 }
 
-.mg-cell-link svg {
-  width: 11px;
-  height: 11px;
-  flex-shrink: 0;
+.mg-cell-way svg {
+  display: block;
+  width: 14px;
+  height: 14px;
 }
 
 /* 키보드·스크린리더용 입구: 평소엔 안 보이고 포커스하면 3×3 위에 보여요 */
