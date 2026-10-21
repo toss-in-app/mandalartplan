@@ -5,6 +5,7 @@ import { ACTION_COUNT, CENTER, ringIndex } from '../../lib/mandalart';
 import { actionCounts, actionTitle, checksIn, checksOn, compareWithPrevious, monthDay, relativeLevel, subActiveDays, subTitle, subTotals } from '../../lib/records';
 import { computeStats, type PeriodRange } from '../../lib/stats';
 import { brandColor, stampInk, withAlpha } from '../../theme';
+import { stagger } from './motion';
 import { PeriodNav } from './PeriodNav';
 import { HEAT, scopeWord, type RecordContext } from './shared';
 import { EmptyLine } from './SimpleDashboards';
@@ -49,7 +50,7 @@ function WeekFill({ board, record, today, range }: RecordContext & { range: Peri
         {Array.from({ length: 9 }, (_, cell) => {
           if (cell === CENTER) {
             return (
-              <span key={cell} aria-hidden style={{ background: brandColor, color: colors.white, fontSize: 13, fontWeight: 700, lineHeight: '18px' }}>
+              <span key={cell} aria-hidden className="rc-anim-fill" style={{ background: brandColor, color: colors.white, fontSize: 13, fontWeight: 700, lineHeight: '18px', ...stagger(0, 0, 100) }}>
                 {board.goal.trim() || '핵심 목표'}
               </span>
             );
@@ -61,14 +62,16 @@ function WeekFill({ board, record, today, range }: RecordContext & { range: Peri
           // 가장 진한 칸(브랜드 색)만 흰 글자 — 그 아래 단계는 grey900 이 대비가 더 좋아요
           const ink = level === 4 ? colors.white : colors.grey900;
           return (
-            <span key={cell} aria-hidden style={{ background: HEAT[level], color: ink }}>
+            <span key={cell} aria-hidden className="rc-anim-fill" style={{ background: HEAT[level], color: ink, ...stagger(s + 1, 90, 100) }}>
               <span className="rc-clamp2" style={{ fontSize: 14, lineHeight: '19px', fontWeight: 700 }}>
                 {subTitle(board, s)}
               </span>
               <span style={{ fontSize: 12, color: d === 0 ? colors.grey600 : ink }}>{d === 0 ? '아직 0일' : `${elapsed}일 중 ${d}일`}</span>
               {full && (
                 <span
+                  className="rc-anim-stamp"
                   style={{
+                    ...stagger(s, 70, 1000),
                     position: 'absolute',
                     top: 6,
                     right: 6,
@@ -141,7 +144,7 @@ function NineHeat({ board, record, today, range }: RecordContext & { range: Peri
                 {Array.from({ length: 9 }, (_, cell) => {
                   if (cell === CENTER) {
                     return (
-                      <span key={cell} className="rc-nine-cell" style={{ background: brandColor, color: colors.white }}>
+                      <span key={cell} className="rc-nine-cell rc-anim-fill" style={{ background: brandColor, color: colors.white, ...stagger(0, 0, 80) }}>
                         {board.goal.trim().slice(0, 6) || '목표'}
                       </span>
                     );
@@ -149,7 +152,7 @@ function NineHeat({ board, record, today, range }: RecordContext & { range: Peri
                   const s = ringIndex(cell);
                   const level = relativeLevel(subs[s], maxSub);
                   return (
-                    <span key={cell} className="rc-nine-cell" style={{ background: HEAT[level], color: level === 4 ? colors.white : colors.grey900 }}>
+                    <span key={cell} className="rc-nine-cell rc-anim-fill" style={{ background: HEAT[level], color: level === 4 ? colors.white : colors.grey900, ...stagger(s + 1, 45, 80) }}>
                       {subTitle(board, s).slice(0, 4)}
                     </span>
                   );
@@ -176,10 +179,10 @@ function NineHeat({ board, record, today, range }: RecordContext & { range: Peri
                   <button
                     key={cell}
                     type="button"
-                    className="rc-nine-cell"
+                    className="rc-nine-cell rc-anim-fill"
                     aria-label={`${actionTitle(board, index)}, ${counts[index]}번`}
                     aria-pressed={picked === index}
-                    style={{ background, boxShadow: picked === index ? `inset 0 0 0 2px ${colors.grey900}` : undefined }}
+                    style={{ background, boxShadow: picked === index ? `inset 0 0 0 2px ${colors.grey900}` : undefined, ...stagger(ringIndex(cell), 25, 200 + s * 70) }}
                     onClick={() => setPicked(picked === index ? null : index)}
                   />
                 );
@@ -229,7 +232,7 @@ export function BoardDashboard(props: RecordContext & { range: PeriodRange; onMo
       {empty ? (
         <EmptyLine text={range.offset === 0 ? `${scopeWord(range)} 첫 도장을 찍어 봐요` : '이 기간은 쉬어 갔어요'} />
       ) : range.period === 'week' ? (
-        <WeekFill {...props} />
+        <WeekFill key={range.start} {...props} />
       ) : (
         <NineHeat key={range.start} {...props} />
       )}

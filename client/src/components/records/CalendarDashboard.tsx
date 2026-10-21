@@ -9,6 +9,7 @@ import { bestMonth, bestRun, checksIn, checksOn, monthDay, monthTotals, subOf, s
 import { streak } from '../../lib/state';
 import { WEEKDAY_LABELS, computeStats, firstRecordDate, heatLevel, monthCells, weekdayLabel, type PeriodRange } from '../../lib/stats';
 import { brandColor, stampInk, withAlpha } from '../../theme';
+import { stagger } from './motion';
 import { PeriodNav } from './PeriodNav';
 import { DAY_HEAT, type RecordContext } from './shared';
 
@@ -22,7 +23,7 @@ function DayCard({ board, record, today, content, date }: DayProps) {
     .filter((g) => g.items.length > 0);
   const isToday = date === today;
   return (
-    <div className="rc-card" aria-live="polite">
+    <div className="rc-card rc-anim-rise" aria-live="polite">
       <p style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>
         {monthDay(date)} {weekdayLabel(date)}요일{isToday ? ' · 오늘' : ''} · 도장 {checked.size}개
       </p>
@@ -58,7 +59,7 @@ function WeekRings(props: RecordContext & { content: Content; range: PeriodRange
   return (
     <>
       <div className="rc-days" style={{ padding: '8px 16px 0' }}>
-        {range.dates.map((date) => {
+        {range.dates.map((date, i) => {
           const touched = subsTouched(checksOn(record, date));
           const future = date > today;
           const on = date === selected;
@@ -84,7 +85,10 @@ function WeekRings(props: RecordContext & { content: Content; range: PeriodRange
                     stroke={brandColor}
                     strokeWidth="4"
                     strokeLinecap="round"
-                    strokeDasharray={`${(touched / SUB_COUNT) * length} ${length}`}
+                    className="rc-anim-draw"
+                    strokeDasharray={`${length} ${length}`}
+                    strokeDashoffset={length * (1 - touched / SUB_COUNT)}
+                    style={{ ['--rc-from' as string]: length, animationDuration: '0.8s', ...stagger(i, 90, 150) }}
                     transform="rotate(-90 16 16)"
                   />
                 )}
@@ -97,7 +101,7 @@ function WeekRings(props: RecordContext & { content: Content; range: PeriodRange
       <p className="rc-note" style={{ marginTop: 8 }}>
         고리 = 그날 손댄 세부 목표 수(8개 중)
       </p>
-      <DayCard {...props} date={selected} />
+      <DayCard key={selected} {...props} date={selected} />
       <div className="rc-card">
         <ul className="rc-rows">
           <li>
@@ -124,6 +128,7 @@ function MonthStamps(props: RecordContext & { content: Content; range: PeriodRan
   const [selected, setSelected] = useState(() => (range.dates.includes(today) ? today : range.dates[range.dates.length - 1] <= today ? range.dates[range.dates.length - 1] : range.dates[0]));
   const stats = computeStats(board, record, range, today);
   const current = range.offset === 0;
+  let stamped = 0;
   return (
     <>
       <p style={{ margin: 0, padding: '0 24px 10px', fontSize: 14, color: colors.grey700 }}>
@@ -136,6 +141,7 @@ function MonthStamps(props: RecordContext & { content: Content; range: PeriodRan
         )}
       </p>
       <div className="rc-month" role="group" aria-label={`${range.label} 도장 달력, ${stats.activeDays}일 실천, 도장 ${stats.checks}개`}>
+        {/* 도장 찍힌 날만 차례로(stamped 번째) — 1일부터 오늘까지 쿵쿵 */}
         {WEEKDAY_LABELS.map((label) => (
           <span key={label} className="rc-month-head" aria-hidden>
             {label}
@@ -144,6 +150,7 @@ function MonthStamps(props: RecordContext & { content: Content; range: PeriodRan
         {monthCells(range).map((date, i) => {
           if (date === null) return <span key={`b${i}`} aria-hidden />;
           const count = checksOn(record, date).length;
+          if (count > 0) stamped += 1;
           const future = date > today;
           const level = heatLevel(count);
           const on = date === selected;
@@ -163,12 +170,14 @@ function MonthStamps(props: RecordContext & { content: Content; range: PeriodRan
               onClick={() => setSelected(date)}
             >
               <span style={{ color: future ? colors.grey400 : colors.grey700, fontWeight: date === today ? 700 : 400 }}>{Number(date.slice(8))}</span>
-              <i style={stamp}>{count > 0 ? count : ''}</i>
+              <i className={count > 0 ? 'rc-anim-stamp' : undefined} style={count > 0 ? { ...stamp, ...stagger(stamped - 1, 45, 200) } : stamp}>
+                {count > 0 ? count : ''}
+              </i>
             </button>
           );
         })}
       </div>
-      <DayCard {...props} date={selected} />
+      <DayCard key={selected} {...props} date={selected} />
     </>
   );
 }
@@ -213,7 +222,12 @@ function YearGrass({ record, today, range }: RecordContext & { range: PeriodRang
                 {label ?? ''}
               </em>,
               ...week.map((cell) => (
-                <i key={cell.date} aria-hidden style={{ background: cell.out ? 'transparent' : cell.future ? colors.grey50 : DAY_HEAT[heatLevel(cell.count)] }} />
+                <i
+                  key={cell.date}
+                  aria-hidden
+                  className={cell.out ? undefined : 'rc-anim-fill'}
+                  style={{ background: cell.out ? 'transparent' : cell.future ? colors.grey50 : DAY_HEAT[heatLevel(cell.count)], ...stagger(w, 12, 150) }}
+                />
               )),
             ];
           })}
@@ -244,11 +258,11 @@ function YearGrass({ record, today, range }: RecordContext & { range: PeriodRang
         <>
           <h2 className="rc-section-title">달마다 찍은 도장</h2>
           <ul className="rc-rows" style={{ padding: '0 24px' }}>
-            {months.map(({ m, total }) => (
+            {months.map(({ m, total }, i) => (
               <li key={m} style={{ alignItems: 'center' }}>
                 <span style={{ flex: '0 0 36px', color: colors.grey900 }}>{m + 1}월</span>
                 <span className="rc-meter" style={{ flex: 1 }} aria-hidden>
-                  <i style={{ width: `${Math.round((total / maxMonth) * 100)}%`, background: withAlpha(brandColor, total === maxMonth ? 1 : 0.55) }} />
+                  <i className="rc-anim-grow-x" style={{ width: `${Math.round((total / maxMonth) * 100)}%`, background: withAlpha(brandColor, total === maxMonth ? 1 : 0.55), ...stagger(i, 90, 300) }} />
                 </span>
                 <b style={{ flex: '0 0 48px' }}>{total}개</b>
               </li>

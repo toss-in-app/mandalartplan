@@ -24,6 +24,8 @@ import {
 import { WEEKDAY_LABELS, addDays, datesBetween, heatLevel, monthRange, weekRange, weekdayIndex, yearRange } from '../../lib/stats';
 import type { RecordWidgetId } from '../../lib/widgets';
 import { brandColor, stampInk, withAlpha } from '../../theme';
+import { CountUp } from './CountUp';
+import { stagger } from './motion';
 import { DAY_HEAT, type RecordContext } from './shared';
 import { Label, Meter, MiniBars, MiniBoard, MiniCalendar } from './WidgetParts';
 
@@ -63,11 +65,11 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
           <>
             <Label text="연속" chevron={chevron} />
             <span className="rc-widget-value" style={{ color: stampInk }}>
-              {s.current > 0 ? `${s.current}일째` : '0일'}
+              {s.current > 0 ? <CountUp value={s.current} format={(n) => `${n}일째`} /> : '0일'}
             </span>
             <span className="rc-widget-foot rc-dots" aria-hidden>
-              {days.map((day) => (
-                <i key={day.date} style={dotStyle(day, today)} />
+              {days.map((day, i) => (
+                <i key={day.date} className={day.count > 0 ? 'rc-anim-stamp' : 'rc-anim-fade'} style={{ ...dotStyle(day, today), ...stagger(i, 70, 150) }} />
               ))}
             </span>
           </>
@@ -82,7 +84,9 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
         content: (chevron) => (
           <>
             <Label text="이번 주 도장" chevron={chevron} />
-            <span className="rc-widget-value">{cmp.now}개</span>
+            <span className="rc-widget-value">
+              <CountUp value={cmp.now} format={(n) => `${n}개`} />
+            </span>
             <MiniBars values={bars.map((b) => b.value)} current={bars.findIndex((b) => b.current)} future={(i) => bars[i].future} />
           </>
         ),
@@ -120,7 +124,7 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
             <span className="rc-wide-text">
               <Label text={name} chevron={chevron} />
               <span className="rc-widget-value" style={{ fontSize: 22, lineHeight: '30px' }}>
-                {activeDays}일 실천
+                <CountUp value={activeDays} format={(n) => `${n}일 실천`} />
               </span>
               <span className="rc-widget-sub">
                 도장 {checks}개 · 오늘 {checksOn(record, today).length}개
@@ -141,18 +145,20 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
           <>
             <Label text="배지" chevron={chevron} />
             <span className="rc-widget-value">
-              {earned.length}개<span className="rc-widget-small">/ 12</span>
+              <CountUp value={earned.length} format={(n) => `${n}개`} />
+              <span className="rc-widget-small">/ 12</span>
             </span>
             <span className="rc-widget-foot rc-badges-row" aria-hidden>
-              {shown.map((b) => (
+              {shown.map((b, i) => (
                 <span
                   key={b.id}
-                  className="rc-badge-mini"
-                  style={
-                    b.earned
+                  className={`rc-badge-mini ${b.earned ? 'rc-anim-stamp' : 'rc-anim-fade'}`}
+                  style={{
+                    ...(b.earned
                       ? { border: `2px solid ${stampInk}`, background: withAlpha(brandColor, 0.08), color: stampInk }
-                      : { border: `1.5px dashed ${colors.grey400}`, background: colors.white, color: colors.grey600 }
-                  }
+                      : { border: `1.5px dashed ${colors.grey400}`, background: colors.white, color: colors.grey600 }),
+                    ...stagger(i, 110, 250),
+                  }}
                 >
                   {b.mark}
                 </span>
@@ -173,7 +179,7 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
             <>
               <Label text="지난주 리포트" chevron={chevron} />
               <span className="rc-widget-value" style={{ fontSize: 22, lineHeight: '30px' }}>
-                도장 {report.checks}개
+                <CountUp value={report.checks} format={(n) => `도장 ${n}개`} />
               </span>
               <span className="rc-widget-sub" style={{ marginTop: 'auto' }}>
                 {report.range.label}
@@ -218,7 +224,7 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
           <>
             <Label text="꾸준함 점수" chevron={chevron} />
             <span className="rc-widget-value">
-              {score}
+              <CountUp value={score} />
               <span className="rc-widget-small">점</span>
             </span>
             <span className="rc-widget-sub">{change}</span>
@@ -242,13 +248,17 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
             <span className="rc-wide-text">
               <Label text="1년 잔디" chevron={chevron} />
               <span className="rc-widget-value" style={{ fontSize: 22, lineHeight: '30px' }}>
-                {activeDays}일 실천
+                <CountUp value={activeDays} format={(n) => `${n}일 실천`} />
               </span>
               <span className="rc-widget-sub">올해 도장 {checks}개</span>
             </span>
             <span className="rc-minigrass" aria-hidden>
-              {cells.map((date) => (
-                <i key={date} style={{ background: date > today ? colors.grey50 : DAY_HEAT[heatLevel(checksOn(record, date).length)] }} />
+              {cells.map((date, i) => (
+                <i
+                  key={date}
+                  className="rc-anim-fill"
+                  style={{ background: date > today ? colors.grey50 : DAY_HEAT[heatLevel(checksOn(record, date).length)], ...stagger(Math.floor(i / 7), 35, 120) }}
+                />
               ))}
             </span>
           </span>
@@ -297,7 +307,7 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
           <>
             <Label text="지난달 회고" chevron={chevron} />
             <span className="rc-widget-value" style={{ fontSize: 22, lineHeight: '30px' }}>
-              도장 {review.checks}개
+              <CountUp value={review.checks} format={(n) => `도장 ${n}개`} />
             </span>
             <span className="rc-widget-sub" style={{ marginTop: 'auto' }}>
               {month}월 · {review.activeDays}일 실천
@@ -314,7 +324,9 @@ export function describeWidget(id: RecordWidgetId, { board, record, today }: Rec
         content: (chevron) => (
           <>
             <Label text="누적 도장" chevron={chevron} />
-            <span className="rc-widget-value">{c.total}개</span>
+            <span className="rc-widget-value">
+              <CountUp value={c.total} format={(n) => `${n}개`} />
+            </span>
             <span className="rc-widget-sub">
               {c.next}개까지 {c.left}개
             </span>

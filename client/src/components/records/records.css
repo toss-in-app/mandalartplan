@@ -794,3 +794,105 @@ button.rc-nine-cell {
 .rc-story-body [data-interactive] {
   pointer-events: auto;
 }
+
+/* ───── 차오르는 움직임 (사용자 2026-10-21 '빨리 차다가 끝에 가까워지면 천천히 꽉 차는', '도장이 차례로 찍히는') ─────
+   from 만 적어 두면 끝 모습은 그 요소의 인라인 값이에요(막대 높이·칸 색·도장 기울기). 대기 중에도 시작 모습이 보이게 both.
+   위젯 판은 처음 그릴 때 한 번만(.rc-still 이면 끔 — 편집 모드를 오가며 다시 그려도 움직이지 않게). */
+
+.rc-anim-grow-y {
+  transform-origin: 50% 100%;
+  animation: rc-grow-y 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rc-grow-y {
+  from { transform: scaleY(0); }
+}
+
+.rc-anim-grow-x {
+  transform-origin: 0 50%;
+  animation: rc-grow-x 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rc-grow-x {
+  from { transform: scaleX(0); }
+}
+
+/* 회색에서 그 칸 색으로 차올라요 */
+.rc-anim-fill {
+  animation: rc-fill 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rc-fill {
+  from { background-color: #f2f4f6; }
+}
+
+/* 도장이 쿵 — 홈 '완료' 도장과 같은 튕김(grid.css .mg-cell-stamp) */
+.rc-anim-stamp {
+  animation: rc-stamp 0.3s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+@keyframes rc-stamp {
+  from { opacity: 0; transform: scale(1.7) rotate(-14deg); }
+}
+
+/* 고리·반원·선이 그려져요(끝 stroke-dashoffset 은 인라인, 처음은 --rc-from) */
+.rc-anim-draw {
+  animation: rc-draw 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rc-draw {
+  from { stroke-dashoffset: var(--rc-from); }
+}
+
+.rc-anim-rise {
+  animation: rc-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rc-rise {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+.rc-anim-fade {
+  animation: rc-fade 0.4s ease-out both;
+}
+
+@keyframes rc-fade {
+  from { opacity: 0; }
+}
+
+.rc-still .rc-anim-grow-y,
+.rc-still .rc-anim-grow-x,
+.rc-still .rc-anim-fill,
+.rc-still .rc-anim-stamp,
+.rc-still .rc-anim-draw,
+.rc-still .rc-anim-rise,
+.rc-still .rc-anim-fade {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-anim-grow-y,
+  .rc-anim-grow-x,
+  .rc-anim-fill,
+  .rc-anim-stamp,
+  .rc-anim-draw,
+  .rc-anim-rise,
+  .rc-anim-fade {
+    animation: none;
+  }
+}
+
+/* 지난주 리포트(어두운 바탕): 투명에서 그 칸 밝기로 */
+.rc-anim-fill-dark {
+  animation: rc-fill-dark 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rc-fill-dark {
+  from { background-color: rgba(255, 255, 255, 0.02); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-anim-fill-dark {
+    animation: none;
+  }
+}

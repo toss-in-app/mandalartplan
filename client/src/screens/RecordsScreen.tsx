@@ -1,11 +1,13 @@
 import { colors } from '@toss/tds-colors';
 import { Button, Text, Top } from '@toss/tds-mobile';
+import { useEffect, useState } from 'react';
 
 import { AD_GROUPS } from '../ads/config';
 import { AdBanner } from '../components/AdBanner';
 import { EditDoneButton } from '../components/EditDoneButton';
 import type { RecordContext } from '../components/records/shared';
 import { describeWidget } from '../components/records/widgetViews';
+import { MotionContext } from '../components/records/motion';
 import '../components/records/records.css';
 import { useWidgetEdit } from '../hooks/useWidgetEdit';
 import { formatDateLabel } from '../lib/checkin';
@@ -41,6 +43,13 @@ export function RecordsScreen({ board, record, widgets, onChangeWidgets, onOpen,
   const ctx: RecordContext = { board, record, today };
   const hasHistory = record !== undefined && Object.values(record.days).some((list) => list.length > 0);
   const todayCount = checksOn(record, today).length;
+  // 판을 열 때 한 번만 차올라요. 다 찬 뒤나 편집 모드에선 다시 그려도 움직이지 않게(.rc-still)
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(true), 2200);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const still = settled || edit.editing;
 
   return (
     <>
@@ -87,66 +96,68 @@ export function RecordsScreen({ board, record, widgets, onChangeWidgets, onOpen,
         </button>
       )}
 
-      <div {...edit.boardProps}>
-        {edit.visible.map((id, index) => {
-          const view = describeWidget(id, ctx);
-          const wide = RECORD_WIDGETS[id].wide ? ' rc-widget-wide' : '';
-          const drag = edit.dragStyle(id);
-          const style = { ...(view.background ? { background: view.background } : {}), ...drag.style };
-          if (edit.editing) {
-            const last = edit.visible.length <= 1;
-            return (
-              <div key={id} data-widget={id} role="group" aria-label={view.aria} className={`rc-widget${wide}${drag.className}`} style={style}>
-                <button
-                  type="button"
-                  data-control
-                  className="rc-minus"
-                  aria-label={`${RECORD_WIDGETS[id].name} 숨기기`}
-                  aria-disabled={last || undefined}
-                  onClick={() => edit.hide(id)}
-                >
-                  <span>
-                    <i />
-                  </span>
-                </button>
-                {view.content(false)}
-                {index > 0 && (
-                  <button type="button" data-control className="rc-reveal" onClick={() => edit.step(id, -1)}>
-                    {RECORD_WIDGETS[id].name} 앞으로
+      <MotionContext.Provider value={!still}>
+        <div {...edit.boardProps} className={`${edit.boardProps.className}${still ? ' rc-still' : ''}`}>
+          {edit.visible.map((id, index) => {
+            const view = describeWidget(id, ctx);
+            const wide = RECORD_WIDGETS[id].wide ? ' rc-widget-wide' : '';
+            const drag = edit.dragStyle(id);
+            const style = { ...(view.background ? { background: view.background } : {}), ...drag.style };
+            if (edit.editing) {
+              const last = edit.visible.length <= 1;
+              return (
+                <div key={id} data-widget={id} role="group" aria-label={view.aria} className={`rc-widget${wide}${drag.className}`} style={style}>
+                  <button
+                    type="button"
+                    data-control
+                    className="rc-minus"
+                    aria-label={`${RECORD_WIDGETS[id].name} 숨기기`}
+                    aria-disabled={last || undefined}
+                    onClick={() => edit.hide(id)}
+                  >
+                    <span>
+                      <i />
+                    </span>
                   </button>
-                )}
-                {index < edit.visible.length - 1 && (
-                  <button type="button" data-control className="rc-reveal" onClick={() => edit.step(id, 1)}>
-                    {RECORD_WIDGETS[id].name} 뒤로
-                  </button>
-                )}
-              </div>
-            );
-          }
-          if (view.locked) {
+                  {view.content(false)}
+                  {index > 0 && (
+                    <button type="button" data-control className="rc-reveal" onClick={() => edit.step(id, -1)}>
+                      {RECORD_WIDGETS[id].name} 앞으로
+                    </button>
+                  )}
+                  {index < edit.visible.length - 1 && (
+                    <button type="button" data-control className="rc-reveal" onClick={() => edit.step(id, 1)}>
+                      {RECORD_WIDGETS[id].name} 뒤로
+                    </button>
+                  )}
+                </div>
+              );
+            }
+            if (view.locked) {
+              return (
+                <div key={id} data-widget={id} role="group" aria-label={view.aria} className={`rc-widget${wide}`} style={style}>
+                  {view.content(false)}
+                </div>
+              );
+            }
             return (
-              <div key={id} data-widget={id} role="group" aria-label={view.aria} className={`rc-widget${wide}`} style={style}>
-                {view.content(false)}
-              </div>
+              <button
+                key={id}
+                type="button"
+                data-widget={id}
+                className={`rc-widget${wide}`}
+                style={style}
+                aria-label={view.aria}
+                onClick={() => {
+                  if (!edit.blockClick()) onOpen(id);
+                }}
+              >
+                {view.content(true)}
+              </button>
             );
-          }
-          return (
-            <button
-              key={id}
-              type="button"
-              data-widget={id}
-              className={`rc-widget${wide}`}
-              style={style}
-              aria-label={view.aria}
-              onClick={() => {
-                if (!edit.blockClick()) onOpen(id);
-              }}
-            >
-              {view.content(true)}
-            </button>
-          );
-        })}
-      </div>
+          })}
+        </div>
+      </MotionContext.Provider>
 
       {edit.editing && edit.hidden.length > 0 && (
         <section className="rc-tray" aria-label="숨긴 위젯">

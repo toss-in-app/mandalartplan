@@ -151,4 +151,5 @@
 - **상태 계약 변경**: `settings.records.widgets`(위젯 id 배열 | null, 없으면 null = 기본 배치) 추가 — 이 기기에만, 백업 페이로드에는 싣지 않음(1분 체험 카드와 같은 기준). `state.schema.json`·`samples/state.sample.json` 갱신, 계약 검증 통과.
 - 분석: `record_open`{widget}·`record_widget_edit`{action, widget, visible}·`report_share`{result} 추가, `today_view` 에 `widgets`, `stats_view` 에 `widget`(기간에 year·4w·8w·all), `edit_mode_enter` 의 `screen` 에 records.
 - 광고: 홈 '기록 보기' 전면(하루 1회·AD 표시)은 그대로, 배너 `banner-today` 는 판과 대시보드마다 맨 아래 1개(편집 모드에선 숨김, 다시 불러오지 않음). 위젯·대시보드를 열 때 전면 광고 없음(노출 정책 UX 원칙 2).
+- 같은 버전(사용자 2026-10-21 '빨리 차다가 끝에 가까워지면 천천히 꽉 차는 액션', '도장이 월요일부터 차례로 찍히는 느낌'): 숫자 세어 올라가기·막대·고리·선·칸 차오름(ease-out)과 차례로 찍히는 도장(`components/records/motion.ts`·`CountUp.tsx`). 지난주 리포트 1장은 월요일부터 하루씩 도장 + 진동 '톡' + 위 숫자가 그만큼. 위젯 판은 열 때 한 번, 대시보드는 열 때·기간을 바꿀 때, 동작 줄이기면 끝 모습만. 계약 변경 없음.
 - 없앤 것: `TodayScreen`·`StatsPanel`·`StatsCalendar`(기간 탭 화면). 숫자 계산 `lib/stats.ts` 는 기간 '년'을 더해 그대로 씀.

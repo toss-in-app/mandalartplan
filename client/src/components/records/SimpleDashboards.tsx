@@ -24,6 +24,8 @@ import {
 } from '../../lib/records';
 import { WEEKDAY_LABELS, computeStats, periodRange, rangeLabel, type PeriodRange } from '../../lib/stats';
 import { brandColor, stampInk, withAlpha } from '../../theme';
+import { CountUp } from './CountUp';
+import { stagger } from './motion';
 import { PeriodNav } from './PeriodNav';
 import { scopeWord, type RecordContext } from './shared';
 
@@ -38,18 +40,22 @@ export function EmptyLine({ text }: { text: string }) {
   );
 }
 
-/** 막대 묶음: 막대 위 숫자(note), 아래 이름. highlight 는 브랜드 색, 나머지는 옅게 */
+/** 막대 묶음: 막대 위 숫자(note), 아래 이름. highlight 는 브랜드 색, 나머지는 옅게. 왼쪽부터 차례로 아래에서 차올라요(기간을 바꾸면 key 로 다시) */
 export function Bars({ items, label }: { items: Array<{ key: string; label: string; value: number; note: string; highlight?: boolean; muted?: boolean }>; label: string }) {
   const max = Math.max(1, ...items.map((i) => i.value));
   return (
     <div className="rc-bars" role="img" aria-label={label} style={{ marginTop: 16 }}>
-      {items.map((item) => (
+      {items.map((item, i) => (
         <span key={item.key} className="rc-bar" aria-hidden>
-          <span style={{ color: item.highlight ? stampInk : colors.grey700, fontWeight: item.highlight ? 700 : 400 }}>{item.note}</span>
+          <span className="rc-anim-fade" style={{ color: item.highlight ? stampInk : colors.grey700, fontWeight: item.highlight ? 700 : 400, ...stagger(i, 70, 500) }}>
+            {item.note}
+          </span>
           <i
+            className="rc-anim-grow-y"
             style={{
               height: item.value > 0 ? Math.max(6, Math.round((item.value / max) * 120)) : 3,
               background: item.value === 0 || item.muted ? colors.grey200 : item.highlight ? brandColor : withAlpha(brandColor, 0.35),
+              ...stagger(i, 70, 100),
             }}
           />
           <span style={{ color: item.highlight ? stampInk : colors.grey600, fontWeight: item.highlight ? 700 : 400 }}>{item.label}</span>
@@ -105,12 +111,17 @@ export function StreakDashboard({ record, today }: RecordContext) {
             stroke={brandColor}
             strokeWidth="12"
             strokeLinecap="round"
-            strokeDasharray={`${Math.max(0.001, progress * length)} ${length}`}
+            className="rc-anim-draw"
+            strokeDasharray={`${length} ${length}`}
+            strokeDashoffset={length * (1 - progress)}
+            style={{ ['--rc-from' as string]: length }}
             transform="rotate(-90 86 86)"
           />
         </svg>
         <div aria-hidden>
-          <span style={{ fontSize: 52, lineHeight: '56px', fontWeight: 700, color: stampInk, fontVariantNumeric: 'tabular-nums' }}>{s.current}</span>
+          <span style={{ fontSize: 52, lineHeight: '56px', fontWeight: 700, color: stampInk, fontVariantNumeric: 'tabular-nums' }}>
+            <CountUp value={s.current} duration={1100} />
+          </span>
           <span style={{ fontSize: 14, fontWeight: 600, color: colors.grey700 }}>일째 연속</span>
         </div>
       </div>
@@ -125,9 +136,9 @@ export function StreakDashboard({ record, today }: RecordContext) {
       <div className="rc-card">
         <p style={{ margin: '0 0 10px', fontSize: 13, color: colors.grey700 }}>최근 14일</p>
         <div className="rc-days" role="img" aria-label={`최근 14일 중 ${days.filter((d) => d.count > 0).length}일 실천`}>
-          {days.map((day) => (
+          {days.map((day, i) => (
             <span key={day.date} className="rc-day" aria-hidden>
-              <i style={dayCircle(day, today)} />
+              <i className={day.count > 0 ? 'rc-anim-stamp' : 'rc-anim-fade'} style={{ ...dayCircle(day, today), ...stagger(i, 55, 300) }} />
               <span style={day.date === today ? { color: stampInk, fontWeight: 700 } : undefined}>{day.date === today ? '오늘' : Number(day.date.slice(8))}</span>
             </span>
           ))}
@@ -179,10 +190,13 @@ export function StampsDashboard({ board, record, today, range, onMove }: RecordC
         <>
           <div className="rc-head">
             <p className="rc-head-label">{scope} 찍은 도장</p>
-            <p className="rc-head-number">{stats.checks}개</p>
+            <p className="rc-head-number">
+              <CountUp value={stats.checks} format={(n) => `${n}개`} />
+            </p>
             <p className="rc-head-text">{sentence}</p>
           </div>
           <Bars
+            key={range.start + range.period}
             label={`${range.label} 도장: ${bars.filter((b) => !b.future).map((b) => `${b.label} ${b.value}`).join(', ')}`}
             items={bars.map((b) => ({ key: b.label, label: b.current ? (range.period === 'week' ? '오늘' : b.label) : b.label, value: b.value, note: b.future ? '' : String(b.value), highlight: b.current }))}
           />
@@ -213,16 +227,18 @@ export function BadgesDashboard({ record, today }: RecordContext) {
         <p className="rc-head-text">{latest ? `12개 중 · 가장 최근 '${latest.title}' ${monthDay(latest.earned!)}` : '도장을 찍으면 배지가 하나씩 열려요'}</p>
       </div>
       <ul className="rc-badges">
-        {badges.map((b) => (
+        {badges.map((b, i) => (
           <li key={b.id} aria-label={`${b.title}, ${b.earned ? `받음 ${monthDay(b.earned)}` : `아직, ${b.progress}`}`}>
             <span
-              className="rc-badge"
+              className={`rc-badge ${b.earned ? 'rc-anim-stamp' : 'rc-anim-fade'}`}
               aria-hidden
-              style={
-                b.earned
-                  ? { border: `3px solid ${stampInk}`, boxShadow: `inset 0 0 0 3px ${colors.white}, inset 0 0 0 5px ${stampInk}`, background: withAlpha(brandColor, 0.08), color: stampInk, fontSize: b.mark.length >= 3 ? 17 : 22 }
-                  : { border: `2px dashed ${colors.grey300}`, background: colors.white, color: colors.grey500, fontSize: b.mark.length >= 3 ? 17 : 22 }
-              }
+              style={{
+                ...(b.earned
+                  ? { border: `3px solid ${stampInk}`, boxShadow: `inset 0 0 0 3px ${colors.white}, inset 0 0 0 5px ${stampInk}`, background: withAlpha(brandColor, 0.08), color: stampInk }
+                  : { border: `2px dashed ${colors.grey300}`, background: colors.white, color: colors.grey500 }),
+                fontSize: b.mark.length >= 3 ? 17 : 22,
+                ...stagger(i, 90, 200),
+              }}
             >
               {b.mark}
             </span>
@@ -257,10 +273,22 @@ export function ScoreDashboard({ board, record, today }: RecordContext) {
       <div style={{ position: 'relative', width: 240, height: 136, margin: '16px auto 0' }} role="img" aria-label={`꾸준함 점수 100점 중 ${s.score}점`}>
         <svg width="240" height="136" viewBox="0 0 240 136" aria-hidden>
           <path d="M20 120 A100 100 0 0 1 220 120" fill="none" stroke={colors.grey100} strokeWidth="16" strokeLinecap="round" />
-          <path d="M20 120 A100 100 0 0 1 220 120" fill="none" stroke={brandColor} strokeWidth="16" strokeLinecap="round" strokeDasharray={`${Math.max(0.001, (s.score / 100) * half)} ${half}`} />
+          <path
+            className="rc-anim-draw"
+            d="M20 120 A100 100 0 0 1 220 120"
+            fill="none"
+            stroke={brandColor}
+            strokeWidth="16"
+            strokeLinecap="round"
+            strokeDasharray={`${half} ${half}`}
+            strokeDashoffset={half * (1 - s.score / 100)}
+            style={{ ['--rc-from' as string]: half, animationDuration: '1.3s' }}
+          />
         </svg>
         <div aria-hidden style={{ position: 'absolute', left: 0, right: 0, bottom: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontSize: 48, lineHeight: '52px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{s.score}</span>
+          <span style={{ fontSize: 48, lineHeight: '52px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            <CountUp value={s.score} duration={1300} />
+          </span>
           <span style={{ fontSize: 13, color: colors.grey700 }}>꾸준함 점수</span>
         </div>
       </div>
@@ -276,7 +304,20 @@ export function ScoreDashboard({ board, record, today }: RecordContext) {
         <div className="rc-card">
           <p style={{ margin: '0 0 6px', fontSize: 13, color: colors.grey700 }}>{s.weekly.length - 1}주 동안</p>
           <svg width="100%" height="64" viewBox="0 0 320 64" preserveAspectRatio="none" role="img" aria-label={`주마다 점수: ${s.weekly.join(', ')}`}>
-            <polyline points={points} fill="none" stroke={brandColor} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+            <polyline
+              className="rc-anim-draw"
+              points={points}
+              pathLength={1}
+              strokeDasharray="1 1"
+              strokeDashoffset={0}
+              style={{ ['--rc-from' as string]: 1, ...stagger(0, 0, 400) }}
+              fill="none"
+              stroke={brandColor}
+              strokeWidth="3"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
           </svg>
           <p style={{ margin: '4px 0 0', display: 'flex', justifyContent: 'space-between', fontSize: 12, color: colors.grey600 }}>
             <span>{s.weekly[0]}점</span>
@@ -324,6 +365,7 @@ export function WeekdayDashboard({ board, record, today, span }: RecordContext &
         </p>
       </div>
       <Bars
+        key={span}
         label={`요일별 하루 평균 도장: ${w.stats.map((s) => `${WEEKDAY_LABELS[s.weekday]} ${s.average.toFixed(1)}`).join(', ')}`}
         items={w.stats.map((s) => ({
           key: String(s.weekday),
@@ -377,11 +419,23 @@ export function ReviewDashboard({ board, record, today }: RecordContext) {
         {review.top.map((a, i) => (
           <li
             key={a.index}
-            style={{ display: 'grid', gridTemplateColumns: '20px 1fr auto', gap: 8, padding: '12px 14px', borderRadius: 14, background: i === 0 ? withAlpha(brandColor, 0.08) : colors.grey50, fontSize: 15 }}
+            className="rc-anim-rise"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '20px 1fr auto',
+              gap: 8,
+              padding: '12px 14px',
+              borderRadius: 14,
+              background: i === 0 ? withAlpha(brandColor, 0.08) : colors.grey50,
+              fontSize: 15,
+              ...stagger(i, 120, 150),
+            }}
           >
             <b style={{ color: stampInk }}>{i + 1}</b>
             <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.text}</span>
-            <b>{a.count}번</b>
+            <b>
+              <CountUp value={a.count} format={(n) => `${n}번`} delay={150 + i * 120} />
+            </b>
           </li>
         ))}
       </ol>
@@ -412,7 +466,9 @@ export function TotalDashboard({ record, today }: RecordContext) {
     <>
       <div className="rc-head">
         <p className="rc-head-label">{monthDay(c.first)} 첫 도장부터</p>
-        <p className="rc-head-number">도장 {c.total}개</p>
+        <p className="rc-head-number">
+          <CountUp value={c.total} format={(v) => `도장 ${v}개`} duration={1200} />
+        </p>
         <p className="rc-head-text">
           {c.next}개까지 <b style={{ color: stampInk }}>{c.left}개</b> 남았어요{c.eta ? ` · 지금 속도면 ${c.eta}` : ''}
         </p>
@@ -422,10 +478,33 @@ export function TotalDashboard({ record, today }: RecordContext) {
         <text x="300" y={y(c.next) - 6} textAnchor="end" fontSize="11" fill={stampInk} fontWeight="700">
           {c.next}
         </text>
-        {n > 1 && <polyline points={c.months.map((m, i) => `${x(i)},${y(m.total)}`).join(' ')} fill="none" stroke={brandColor} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
+        {n > 1 && (
+          <polyline
+            className="rc-anim-draw"
+            points={c.months.map((m, i) => `${x(i)},${y(m.total)}`).join(' ')}
+            pathLength={1}
+            strokeDasharray="1 1"
+            strokeDashoffset={0}
+            style={{ ['--rc-from' as string]: 1, animationDuration: '1.2s' }}
+            fill="none"
+            stroke={brandColor}
+            strokeWidth="3"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        )}
         {c.months.map((m, i) => (
           <g key={m.month}>
-            <circle cx={x(i)} cy={y(m.total)} r={i === n - 1 ? 5 : 3.5} fill={i === n - 1 ? brandColor : colors.white} stroke={brandColor} strokeWidth="2" />
+            <circle
+              className="rc-anim-fade"
+              cx={x(i)}
+              cy={y(m.total)}
+              r={i === n - 1 ? 5 : 3.5}
+              fill={i === n - 1 ? brandColor : colors.white}
+              stroke={brandColor}
+              strokeWidth="2"
+              style={stagger(i, n > 1 ? Math.round(900 / (n - 1)) : 0, 150)}
+            />
             <text x={x(i)} y="178" textAnchor="middle" fontSize="11" fill={i === n - 1 ? stampInk : colors.grey600} fontWeight={i === n - 1 ? 700 : 400}>
               {i === n - 1 ? '지금' : m.label}
             </text>
