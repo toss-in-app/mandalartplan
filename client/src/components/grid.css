@@ -157,10 +157,53 @@ button.mg-cell {
   letter-spacing: 0;
 }
 
+/* 실천을 오늘 다 한 세부 목표(2.1): 이름을 가리지 않게 칸 모서리에 작은 '완료' 도장. 실천의 큰 도장과 같은 잉크·기울기,
+   마지막 실천에 도장을 찍는 순간 같이 쿵 찍혀요. 9×9 전체 보기의 작은 칸은 진한 틴트만(도장이 너무 작아져요) */
+.mg-cell-seal {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  aspect-ratio: 1 / 1;
+  border: 1.5px solid var(--mg-stamp, currentColor);
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--mg-stamp, currentColor);
+  pointer-events: none;
+  opacity: 0;
+  transform: rotate(-14deg) scale(1.6);
+  transition:
+    transform 0.24s cubic-bezier(0.3, 1.5, 0.5, 1),
+    opacity 0.12s ease-out;
+}
+
+.mg-cell-seal::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mg-cell-complete .mg-cell-seal {
+  opacity: 0.92;
+  transform: rotate(-14deg) scale(1);
+}
+
+.mg-block-small .mg-cell-seal {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mg-cell,
   .mg-cell-text,
-  .mg-cell-stamp {
+  .mg-cell-stamp,
+  .mg-cell-seal {
     transition: none;
   }
 }

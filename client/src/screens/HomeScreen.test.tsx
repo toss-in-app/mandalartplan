@@ -152,6 +152,10 @@ describe('HomeScreen (홈 마무리)', () => {
     renderHome(board, content, all);
     const done = screen.getByRole('button', { name: '운동, 오늘 다 했어요' });
     expect(done.querySelector('.mg-cell-check')).toBeNull();
+    // 이름을 가리지 않게 모서리에 작은 '완료' 도장(.mg-cell-complete 일 때만 보여요)
+    expect(done).toHaveClass('mg-cell-complete');
+    expect(done.querySelector('.mg-cell-seal')).toHaveAttribute('data-label', '완료');
+    expect(partial).not.toHaveClass('mg-cell-complete');
     expect(within(done).getByText('오늘 다 했어요')).toBeInTheDocument();
     expect(screen.getByText(/오늘 실천을 다 했어요/)).toBeInTheDocument();
   });

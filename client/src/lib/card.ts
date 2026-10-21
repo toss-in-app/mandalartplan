@@ -200,8 +200,8 @@ function cellStyle(view: CellView): CellStyle {
   }
 }
 
-/** '완료' 겹테 도장(앱 화면 grid.css .mg-cell-stamp 와 같은 모양): 살짝 기울인 원 두 겹 + 가운데 글자 */
-function drawStamp(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number): void {
+/** '완료' 도장(앱 화면 grid.css 와 같은 모양): 살짝 기울인 원 + 가운데 글자. 실천은 겹테(.mg-cell-stamp), 다 한 세부 목표 모서리는 홑테(.mg-cell-seal) */
+function drawStamp(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, double = true): void {
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate((-14 * Math.PI) / 180);
@@ -211,12 +211,14 @@ function drawStamp(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius
   ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
   ctx.fill();
   ctx.strokeStyle = stampInk;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = double ? 3 : 2;
   ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, 0, radius - 6, 0, Math.PI * 2);
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+  if (double) {
+    ctx.beginPath();
+    ctx.arc(0, 0, radius - 6, 0, Math.PI * 2);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
   ctx.fillStyle = stampInk;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -266,6 +268,7 @@ export function drawCard(ctx: CanvasRenderingContext2D, layout: CardLayout, opti
       lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, startY + i * lineHeight));
     }
     if (style.stamped) drawStamp(ctx, c.x + c.w / 2, c.y + c.h / 2, c.w * 0.31);
+    if (c.view.kind === 'sub' && c.view.checked && c.view.text.trim()) drawStamp(ctx, c.x + c.w - 21, c.y + 21, 16, false);
   }
 
   // 바닥글(워터마크)

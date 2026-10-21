@@ -160,6 +160,8 @@ describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
     expect(cells[4].tagName).toBe('SPAN');
     expect(cells[4]).toHaveTextContent('오늘 다 했어요');
     expect(cells[4].querySelector('.mg-cell-check')).toBeNull();
+    expect(cells[4]).toHaveClass('mg-cell-complete'); // 모서리 작은 '완료' 도장(.mg-cell-seal)
+    expect(cells[4].querySelector('.mg-cell-seal')).not.toBeNull();
     expect(container.querySelectorAll('.mg-cell-done')).toHaveLength(8);
   });
 

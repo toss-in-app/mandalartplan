@@ -14,7 +14,8 @@ export type BlockSize = 'small' | 'large' | 'main';
  *  - 오늘 한 실천: 옅어진 칸 위에 '완료' 도장이 쿵 찍히고 아래 글씨는 흐려져요(.mg-cell-done, grid.css .mg-cell-stamp).
  *    사용자 결정(2026-10-21): 하나하나 지우는 재미 + 블라인드처럼 덮는 느낌 → 시안 넷(롤 블라인드·회색 가림막·완료 도장·뒤집기) 중 도장.
  *    끝낸 일을 그 자리에서 덮되 글씨는 남겨 무엇을 했는지 보이고, 9×9·공유 이미지에서도 읽혀요
- *  - 실천을 오늘 다 한 세부 목표: 더 진한 틴트 + 칸 아래 '오늘 다 했어요'(화면이 caption 으로 넣어요)
+ *  - 실천을 오늘 다 한 세부 목표: 더 진한 틴트 + 칸 아래 '오늘 다 했어요'(화면이 caption 으로 넣어요) + 이름을 가리지 않게
+ *    칸 모서리에 작은 '완료' 도장(.mg-cell-complete, grid.css .mg-cell-seal). 세부 목표는 끝나는 일이 아니라 큰 도장 대신 오늘 몫을 다 했다는 표시
  *  - 테두리 강조와 ✓ 는 편집 모드에서 지울 칸으로 고른 것만(selectedStyle). 편집 모드에선 오늘 한 표시를 빼서 둘이 같이 보이지 않아요
  */
 function cellStyle(view: CellView): CSSProperties {
@@ -57,9 +58,10 @@ function selectedStyle(view: CellView, size: BlockSize): CSSProperties {
   };
 }
 
-/** 오늘 한 실천 칸 표시(.mg-cell-done) — 칸 색은 cellStyle, '완료' 도장과 흐려지는 글씨는 grid.css */
+/** 오늘 한 실천(.mg-cell-done)·실천을 다 한 세부 목표(.mg-cell-complete) 표시 — 칸 색은 cellStyle, 도장과 흐려지는 글씨는 grid.css */
 function cellClass(view: CellView, extra = ''): string {
-  return `mg-cell${view.kind === 'action' && view.checked ? ' mg-cell-done' : ''}${extra}`;
+  const state = view.checked ? (view.kind === 'action' ? ' mg-cell-done' : view.kind === 'sub' ? ' mg-cell-complete' : '') : '';
+  return `mg-cell${state}${extra}`;
 }
 
 /**
@@ -149,6 +151,8 @@ function CellContent({ view, caption, size, invite = false, next = false, select
       {caption && <span className="mg-cell-caption">{caption}</span>}
       {/* 오늘 한 실천의 '완료' 도장. 체크하는 순간 찍히는 움직임이 나오게 늘 그려 두고 .mg-cell-done 일 때만 보여요(글자는 CSS 가 data-label 로) */}
       {view.kind === 'action' && view.text && <span className="mg-cell-stamp" data-label="완료" aria-hidden />}
+      {/* 실천을 오늘 다 한 세부 목표: 이름을 가리지 않게 모서리에 작은 '완료' 도장(.mg-cell-complete 일 때만 보여요) */}
+      {view.kind === 'sub' && view.text && <span className="mg-cell-seal" data-label="완료" aria-hidden />}
       {selected && size === 'main' && (
         <span
           className="mg-cell-check"
