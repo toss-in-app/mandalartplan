@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BackupPayload } from '../backup/payload';
-import type { ContentTemplate } from '../content';
 import { clearBlockCells } from '../lib/cellEdit';
 import { AI_CELL, clampText, createEmptyBoard, releaseAiCell, type Board } from '../lib/mandalart';
-import { boardFromTemplate } from '../lib/template';
 import {
   addBoard as addBoardTo,
   createEmptyBoards,
@@ -183,22 +181,6 @@ export function useAppState() {
     [patch],
   );
 
-  /** 지금 보고 있는 판을 예시 템플릿 글로 채우고, 그 판의 체크 기록은 지워요(실천이 모두 바뀌니까). */
-  const applyTemplate = useCallback(
-    (template: ContentTemplate) => {
-      const prev = stateRef.current;
-      if (!prev) return;
-      const { active, boards } = prev.boards;
-      const now = Date.now();
-      const nextBoard = boardFromTemplate(boards[active], template, now);
-      patch('boards', { ...prev.boards, boards: boards.map((b, i) => (i === active ? nextBoard : b)) });
-      const byBoard = { ...stateRef.current!.checkins.byBoard };
-      delete byBoard[nextBoard.id];
-      patch('checkins', { version: 1, byBoard });
-    },
-    [patch],
-  );
-
   /** 서버 백업 본으로 판·체크 기록·잠금 해제를 통째로 바꿔요(복원). 알림 상태·백업 설정은 그대로. */
   const importBackup = useCallback(
     (payload: BackupPayload) => {
@@ -241,7 +223,6 @@ export function useAppState() {
     setSubTitle,
     setAction,
     clearCells,
-    applyTemplate,
     importBackup,
     updateSettings,
     updateCheckins,

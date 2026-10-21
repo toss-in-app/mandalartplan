@@ -16,7 +16,7 @@
 | `share_image_save` | 이미지 저장 성공 | `hd`(true/false) |
 | `share_text` · `share_link` | 공유 시트 호출 | |
 | `notification_agree` | 동의 요청 결과 | `result`(agreed/declined), `from`(home/today/settings) |
-| `template_apply` | 예시 템플릿 적용 | `templateId` |
+| `template_apply` | ~~예시 템플릿 적용~~ — 2.1 에서 '예시로 시작하기'를 없애 더는 보내지 않음 | `templateId` |
 | `reset` | 처음부터 다시 만들기 확인 | |
 
 핵심 지표(콘솔 9단계): 활성 `action_check` · 전환 `board_filled`(대표), `share_image_save`, `notification_agree`.
@@ -90,6 +90,7 @@ Supabase RPC: `backup_get(p_key)` · `backup_upsert(p_key, p_payload, p_payload_
 | `ai_draft_apply` | 결과를 판에 넣음(미리보기 '이대로 시작하기' 또는 세부 목표 화면 채우기) | `mode`, `filled`(새로 채운 칸 수) |
 
 - `mode`: `draft` = 목표 입력 화면에서 판 전체(세부 목표 → 실천 순서로 서버 2번), `actions` = 한 세부 목표의 빈 실천만(2.1 세부 목표 화면, 2.0 은 편집 화면). `subs` = 2.0 편집 화면의 빈 세부 목표만 — 2.1 에서 편집 화면과 함께 없어짐(빈 세부 목표는 홈 'AI로 빈 칸 채우기' = `draft`). 서버 API 의 `subs` 모드는 `draft` 가 안에서 그대로 씀.
+- 2.1: 홈 'AI로 빈 칸 채우기'는 초안 화면 없이 바로 광고 → 그 자리에서 빈 칸만 채워요 — 이벤트는 초안과 같은 `mode: draft`·`from: partial`, 미리보기가 없어 `ai_draft_apply` 가 바로 따라와요.
 - 자해·자살 표현 감지(앱 사전 검사·서버 `self_harm`)는 **이벤트를 남기지 않는다** — 민감한 정보라서. 목표 문구·칸 글도 어떤 이벤트에도 싣지 않는다.
 
 | 광고 그룹 | 유형 | 지점 | 규칙 |

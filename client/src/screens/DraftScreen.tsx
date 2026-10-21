@@ -24,7 +24,6 @@ interface DraftScreenProps {
   runsLeft: number;
   onGenerate: (goal: string, hooks: DraftHooks) => Promise<AiResult<DraftValue>>;
   onApply: (goal: string, draft: DraftValue) => void;
-  onStartWithTemplate: () => void;
 }
 
 function CtaCaption({ text, strong = false }: { text: string; strong?: boolean }) {
@@ -50,7 +49,7 @@ function AdLabel({ children, onBrand }: { children: string; onBrand: boolean }) 
  * AI 초안 만들기 (`#/draft`, 화면 시안 2·5·6): 목표 입력 → (처음이면 고지 시트) → 리워드 광고 → 만드는 중 → 미리보기.
  * '이대로 시작하기' 를 눌러야 판에 들어가요. 화면을 나가면 만들던 초안은 버려요.
  */
-export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithTemplate }: DraftScreenProps) {
+export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScreenProps) {
   const [goal, setGoal] = useState(board.goal);
   /** 칸을 일부 채운 판에서 왔어요(2.1) — 적어 둔 칸은 그대로 두고 빈 칸만 채운다는 문구로 */
   const partial = hasBoardText(board);
@@ -64,7 +63,7 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
   const alive = useRef(true);
   /** 만들기 진행 중(고지·광고·서버·안내 다이얼로그까지). 두 번 눌러도 한 번만 */
   const running = useRef(false);
-  const { openConfirm } = useDialog();
+  const { openAlert } = useDialog();
   const toast = useToast();
 
   useEffect(() => {
@@ -78,9 +77,8 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
     window.scrollTo(0, 0);
   }, [phase]);
 
-  const offerTemplate = async (title: string, description: string) => {
-    if (await openConfirm({ title, description, confirmButton: '예시로 시작하기', cancelButton: '닫기' })) onStartWithTemplate();
-  };
+  /** 광고를 못 불러왔거나 만들지 못했을 때 알려요(예전엔 '예시로 시작하기'를 권했지만 2.1 에서 예시 시작을 뺐어요) */
+  const notify = (title: string, description: string) => openAlert({ title, description, alertButton: '확인' });
 
   const generate = async () => {
     if (running.current) return;
@@ -118,7 +116,7 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
       else if (result.reason === 'limit') toast.openToast(AI_MESSAGES.limit);
       else if (result.reason === 'dismissed') toast.openToast(AI_MESSAGES.dismissed);
       else if (result.reason === 'key') toast.openToast(AI_MESSAGES.retryLater);
-      else if (result.reason === 'no_ad') await offerTemplate(AI_MESSAGES.noAdTitle, AI_MESSAGES.noAdBody);
+      else if (result.reason === 'no_ad') await notify(AI_MESSAGES.noAdTitle, AI_MESSAGES.noAdBody);
       return;
     }
     if (result.code === 'limited') {
@@ -131,7 +129,7 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
       setPhase('input');
       return;
     }
-    await offerTemplate(AI_MESSAGES.failTitle, AI_MESSAGES.failBody);
+    await notify(AI_MESSAGES.failTitle, AI_MESSAGES.failBody);
   };
 
   if (phase === 'making') {

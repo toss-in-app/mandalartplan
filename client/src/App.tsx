@@ -4,12 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AD_GROUPS } from './ads/config';
 import { isAiConfigured } from './ai/config';
 import { AI_MESSAGES, CARE_PHONE_URL } from './ai/messages';
-import { canFillActions, emptyActionCount } from './ai/rules';
+import { canFillActions, canFillBoard, emptyActionCount, emptyCellCount } from './ai/rules';
 import { useAiDraft, type AiResult } from './ai/useAiDraft';
 import { interstitialEligible } from './ads/rules';
 import { useInterstitial } from './ads/useInterstitial';
 import { useRewardedAd } from './ads/useRewardedAd';
-import { OG_IMAGE_URL, fetchRemoteContent, getBundledContent, type Content, type ContentTemplate } from './content';
+import { OG_IMAGE_URL, fetchRemoteContent, getBundledContent, type Content } from './content';
 import { BackupApiError } from './backup/api';
 import { describeBackupError } from './backup/errors';
 import { BackupKeyError } from './backup/key';
@@ -17,7 +17,6 @@ import { cellsFilled } from './backup/payload';
 import { useBackup } from './backup/useBackup';
 import { useAppState } from './hooks/useAppState';
 import { useBoardPicker } from './hooks/useBoardPicker';
-import { useTemplatePicker } from './hooks/useTemplatePicker';
 import { logEvent } from './lib/analytics';
 import { canSaveImage, createShareLink, haptic, openUrl, saveImageToPhotos, shareText } from './lib/bridge';
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
@@ -57,29 +56,6 @@ function App() {
   const { openConfirm } = useDialog();
   const toast = useToast();
 
-  /** 예시 템플릿 적용. 이미 적은 글이 있으면 덮어쓸지 먼저 물어요. */
-  const pickTemplate = useCallback(
-    async (template: ContentTemplate) => {
-      const current = app.board;
-      if (!current) return;
-      if (getProgress(current).filled > 0) {
-        const ok = await openConfirm({
-          title: '예시로 바꿀까요?',
-          description: '지금 적은 내용과 오늘 체크 기록이 예시 내용으로 바뀌어요.',
-          confirmButton: '바꾸기',
-          cancelButton: '닫기',
-        });
-        if (!ok) return;
-      }
-      app.applyTemplate(template);
-      logEvent('template_apply', { templateId: template.id });
-      toast.openToast(`${template.title} 예시를 넣었어요`);
-      navigate({ name: 'home' });
-    },
-    [app, openConfirm, toast],
-  );
-  const openTemplatePicker = useTemplatePicker(content, pickTemplate);
-
   const backup = useBackup(app);
 
   // 광고: 전면은 오늘 체크가 생기면 미리 불러오고(하루 1회), 리워드는 공유 화면에 있는 동안만 미리 불러와요(동시 로딩 금지).
@@ -93,9 +69,14 @@ function App() {
   const extraBoardOpen = app.state ? app.state.settings.unlocks.extraBoard || app.state.boards.boards.length >= MAX_BOARDS : false;
   // AI 초안(2.0): 광고 1회 = AI 1회. 서버 설정이 없거나 광고를 못 쓰는 토스앱 버전이면 AI 버튼을 숨겨요
   const aiConfigured = isAiConfigured();
-  // 리워드 광고는 AI 버튼이 있는 화면에서만 미리 불러와요: 초안 화면, 빈 실천을 채울 수 있는 세부 목표 화면(예전 편집 링크 block/:n 포함)
+  // 리워드 광고는 AI 버튼이 있는 화면에서만 미리 불러와요: 초안 화면, 빈 칸을 채울 수 있는 홈(2.1 바로 광고), 빈 실천을 채울 수 있는 세부 목표 화면(예전 편집 링크 block/:n 포함)
   const aiSubIndex = route.name === 'sub' ? route.sub : route.name === 'block' && route.block !== CENTER ? ringIndex(route.block) : null;
-  const aiAdActive = aiConfigured && (route.name === 'draft' || (aiSubIndex !== null && activeBoard ? canFillActions(activeBoard, aiSubIndex) : false));
+  const onHome = route.name === 'home' || (route.name === 'block' && route.block === CENTER);
+  const aiAdActive =
+    aiConfigured &&
+    (route.name === 'draft' ||
+      (onHome && activeBoard ? canFillBoard(activeBoard) : false) ||
+      (aiSubIndex !== null && activeBoard ? canFillActions(activeBoard, aiSubIndex) : false));
   const extraBoardAdActive = route.name === 'settings' && !extraBoardOpen;
   // AI 전용 지면을 만들 수 없는 동안(앱인토스 공지 54047) AI 는 '두 번째 판' 지면을 같이 써요 → 같은 그룹을 두 훅이 따로 불러오지 않게 하나로 묶어요
   const aiSharesExtraBoard = AD_GROUPS.rewardedAiDraft === AD_GROUPS.rewardedExtraBoard;
@@ -548,7 +529,7 @@ function App() {
     };
   };
 
-  /** 세부 목표 화면 '빈 실천 AI로 채우기' 결과 안내 */
+  /** 세부 목표 화면 '빈 실천 AI로 채우기'·홈 'AI로 빈 칸 채우기' 결과 안내 */
   const afterFill = async (result: AiResult<number>) => {
     if (result.kind === 'ok') {
       if (result.value > 0) {
@@ -591,6 +572,21 @@ function App() {
     };
   };
 
+  /**
+   * 홈 'AI로 빈 칸 채우기'(2.1): 핵심 목표가 있고 칸을 일부 채운 판에 빈 칸이 남았을 때만. 초안 화면을 거치지 않고 누르면 바로 광고 → 그 자리에서 빈 칸만 채워요
+   * (사용자 2026-10-21 '뎁스가 깊이 들어가는 게 싫어'). 핵심 목표를 바꾸려면 가운데 칸을 고쳐요.
+   */
+  const aiFillHome = () => {
+    if (!aiEnabled || !canFillBoard(board)) return undefined;
+    const left = ai.runsLeft;
+    return {
+      label: 'AI로 빈 칸 채우기',
+      caption: left === 0 ? AI_MESSAGES.limit : AI_MESSAGES.fillCaption(`빈 칸 ${emptyCellCount(board)}개만 채우고, 적어 둔 칸은 그대로예요.`, left),
+      disabled: left === 0 || ai.busy,
+      onPress: () => void ai.fillBoard().then(afterFill),
+    };
+  };
+
   /** 홈. editLink = 예전 편집 화면 링크(block/4)로 들어와 편집 모드로 시작 */
   const renderHome = (editLink?: { cell: number | null; onDone: () => void }) => (
     <HomeScreen
@@ -611,8 +607,9 @@ function App() {
       onSettings={() => navigate({ name: 'settings' })}
       onSwitchBoard={openBoardPicker}
       onNotification={() => void askNotification('home')}
-      onStartWithTemplate={openTemplatePicker}
       onAiDraft={aiEnabled ? () => navigate({ name: 'draft' }) : undefined}
+      aiFill={aiFillHome()}
+      aiFilling={ai.boardFilling}
       onDeleteCells={(cells) => deleteCells(CENTER, cells)}
       trialCard={
         showTrialCard
@@ -749,7 +746,6 @@ function App() {
           runsLeft={ai.runsLeft}
           onGenerate={(goal, hooks) => ai.runDraft(goal, board, hooks)}
           onApply={applyAiDraft}
-          onStartWithTemplate={openTemplatePicker}
         />
       );
       break;

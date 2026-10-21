@@ -82,8 +82,10 @@ function boardTexts(board: Board): string[] {
 export function useAiDraft(app: AppState, reward: Reward) {
   const [noticeOpen, setNoticeOpen] = useState(false);
   const noticeResolve = useRef<((agreed: boolean) => void) | null>(null);
-  /** 세부 목표 화면 채우기가 진행 중(버튼 잠금) */
+  /** 세부 목표 화면·홈 채우기가 진행 중(버튼 잠금) */
   const [busy, setBusy] = useState(false);
+  /** 홈 채우기에서 광고를 다 보고 AI 가 칸을 채우는 중(빈 칸이 깜빡여요) */
+  const [boardFilling, setBoardFilling] = useState(false);
   /** AI 실행은 한 번에 하나만 — 두 번 누르거나 시트가 닫히며 아래 버튼이 눌려도 광고·횟수가 겹치지 않게(state 보다 먼저 바뀌는 ref) */
   const running = useRef(false);
 
@@ -246,6 +248,26 @@ export function useAiDraft(app: AppState, reward: Reward) {
     }
   };
 
+  /**
+   * 홈 'AI로 빈 칸 채우기'(2.1, 사용자 2026-10-21 '초안 화면에 들어가지 말고 바로 광고'): 지금 판(핵심 목표 그대로)의 빈 세부 목표 → 빈 실천을
+   * 판 전체 초안과 같은 순서로 받아 미리보기 없이 바로 넣어요(빈 칸만). 돌려준 수 = 새로 채운 칸
+   */
+  const fillBoard = async (): Promise<AiResult<number>> => {
+    const board = app.board;
+    if (!board || running.current) return { kind: 'stopped', reason: 'busy' };
+    running.current = true;
+    setBusy(true);
+    try {
+      const result = await generateDraft(board.goal, board, { onStarted: () => setBoardFilling(true) });
+      if (result.kind !== 'ok') return result;
+      return { kind: 'ok', value: applyDraft(board.goal, result.value) };
+    } finally {
+      running.current = false;
+      setBusy(false);
+      setBoardFilling(false);
+    }
+  };
+
   const noticeSheet = (
     <AiNoticeSheet open={noticeOpen} onClose={() => settleNotice(false)} onConfirm={() => settleNotice(true)} onPrivacy={() => void openUrl(PRIVACY_URL)} />
   );
@@ -254,9 +276,11 @@ export function useAiDraft(app: AppState, reward: Reward) {
     /** 오늘 남은 AI 횟수 */
     runsLeft: app.state ? runsLeft(app.state.settings.ai, dateKey()) : 0,
     busy,
+    boardFilling,
     runDraft,
     applyDraft,
     fillActions,
+    fillBoard,
     noticeSheet,
   };
 }

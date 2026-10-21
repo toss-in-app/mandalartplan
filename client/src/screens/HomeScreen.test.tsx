@@ -23,6 +23,8 @@ interface Handlers {
   onChangeSubTitle?: (subIndex: number, title: string) => void;
   todayAdNotice?: boolean;
   trialCard?: { ai: boolean; onOpen: () => void; onClose: () => void };
+  aiFill?: { label: string; caption: string; disabled: boolean; onPress: () => void };
+  aiFilling?: boolean;
 }
 
 /** 칸 편집 시트 안의 '완료' */
@@ -53,8 +55,9 @@ function renderHome(board: Board, content: Content, checkin?: CheckinRecord, han
         onSettings={noop}
         onSwitchBoard={noop}
         onNotification={noop}
-        onStartWithTemplate={noop}
         trialCard={handlers.trialCard}
+        aiFill={handlers.aiFill}
+        aiFilling={handlers.aiFilling}
       />
     </TDSMobileAITProvider>,
   );
@@ -63,7 +66,7 @@ function renderHome(board: Board, content: Content, checkin?: CheckinRecord, han
 describe('HomeScreen (홈 마무리)', () => {
   const content = getBundledContent();
 
-  it('빈 판: 안내 한 줄 + 예시로 시작하기 버튼만, 잠긴 버튼(기록·전체 보기)과 진행률·편집 안내는 숨겨요. 빈 세부 목표 칸에는 글이 없어요', () => {
+  it("빈 판: 안내 한 줄만('예시로 시작하기'는 2.1 에서 뺐어요), 잠긴 버튼(기록·전체 보기)과 진행률·편집 안내는 숨겨요. 빈 세부 목표 칸에는 글이 없어요", () => {
     const onOverview = vi.fn();
     const onChangeGoal = vi.fn();
     renderHome(createEmptyBoard(1759000000000), content, undefined, { onOverview, onChangeGoal, onDeleteCells: vi.fn() });
@@ -76,7 +79,7 @@ describe('HomeScreen (홈 마무리)', () => {
     expect(screen.getAllByText('눌러서 적기')).toHaveLength(1);
     expect(screen.getByRole('button', { name: '핵심 목표' })).toHaveTextContent('눌러서 적기');
     expect(screen.getByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요')).toBeInTheDocument();
-    expect(screen.getByText('예시로 시작하기').closest('button')).not.toBeDisabled();
+    expect(screen.queryByText('예시로 시작하기')).not.toBeInTheDocument();
     expect(screen.queryByText('기록 보기')).not.toBeInTheDocument();
     expect(screen.queryByText('전체 보기')).not.toBeInTheDocument();
     expect(screen.queryByText('공유')).not.toBeInTheDocument(); // 공유는 전체 보기 화면으로 옮겼어요
@@ -222,5 +225,30 @@ describe('HomeScreen 맨 위 1분 체험 안내 카드 (2.1)', () => {
     renderHome(filledBoard(true), getBundledContent());
     expect(screen.queryByRole('region', { name: '1분 체험 안내' })).not.toBeInTheDocument();
     expect(screen.queryByText('1분 체험해 보기')).not.toBeInTheDocument();
+  });
+});
+
+describe("HomeScreen 'AI로 빈 칸 채우기' (2.1 초안 화면 없이 바로 광고)", () => {
+  const fill = {
+    label: 'AI로 빈 칸 채우기',
+    caption: '빈 칸 71개만 채우고, 적어 둔 칸은 그대로예요. 광고를 끝까지 보면 채워져요 · 오늘 10번 남았어요',
+    disabled: false,
+    onPress: vi.fn(),
+  };
+
+  it('AD 표시와 광고 안내가 붙은 그 자리 버튼이에요', () => {
+    renderHome(filledBoard(false), getBundledContent(), undefined, { aiFill: fill });
+    fireEvent.click(screen.getByRole('button', { name: '광고 보고 AI로 빈 칸 채우기' }));
+    expect(fill.onPress).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('AD')).toBeInTheDocument();
+    expect(screen.getByText(fill.caption)).toBeInTheDocument();
+  });
+
+  it('광고를 다 보고 채우는 중엔 안내가 바뀌고, 빈 칸은 깜빡이는 자리라 누를 수 없어요', () => {
+    renderHome(filledBoard(false), getBundledContent(), undefined, { aiFill: fill, aiFilling: true });
+    expect(screen.getByText('AI가 빈 칸을 채우고 있어요. 잠시만 기다려 주세요')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '세부 목표 2' })).not.toBeInTheDocument();
+    expect(document.querySelectorAll('.mg-cell-loading')).toHaveLength(7);
+    expect(screen.getByRole('button', { name: /^운동/ })).toBeInTheDocument(); // 적어 둔 칸은 그대로 눌러요
   });
 });

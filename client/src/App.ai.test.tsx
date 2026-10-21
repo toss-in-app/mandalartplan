@@ -3,7 +3,6 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
-import { getBundledContent } from './content';
 import type { RewardedOutcome } from './ads/useRewardedAd';
 import { logEvent } from './lib/analytics';
 import { dateKey } from './lib/state';
@@ -170,14 +169,15 @@ describe('App (AI 초안)', () => {
     await waitFor(() => expect(savedBoard().subs[3].actions[7]).toBe('실천 4-8'));
   });
 
-  it('광고를 못 불러오면 AI 를 쓰지 않고 예시를 권해요', async () => {
+  it('광고를 못 불러오면 AI 를 쓰지 않고 잠시 뒤에 다시 해 달라고 알려요(예시 시작은 2.1 에서 없어짐)', async () => {
     ad.outcome = 'unavailable';
     saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
     saveBoard('8구단 드래프트 1순위');
     renderAt('#/draft');
     fireEvent.click(await screen.findByRole('button', { name: '광고 보고 AI 초안 만들기' }));
     await screen.findByText('지금은 광고를 불러올 수 없어요');
-    expect(screen.getByText('예시로 시작하기')).toBeInTheDocument();
+    expect(screen.getByText('확인')).toBeInTheDocument();
+    expect(screen.queryByText('예시로 시작하기')).not.toBeInTheDocument();
     expect(server.calls).toHaveLength(0);
     expect(savedAi().runs.count).toBe(0);
   });
@@ -243,34 +243,50 @@ describe('App (AI 초안)', () => {
     expect(screen.queryByText('AI 초안')).not.toBeInTheDocument();
   });
 
-  it("칸을 일부 채운 판(2.1): 홈 'AI로 빈 칸 채우기' → 빈 칸만 채운 미리보기 → 빈 칸에 넣기, 적어 둔 칸은 그대로", async () => {
+  it("칸을 일부 채운 판(2.1): 홈 'AI로 빈 칸 채우기'는 초안 화면 없이 바로 광고 → 그 자리에서 빈 칸만 채워요, 적어 둔 칸은 그대로", async () => {
     saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
     saveBoard('토익 900점', ['듣기', '', '읽기']); // 빈 칸 = 세부 목표 6 + 실천 64
     renderAt();
-    expect(await screen.findByText('빈 칸 70개만 채워요. 적어 둔 칸은 그대로예요.')).toBeInTheDocument();
+    expect(await screen.findByText('빈 칸 70개만 채우고, 적어 둔 칸은 그대로예요. 광고를 끝까지 보면 채워져요 · 오늘 10번 남았어요')).toBeInTheDocument();
     expect(screen.queryByText('AI로 초안 만들기')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'AI로 빈 칸 채우기' }));
-
-    await screen.findByText('적어 둔 칸은 그대로 두고 빈 칸 70개만 채워요');
-    expect(screen.queryByText('예시')).not.toBeInTheDocument(); // 예시 목표는 빈 판에서만
-    expect(screen.getByRole('textbox', { name: '핵심 목표' })).toHaveValue('토익 900점');
-    expect(screen.getByText('광고를 끝까지 보면 AI가 빈 칸을 채워요 · 오늘 10번 남았어요')).toBeInTheDocument();
     expect(ad.watched).toBe(0);
     fireEvent.click(screen.getByRole('button', { name: '광고 보고 AI로 빈 칸 채우기' }));
 
-    await screen.findByText('적어 둔 칸은 그대로예요. 넣은 뒤에도 칸을 눌러 고칠 수 있어요');
-    expect(ad.watched).toBe(1);
-    // 서버에는 사용자가 적은 세부 목표를 그대로 보내요(빈 칸만 채움)
-    expect(server.calls.find((c) => c.mode === 'subs')?.subs).toEqual(['듣기', '', '읽기', '', '', '', '', '']);
-    expect(logEvent).toHaveBeenCalledWith('ai_draft_start', { mode: 'draft', from: 'partial' });
-
-    fireEvent.click(screen.getByText('빈 칸에 넣기'));
-    await screen.findByRole('heading', { level: 1, name: '토익 900점' });
     await waitFor(() =>
       expect(savedBoard().subs.map((s: { title: string }) => s.title)).toEqual(['듣기', '영역 2', '읽기', '영역 4', '영역 5', '영역 6', '영역 7', '영역 8']),
     );
+    expect(ad.watched).toBe(1);
+    // 초안 화면(목표 고치기·미리보기)에 들어가지 않고 홈 그대로예요
+    expect(window.location.hash).not.toBe('#/draft');
+    expect(screen.getByRole('heading', { level: 1, name: '토익 900점' })).toBeInTheDocument();
+    // 서버에는 사용자가 적은 세부 목표를 그대로 보내요(빈 칸만 채움)
+    expect(server.calls.find((c) => c.mode === 'subs')?.subs).toEqual(['듣기', '', '읽기', '', '', '', '', '']);
+    expect(savedBoard().subs[0].actions).toEqual(Array.from({ length: 8 }, (_, j) => `실천 1-${j + 1}`));
+    expect(logEvent).toHaveBeenCalledWith('ai_draft_start', { mode: 'draft', from: 'partial' });
+    expect((await screen.findAllByText('빈 칸 70개를 AI로 채웠어요')).length).toBeGreaterThan(0);
+    await waitFor(() => expect(savedAi().runs.count).toBe(1));
+    expect(screen.getByText('AI 초안')).toBeInTheDocument();
     // 판이 다 차면 버튼이 사라져요
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'AI로 빈 칸 채우기' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('button', { name: '광고 보고 AI로 빈 칸 채우기' })).not.toBeInTheDocument());
+  });
+
+  it('홈 채우기도 처음이면 광고 전에 생성형 AI 고지부터 해요', async () => {
+    saveBoard('토익 900점', ['듣기']);
+    renderAt();
+    fireEvent.click(await screen.findByRole('button', { name: '광고 보고 AI로 빈 칸 채우기' }));
+    await screen.findByText('AI로 초안을 만들어요');
+    expect(ad.watched).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
+    await waitFor(() => expect(savedBoard().subs[1].title).toBe('영역 2'));
+    expect(ad.watched).toBe(1);
+  });
+
+  it("핵심 목표가 없으면 홈에 'AI로 빈 칸 채우기'가 없어요(가운데 칸부터 적어요)", async () => {
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('', ['듣기']);
+    renderAt();
+    await screen.findByText('세부 목표 칸을 눌러 실천을 적어 보세요');
+    expect(screen.queryByRole('button', { name: '광고 보고 AI로 빈 칸 채우기' })).not.toBeInTheDocument();
   });
 
   it("세부 목표 화면(2.1): '빈 실천 AI로 채우기'로 그 세부 목표의 빈 실천만 채워요", async () => {
@@ -294,16 +310,12 @@ describe('App (AI 초안)', () => {
     expect(screen.queryByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' })).not.toBeInTheDocument();
   });
 
-  it('핵심 목표만 있는 홈에서 예시로 시작하려 하면 먼저 물어보고, 닫기를 누르면 그대로예요(설정의 예시 템플릿은 2.1 에서 없어짐)', async () => {
+  it("핵심 목표만 있는 홈에는 'AI로 초안 만들기'만 있고 '예시로 시작하기'는 없어요(2.1)", async () => {
     saveBoard('내 목표');
     renderAt();
     await screen.findByRole('heading', { level: 1, name: '내 목표' });
-    fireEvent.click(screen.getByRole('button', { name: '예시로 시작하기' }));
-    fireEvent.click(await screen.findByText(getBundledContent().templates[1].title));
-    await screen.findByText('예시로 바꿀까요?');
-    fireEvent.click(screen.getByText('닫기'));
-    await waitFor(() => expect(screen.queryByText('예시로 바꿀까요?')).not.toBeInTheDocument());
-    expect(savedBoard().goal).toBe('내 목표');
+    expect(screen.getByText('AI로 초안 만들기')).toBeInTheDocument();
+    expect(screen.queryByText('예시로 시작하기')).not.toBeInTheDocument();
   });
 
   it('칸이 다 찬 판으로 초안 화면에 들어오면(딥링크 등) 광고 버튼이 잠겨요 — 광고만 보고 채울 게 없으니까', async () => {

@@ -90,7 +90,7 @@
               "type": "string"
             }
           ],
-          "description": "예시 템플릿에서 시작했으면 그 id"
+          "description": "예시 템플릿에서 시작했으면 그 id. 2.1 에서 '예시로 시작하기'를 없애 새 판에는 넣지 않고 예전 판에만 남는다"
         },
         "createdAt": {
           "$ref": "#/$defs/epochMs"

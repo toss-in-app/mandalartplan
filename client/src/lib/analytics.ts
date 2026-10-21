@@ -16,7 +16,6 @@ export type EventName =
   | 'share_text'
   | 'share_link'
   | 'notification_agree'
-  | 'template_apply'
   | 'reset'
   | 'backup_enable'
   | 'backup_run'

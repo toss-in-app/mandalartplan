@@ -55,7 +55,6 @@ function homeScreen() {
         onSettings={noop}
         onSwitchBoard={noop}
         onNotification={noop}
-        onStartWithTemplate={noop}
         {...handlers}
       />
     </TDSMobileAITProvider>,

@@ -2,8 +2,7 @@ import { colors } from '@toss/tds-colors';
 import { Button, List, ListRow, ProgressBar, Text, Top } from '@toss/tds-mobile';
 import { useEffect } from 'react';
 
-import { emptyCellCount, hasBoardText } from '../ai/rules';
-import { AiDraftBadge } from '../components/AiDraftBadge';
+import { AdMark, AiDraftBadge } from '../components/AiDraftBadge';
 import { Block } from '../components/Block';
 import { EditDoneButton } from '../components/EditDoneButton';
 import { TrialCard } from '../components/TrialCard';
@@ -41,9 +40,15 @@ interface HomeScreenProps {
   onSwitchBoard: () => void;
   /** '매일 저녁 알림 받기' 행 — 누르면 바로 알림 동의 화면(사용자가 누른 뒤에만) */
   onNotification: () => void;
-  onStartWithTemplate: () => void;
-  /** AI 초안 화면으로 — 빈 판·핵심 목표만이면 'AI로 초안 만들기'(2.0), 칸을 일부 채운 뒤에는 빈 칸이 남아 있는 동안 'AI로 빈 칸 채우기'(2.1). 없으면(서버 설정 없음·광고 미지원) 버튼을 숨겨요 */
+  /** AI 초안 화면으로 — 빈 판·핵심 목표만일 때 'AI로 초안 만들기'(2.0). 없으면(서버 설정 없음·광고 미지원) 버튼을 숨겨요 */
   onAiDraft?: () => void;
+  /**
+   * 'AI로 빈 칸 채우기'(2.1): 칸을 일부 채운 판에서 초안 화면 없이 바로 광고 → 빈 칸만 채워요(사용자 2026-10-21 '뎁스가 깊어지는 게 싫어').
+   * 세부 목표 화면 '빈 실천 AI로 채우기'와 같은 모양(AD 표시 + 아래 안내). 없으면 숨겨요
+   */
+  aiFill?: { label: string; caption: string; disabled: boolean; onPress: () => void };
+  /** 광고를 다 보고 AI 가 빈 칸을 채우는 중 — 버튼이 돌고, 빈 칸은 깜빡이며 누를 수 없어요 */
+  aiFilling?: boolean;
   /** 편집 모드에서 고른 칸(0~8)을 지우고 되돌리기 함수를 돌려줘요(2.1) */
   onDeleteCells?: (cells: number[]) => () => void;
   /** 맨 위 '1분 체험' 안내 카드(2.1). 처음 온 사람에게만 넘겨요(실천을 적기 전, 닫거나 체험판을 끝까지 하기 전). 없으면 숨겨요 */
@@ -76,8 +81,9 @@ export function HomeScreen({
   onSettings,
   onSwitchBoard,
   onNotification,
-  onStartWithTemplate,
   onAiDraft,
+  aiFill,
+  aiFilling = false,
   onDeleteCells,
   trialCard,
   editLink,
@@ -115,9 +121,6 @@ export function HomeScreen({
   const hasSubs = board.subs.some((sub) => sub.title.trim().length > 0);
   // AI 초안은 세부 목표·실천이 하나도 없을 때(빈 판 또는 핵심 목표만) 홈에서 권해요.
   const offerAi = Boolean(onAiDraft) && !hasSubs && progress.actionsFilled === 0;
-  // 칸을 일부 채운 뒤에도 빈 칸이 남아 있으면 같은 초안 화면으로 빈 칸만 채워요(2.1) — 적어 둔 칸은 그대로
-  const fillCount = emptyCellCount(board);
-  const offerAiFill = Boolean(onAiDraft) && hasBoardText(board) && fillCount > 0;
   const subtitle = isEmpty
     ? '가운데 칸을 눌러 핵심 목표부터 정해 보세요'
     : !hasSubs
@@ -168,6 +171,7 @@ export function HomeScreen({
             board={board}
             block={CENTER}
             size="main"
+            loading={aiFilling}
             {...edit.blockProps({
               checked,
               nextCell: nextEmptyCell(board, CENTER),
@@ -178,8 +182,9 @@ export function HomeScreen({
                 // 다 했으면 숫자 대신 말로 — 진해진 칸 색과 함께, 색만으로 알리지 않게
                 return view.checked ? '오늘 다 했어요' : `오늘 ${checkedInSub(checked, view.index)}/${total}`;
               },
-              // 글이 있는 가운데(핵심 목표)는 누름 없음 — 어느 화면이든 가운데는 이름표(2.1). 편집 모드에선 눌러서 고쳐요
-              interactive: (_cell, view) => !(view.kind === 'goal' && view.text.trim()),
+              // 글이 있는 가운데(핵심 목표)는 누름 없음 — 어느 화면이든 가운데는 이름표(2.1). 편집 모드에선 눌러서 고쳐요.
+              // AI 가 빈 칸을 채우는 동안 빈 칸은 깜빡이는 자리(누름 없음)
+              interactive: (_cell, view) => !(view.kind === 'goal' && view.text.trim()) && !(aiFilling && !view.text.trim()),
             })}
             onSelectCell={(cell, view) => {
               // 편집 모드(고치기·고르기)와 길게 누른 뒤의 click 은 편집 쪽이 받아요
@@ -220,14 +225,11 @@ export function HomeScreen({
       )}
 
       {offerAi ? (
-        // 세부 목표가 없을 때: AI 초안(주) · 예시(보조). 광고는 버튼을 누른 뒤 목표 입력 화면의 '광고 보고 만들기'에서만 나와요
+        // 세부 목표가 없을 때: AI 초안. 광고는 버튼을 누른 뒤 목표 입력 화면의 '광고 보고 만들기'에서만 나와요('예시로 시작하기'는 2.1 에서 뺐어요)
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '24px 20px 10px' }}>
+          <div style={{ padding: '24px 20px 10px' }}>
             <Button display="block" size="large" onClick={onAiDraft}>
               AI로 초안 만들기
-            </Button>
-            <Button display="block" size="large" color="dark" variant="weak" onClick={onStartWithTemplate}>
-              예시로 시작하기
             </Button>
           </div>
           <div className="text-balance" style={{ padding: '0 24px 8px' }}>
@@ -236,14 +238,7 @@ export function HomeScreen({
             </Text>
           </div>
         </>
-      ) : isEmpty ? (
-        // 빈 판: 가운데 칸(직접 쓰기) 말고 다른 시작 길은 예시 하나만 버튼으로 둬요
-        <div style={{ padding: '24px 20px 8px' }}>
-          <Button display="block" size="large" color="dark" variant="weak" onClick={onStartWithTemplate}>
-            예시로 시작하기
-          </Button>
-        </div>
-      ) : (
+      ) : isEmpty ? null : (
         <div style={{ display: 'flex', gap: 8, padding: '24px 20px 8px' }}>
           <div style={{ flex: 1 }}>
             <Button
@@ -287,17 +282,29 @@ export function HomeScreen({
         </div>
       )}
 
-      {/* 2.1: 칸을 일부 채운 판에서도 AI 를 쓰게. 광고는 다음 화면의 '광고 보고 채우기'에서만 나와요 */}
-      {offerAiFill && (
+      {/* 2.1: 칸을 일부 채운 판에서도 AI 를 쓰게 — 누르면 바로 광고(AD 표시·아래 안내로 미리 알려요), 다 보면 그 자리에서 빈 칸만 채워요 */}
+      {aiFill && (
         <>
           <div style={{ padding: '8px 20px 0' }}>
-            <Button display="block" size="large" color="dark" variant="weak" onClick={onAiDraft}>
-              AI로 빈 칸 채우기
+            <Button
+              display="block"
+              size="large"
+              color="dark"
+              variant="weak"
+              disabled={aiFill.disabled}
+              loading={aiFilling}
+              onClick={aiFill.onPress}
+              aria-label={`광고 보고 ${aiFill.label}`}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <AdMark onBrand={false} />
+                <span>{aiFill.label}</span>
+              </span>
             </Button>
           </div>
-          <div className="text-balance" style={{ padding: '8px 24px 8px' }}>
+          <div className="text-balance" aria-live="polite" style={{ padding: '8px 24px 8px' }}>
             <Text typography="t7" color={colors.grey600} display="block">
-              빈 칸 {fillCount}개만 채워요. 적어 둔 칸은 그대로예요.
+              {aiFilling ? 'AI가 빈 칸을 채우고 있어요. 잠시만 기다려 주세요' : aiFill.caption}
             </Text>
           </div>
         </>

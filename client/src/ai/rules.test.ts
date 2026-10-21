@@ -5,6 +5,7 @@ import { createDefaultSettings } from '../lib/state';
 import {
   AI_DAILY_RUNS,
   canFillActions,
+  canFillBoard,
   canFillSubs,
   emptyCellCount,
   hasBoardText,
@@ -167,5 +168,16 @@ describe('판 전체 빈 칸 (2.1 홈 AI로 빈 칸 채우기)', () => {
     expect(emptyCellCount(partial)).toBe(6 + 63);
     const full = boardWith((b) => b.subs.forEach((sub, i) => ((sub.title = `영역 ${i}`), (sub.actions = sub.actions.map((_, j) => `실천 ${j}`)))));
     expect(emptyCellCount(full)).toBe(0);
+  });
+
+  it("홈 'AI로 빈 칸 채우기'(2.1 바로 광고): 핵심 목표 + 적어 둔 세부 목표·실천 + 빈 칸이 있을 때만", () => {
+    expect(canFillBoard(boardWith((b) => (b.goal = '토익 900점')))).toBe(false); // 핵심 목표만이면 'AI로 초안 만들기'
+    expect(canFillBoard(boardWith((b) => (b.subs[0].title = '듣기')))).toBe(false); // 핵심 목표가 없으면 못 채워요
+    expect(canFillBoard(boardWith((b) => ((b.goal = '토익 900점'), (b.subs[0].title = '듣기'))))).toBe(true);
+    const full = boardWith((b) => {
+      b.goal = '토익 900점';
+      b.subs.forEach((sub, i) => ((sub.title = `영역 ${i}`), (sub.actions = sub.actions.map((_, j) => `실천 ${j}`))));
+    });
+    expect(canFillBoard(full)).toBe(false);
   });
 });

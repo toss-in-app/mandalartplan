@@ -39,23 +39,23 @@ function renderApp() {
   );
 }
 
-describe('App (설정·예시 템플릿)', () => {
-  it('빈 판 홈에서 예시를 넣으면 핵심 목표가 바뀌고, 설정에서 처음부터 다시 만들면 비워져요(설정에 예시 템플릿 행은 없어요)', async () => {
+describe('App (설정·처음부터 다시 만들기)', () => {
+  it("빈 판 홈에는 '예시로 시작하기'가 없고(2.1), 적은 판도 설정에서 처음부터 다시 만들면 비워져요(설정에 예시 템플릿 행도 없어요)", async () => {
     renderApp();
-    const template = getBundledContent().templates[0];
 
-    // 빈 판: 홈 안내 + '예시로 시작하기'
+    // 빈 판: 홈 안내만(예시로 시작하기는 2.1 에서 뺐어요)
     await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
     await waitFor(() => expect(logEvent).toHaveBeenCalledWith('home_view', { filled: 0, boards: 1 }));
     // 본 콘텐츠 버전은 번들 콘텐츠 버전으로 남아요
     await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).seenContentVersion).toBe(getBundledContent().contentVersion));
-    fireEvent.click(screen.getByText('예시로 시작하기'));
+    expect(screen.queryByText('예시로 시작하기')).not.toBeInTheDocument();
 
-    // 바텀시트에서 템플릿 선택 → 빈 판이라 확인 없이 바로 적용
-    fireEvent.click(await screen.findByText(template.title));
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(template.goal));
-    expect(logEvent).toHaveBeenCalledWith('template_apply', { templateId: template.id });
-    expect(screen.getAllByText(`${template.title} 예시를 넣었어요`).length).toBeGreaterThan(0); // 토스트는 읽기용 사본이 하나 더 있어요
+    // 가운데 칸을 눌러 핵심 목표를 적어요
+    fireEvent.click(screen.getByRole('button', { name: '핵심 목표' }));
+    const input = await screen.findByPlaceholderText('예: 올해 안에 책 한 권 쓰기');
+    fireEvent.change(input, { target: { value: '토익 900점' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await screen.findByRole('heading', { level: 1, name: '토익 900점' });
 
     // 설정 → 처음부터 다시 만들기 → 확인 다이얼로그(왼쪽 '닫기') → '지우기'
     fireEvent.click(screen.getByText('설정'));

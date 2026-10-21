@@ -42,6 +42,11 @@ export function emptyCellCount(board: Board): number {
   return board.subs.reduce((count, sub) => count + (sub.title.trim() ? 0 : 1) + sub.actions.filter((action) => !action.trim()).length, 0);
 }
 
+/** 홈 'AI로 빈 칸 채우기'(2.1): 핵심 목표가 있고, 세부 목표·실천을 하나라도 적었고, 빈 칸이 남았을 때 — 초안 화면 없이 바로 광고 */
+export function canFillBoard(board: Board): boolean {
+  return board.goal.trim().length > 0 && hasBoardText(board) && emptyCellCount(board) > 0;
+}
+
 /** 편집 화면 '빈 칸 AI로 채우기': 핵심 목표가 있고 빈 세부 목표가 있을 때 */
 export function canFillSubs(board: Board): boolean {
   return board.goal.trim().length > 0 && emptySubCount(board) > 0;
