@@ -26,7 +26,7 @@ import { applyCheckin, todayChecked, todaySet, toggleCheck } from './lib/checkin
 import { subCompleted } from './lib/cells';
 import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, hasAiText, ringIndex, splitActionIndex } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
-import { atHistoryBottom, goBack, navigate, useRoute } from './lib/router';
+import { atHistoryBottom, goBack, goHome, navigate, useRoute } from './lib/router';
 import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
 import { visibleWidgets } from './lib/widgets';
 import { DraftScreen } from './screens/DraftScreen';
@@ -661,6 +661,7 @@ function App() {
       aiFill={aiFillFor(subIndex)}
       onDeleteCells={(cells) => deleteCells(cellOfRing(subIndex), cells)}
       onSwapCells={(a, b) => swapCells(cellOfRing(subIndex), a, b)}
+      onHome={goHome}
       editLink={editLink}
     />
   );

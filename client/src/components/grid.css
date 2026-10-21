@@ -386,6 +386,24 @@ button.mg-cell.mg-cell-lifted:active {
   }
 }
 
+/* 세부 목표 화면 가운데 이름표의 왼쪽 위 ‹(3.0, 사용자 2026-10-21 시안 9-b — '핵심 목표로' 글 없이 ‹ 만): 누르면 홈.
+   도장 잉크 색, 오른쪽 위 작은 '완료' 도장(.mg-cell-seal)과 자리가 겹치지 않아요 */
+.mg-cell-way {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  color: var(--mg-stamp, currentColor);
+  pointer-events: none;
+}
+
+.mg-cell-way svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
 /* 키보드·스크린리더용 입구: 평소엔 안 보이고 포커스하면 3×3 위에 보여요 */
 .mg-reveal-on-focus {
   position: absolute;

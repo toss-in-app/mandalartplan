@@ -33,11 +33,16 @@ interface SubScreenProps {
   editLink?: { cell: number | null; onDone: () => void };
   /** 편집 모드의 화면 이름(분석 이벤트). 1분 체험판은 'trial' — 화면을 떠나면 '되돌리기' 토스트도 닫아요 */
   editScreen?: 'sub' | 'trial';
+  /** 편집 모드에 들어가거나 나올 때(1분 체험판이 안내 문구를 편집 모드에 맞추려고) */
+  onEditingChange?: (editing: boolean) => void;
+  /** 평소에 가운데(세부 목표 이름표)를 누르면 홈으로(3.0, 사용자 2026-10-21 시안 9-b — 왼쪽 위 ‹ 표시). 없으면(체험판) 가운데는 이름표 */
+  onHome?: () => void;
 }
 
 /**
  * 세부 목표 화면 = 그 목표의 3×3. 실천 칸을 누르면 오늘 했어요 체크/해제, 빈 칸을 누르면 그 자리에서 바텀시트로 적어요.
- * 가운데(세부 목표 이름)는 누를 수 없는 이름표. 실천을 오늘 다 하면 가운데가 진해지고 '오늘 다 했어요'가 붙어요.
+ * 가운데(세부 목표 이름)에는 왼쪽 위에 ‹ 가 붙어 누르면 홈으로 가요(3.0, 사용자 2026-10-21 시안 9-b — 글 없이 ‹ 만. onHome 이 없는 체험판에선 이름표).
+ * 실천을 오늘 다 하면 가운데가 진해지고 '오늘 다 했어요'가 붙어요.
  * 오늘 한 실천 칸에는 '완료' 도장이 찍히고 글씨가 흐려져요(✓ 는 편집 모드의 '고른 칸'만).
  * 고치기·지우기는 편집 버튼 없이 칸을 길게 눌러 그 자리에서(2.1 제자리 편집 모드, `useGridEdit`) — 오른쪽 위 '완료'로 끝내요.
  * 편집 모드에서 실천 칸을 꾹 눌러 끌어 다른 칸 위에 놓으면 자리가 바뀌고 체크 기록도 따라가요(3.0, 가운데 이름표는 제외).
@@ -54,6 +59,8 @@ export function SubScreen({
   onSwapCells,
   editLink,
   editScreen = 'sub',
+  onEditingChange,
+  onHome,
 }: SubScreenProps) {
   const block = cellOfRing(subIndex);
   const editor = useCellEditor({ onChangeAction, onChangeSubTitle });
@@ -78,12 +85,18 @@ export function SubScreen({
     // 화면이 처음 뜰 때 한 번만
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const editing = edit.editing;
+  useEffect(() => {
+    onEditingChange?.(editing);
+  }, [editing, onEditingChange]);
   const today = dateKey();
   const checked = todaySet(checkin, today);
   const sub = board.subs[subIndex];
   const total = sub.actions.filter((a) => a.trim()).length;
   const done = checkedInSub(checked, subIndex);
   const title = sub.title.trim() || `세부 목표 ${subIndex + 1}`;
+  // 가운데 이름표로 홈 가기: 이름이 있고 홈이 있을 때(체험판은 없어요)
+  const homeFromCenter = Boolean(onHome) && sub.title.trim().length > 0;
   const subtitle =
     total === 0 ? '실천 항목을 적어 보세요' : done >= total ? `오늘 ${done}/${total} · 오늘 실천을 다 했어요` : `오늘 ${done}/${total} · 실천한 칸을 눌러 체크해요`;
 
@@ -108,11 +121,16 @@ export function SubScreen({
               nextCell: nextEmptyCell(board, block),
               // 실천을 오늘 다 하면 가운데 이름표에 말로도 알려요(진해진 색과 함께)
               caption: (view) => (view.kind === 'sub' && view.checked ? '오늘 다 했어요' : null),
-              interactive: (_cell, view) => view.kind === 'action',
+              interactive: (_cell, view) => view.kind === 'action' || (view.kind === 'sub' && homeFromCenter),
+              link: (view) => (view.kind === 'sub' && homeFromCenter ? '핵심 목표로' : null),
             })}
             onSelectCell={(cell, view) => {
               // 편집 모드(고치기·고르기)와 길게 누른 뒤의 click 은 편집 쪽이 받아요
               if (edit.handleTap(cell)) return;
+              if (view.kind === 'sub') {
+                if (homeFromCenter) onHome?.();
+                return;
+              }
               if (view.kind !== 'action' || view.index === null) return;
               if (view.text) onToggle(view.index);
               else editor.openFromTap(editTarget(board, block, cell));

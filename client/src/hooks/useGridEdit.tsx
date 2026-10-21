@@ -54,7 +54,7 @@ function reduceMotion(): boolean {
   }
 }
 
-type BlockModeProps = Pick<ComponentProps<typeof Block>, 'checked' | 'caption' | 'nextCell' | 'interactive' | 'selected' | 'lift'>;
+type BlockModeProps = Pick<ComponentProps<typeof Block>, 'checked' | 'caption' | 'nextCell' | 'interactive' | 'selected' | 'lift' | 'link'>;
 
 interface UseGridEditOptions {
   board: Board;
@@ -76,7 +76,7 @@ interface UseGridEditOptions {
  * 3×3 제자리 편집 모드(2.1, 2026-10-21 사용자 결정 — 편집 버튼·편집 화면 없이 아이폰 홈 화면처럼).
  *  - 칸을 **길게 누르면** 편집 모드: 글이 있는 칸이 흔들리고('wiggle' 진동) 오른쪽 위 '완료'로 끝내요.
  *    옮길 수 있는 칸(글이 있고 가운데가 아닌 칸)이면 그 손가락 밑에 바로 들려요 — 떼지 않고 끌면 옮기고, 그냥 떼면 제자리예요
- *  - 편집 모드에서 **누르면** 그 칸 글 고치기(입력 시트), **바로 쭉 끌면** 지울 칸 고르기(고른 칸 = ✓ 가 스르륵 찍혀요),
+ *  - 편집 모드에서 **누르면** 그 칸 글 고치기(입력 시트), **꾹 누르지 않고 바로 빠르게 끌면** 지울 칸 고르기(고른 칸 = ✓ 가 스르륵 찍혀요),
  *    **꾹 누른 채 끌면** 그 칸을 들어 다른 칸 위에 놓아 자리 바꾸기(3.0, 사용자 2026-10-21 '아이폰 홈 화면처럼') — 가운데는 들 수도, 놓을 자리도 못 돼요.
  *    홈에서 세부 목표를 옮기면 그 아래 실천과 체크 기록도 함께 가요(App·lib/cellEdit `swapBlockCells`)
  *  - 끌어서 고르기·옮기기는 편집 모드에서만이에요. 평소에 끌면 아무 일도 없어요(끌다가 편집 모드로 넘어가지 않게 — 사용자 2026-10-21)
@@ -451,7 +451,7 @@ export function useGridEdit({ board, block, screen, onEditCell, onDeleteCells, o
 
   /**
    * Block 에 넘길 값. 평소엔 화면의 값 그대로, 편집 모드에선 오늘 체크·칸 아래 글·다음 칸 안내를 빼요(✓ 는 '고른 칸'만 뜻하게).
-   * 편집 모드에선 모든 칸을 누를 수 있고(고치기), 고르는 중엔 글이 있는 칸만 눌러요. 든 칸과 놓을 칸은 lift 로 그려요.
+   * 편집 모드에선 모든 칸을 누를 수 있고(고치기), 고르는 중엔 글이 있는 칸만 눌러요. 든 칸과 놓을 칸은 lift 로 그려요. 평소의 길 표시(link)는 빼요.
    */
   const blockProps = (normal: Omit<BlockModeProps, 'selected' | 'lift'>): BlockModeProps =>
     editing
@@ -468,12 +468,12 @@ export function useGridEdit({ board, block, screen, onEditCell, onDeleteCells, o
         ? '자리를 바꿀 첫 칸을 누르세요'
         : '바꿀 칸을 누르세요. 첫 칸을 다시 누르면 취소예요'
       : picking
-        ? '지울 칸을 누르거나 쭉 끌어서 골라요'
+        ? '지울 칸을 누르거나 빠르게 끌어서 골라요'
         : editing
           ? canDelete && anyFilled
             ? canSwap
-              ? '칸을 누르면 고치고, 쭉 끌면 지울 칸을 골라요. 꾹 눌러 끌면 자리를 바꿔요'
-              : '칸을 누르면 고치고, 쭉 끌면 지울 칸을 골라요'
+              ? '칸을 누르면 고치고, 빠르게 끌면 지울 칸을 골라요. 꾹 눌러 끌면 자리를 바꿔요'
+              : '칸을 누르면 고치고, 빠르게 끌면 지울 칸을 골라요'
             : canSwap
               ? '칸을 누르면 고치고, 꾹 눌러 끌면 자리를 바꿔요'
               : '칸을 누르면 글을 적어요'

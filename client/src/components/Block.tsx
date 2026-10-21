@@ -128,6 +128,11 @@ interface BlockProps {
    * 놓을 칸(over)은 브랜드 테두리로 보여요. 키보드 '자리 바꾸기'의 첫 칸은 제자리에서 든 모양(dx·dy = 0)
    */
   lift?: { cell: number; dx: number; dy: number; over: number | null } | null;
+  /**
+   * 칸 왼쪽 위의 작은 ‹ 표시(3.0, 사용자 2026-10-21 시안 9-b — 글 없이 ‹ 만): 세부 목표 화면 가운데 이름표를 누르면 홈(onSelectCell 이 받아요).
+   * 돌려주는 글은 화면엔 안 그리고 칸 이름에만 붙여 읽어요("꾸준한 운동, 핵심 목표로"). 모양은 grid.css .mg-cell-way
+   */
+  link?: (view: CellView, cell: number) => string | null;
 }
 
 /** 꾹 눌러 든 칸: 손가락을 따라 움직인 만큼 옮기고 조금 키워요. 편집 모드의 세부 목표 칸은 반투명 보라라 다른 칸 위를 지날 때 밑이 비치지 않게 불투명으로 */
@@ -151,9 +156,11 @@ interface CellContentProps {
   next?: boolean;
   /** 편집 모드에서 지울 칸으로 고름: ✓ */
   selected?: boolean;
+  /** 왼쪽 위 ‹ 표시(글은 이름에만 붙여 읽어요) */
+  link?: string | null;
 }
 
-function CellContent({ view, caption, size, invite = false, next = false, selected = false }: CellContentProps) {
+function CellContent({ view, caption, size, invite = false, next = false, selected = false, link = null }: CellContentProps) {
   if (invite) {
     return (
       <>
@@ -168,6 +175,13 @@ function CellContent({ view, caption, size, invite = false, next = false, select
       <span className="mg-cell-text">{text}</span>
       {next && !view.text && <span className="mg-cell-hint">눌러서 적기</span>}
       {caption && <span className="mg-cell-caption">{caption}</span>}
+      {link && (
+        <span className="mg-cell-way" aria-hidden>
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      )}
       {/* 오늘 한 실천의 '완료' 도장. 체크하는 순간 찍히는 움직임이 나오게 늘 그려 두고 .mg-cell-done 일 때만 보여요(글자는 CSS 가 data-label 로) */}
       {view.kind === 'action' && view.text && <span className="mg-cell-stamp" data-label="완료" aria-hidden />}
       {/* 실천을 오늘 다 한 세부 목표: 이름을 가리지 않게 모서리에 작은 '완료' 도장(.mg-cell-complete 일 때만 보여요) */}
@@ -188,7 +202,21 @@ function CellContent({ view, caption, size, invite = false, next = false, select
 /** 만드는 중인 빈 칸: 회색 자리 + 깜빡임(grid.css .mg-cell-loading) */
 const LOADING_STYLE: CSSProperties = { background: colors.grey100 };
 
-export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null, loading = false, selected, lift = null }: BlockProps) {
+export function Block({
+  board,
+  block,
+  size,
+  checked,
+  caption,
+  onSelect,
+  onSelectCell,
+  interactive,
+  nextCell = null,
+  loading = false,
+  selected,
+  lift = null,
+  link,
+}: BlockProps) {
   const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
   const selectMode = selected !== undefined;
   // 오늘 체크를 넘긴 화면(홈·세부 목표·전체 보기)만 오늘 진행을 칸 색으로 보여요. 편집 모드·AI 초안 미리보기는 칸 글만
@@ -216,6 +244,7 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
     <div className={className} style={stampVar} role="group" aria-label={label}>
       {views.map((view, cell) => {
         const cap = caption?.(view, cell) ?? null;
+        const way = link?.(view, cell) ?? null;
         // 빈 칸은 화면에 글이 없어도 스크린리더가 어느 칸인지 알 수 있게 이름을 붙여요
         const name =
           view.text ||
@@ -246,11 +275,11 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
                 ? name
                 : checkMode && view.kind === 'action' && view.text
                   ? `${name}, 오늘 ${view.checked ? '했어요' : '아직'}`
-                  : `${name}${cap ? `, ${spokenCaption(cap)}` : ''}`
+                  : `${name}${cap ? `, ${spokenCaption(cap)}` : ''}${way ? `, ${way}` : ''}`
             }
             aria-pressed={selectMode ? selected.has(cell) : checkMode && view.kind === 'action' && view.text ? view.checked : undefined}
           >
-            <CellContent view={view} caption={cap} size={size} invite={invite} next={next} selected={selected?.has(cell)} />
+            <CellContent view={view} caption={cap} size={size} invite={invite} next={next} selected={selected?.has(cell)} link={way} />
           </button>
         ) : loading && !view.text.trim() ? (
           <span key={cell} className="mg-cell mg-cell-loading" style={LOADING_STYLE} />
