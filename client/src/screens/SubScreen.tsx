@@ -33,6 +33,8 @@ interface SubScreenProps {
   editLink?: { cell: number | null; onDone: () => void };
   /** 편집 모드의 화면 이름(분석 이벤트). 1분 체험판은 'trial' — 화면을 떠나면 '되돌리기' 토스트도 닫아요 */
   editScreen?: 'sub' | 'trial';
+  /** 편집 모드에 들어가거나 나올 때(1분 체험판이 안내 문구를 편집 모드에 맞추려고) */
+  onEditingChange?: (editing: boolean) => void;
 }
 
 /**
@@ -54,6 +56,7 @@ export function SubScreen({
   onSwapCells,
   editLink,
   editScreen = 'sub',
+  onEditingChange,
 }: SubScreenProps) {
   const block = cellOfRing(subIndex);
   const editor = useCellEditor({ onChangeAction, onChangeSubTitle });
@@ -78,6 +81,10 @@ export function SubScreen({
     // 화면이 처음 뜰 때 한 번만
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const editing = edit.editing;
+  useEffect(() => {
+    onEditingChange?.(editing);
+  }, [editing, onEditingChange]);
   const today = dateKey();
   const checked = todaySet(checkin, today);
   const sub = board.subs[subIndex];

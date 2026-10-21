@@ -44,6 +44,11 @@ function toEditStep() {
 /** 편집 모드로 들어가 첫 실천을 골라 지워요(키보드 입구 — 길게 누르기·끌기와 같은 동작) */
 async function deleteFirstAction() {
   fireEvent.click(screen.getByRole('button', { name: '편집' }));
+  await pickAndDeleteFirstAction();
+}
+
+/** 편집 모드에서 첫 실천을 골라 지워요(키보드 입구 '지울 칸 고르기' — 빠르게 끌기와 같은 동작) */
+async function pickAndDeleteFirstAction() {
   fireEvent.click(screen.getByRole('button', { name: '지울 칸 고르기' }));
   fireEvent.click(screen.getByRole('button', { name: sample.actions[0] }));
   fireEvent.click(screen.getByRole('button', { name: '1칸 삭제' }));
@@ -86,9 +91,12 @@ describe('TrialScreen (1분 체험판, 2.1)', () => {
     renderTrial();
     toEditStep();
     expect(screen.getByText('체험판 · 저장되지 않아요 · 3/4')).toBeInTheDocument();
-    expect(screen.getByText('편집 모드에서 칸을 쭉 끌어 지울 칸을 골라 삭제해 보세요. 편집 모드는 칸을 길게 누르면 돼요')).toBeInTheDocument();
+    // 2단계에서 '완료'로 편집 모드를 끝냈으니 먼저 편집 모드로 들어가라고, 들어가면 빠르게 끌라고 안내해요
+    expect(screen.getByText('먼저 칸을 길게 눌러 편집 모드로 들어가요')).toBeInTheDocument();
     expect(nextButton()).toBeDisabled();
-    await deleteFirstAction();
+    fireEvent.click(screen.getByRole('button', { name: '편집' }));
+    expect(screen.getByText('꾹 누르지 말고 칸을 빠르게 끌면 지나간 칸이 골라져요. 골라서 삭제해 보세요')).toBeInTheDocument();
+    await pickAndDeleteFirstAction();
     expect(await screen.findByText("지운 칸은 아래 토스트의 '되돌리기'로 살릴 수 있어요")).toBeInTheDocument();
     expect(nextButton()).toBeEnabled();
     expect(screen.queryByRole('button', { name: sample.actions[0] })).not.toBeInTheDocument();

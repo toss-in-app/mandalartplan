@@ -34,7 +34,7 @@ const TRIAL_SUB = 0;
  * 판·체크는 이 화면 안에서만 쓰고 저장하지 않아요(나가면 사라져요).
  *  1. 도장: 실천 칸을 눌러 '완료' 도장 찍기
  *  2. 옮기기(3.0): 칸을 꾹 누른 채 끌어 다른 칸 위에 놓아 자리 바꾸기(가운데 제외) — 도장도 글을 따라가요
- *  3. 편집: 편집 모드에서 쭉 끌어 고르고 삭제 → 토스트 '되돌리기'
+ *  3. 편집: 편집 모드에서 꾹 누르지 않고 빠르게 끌어 고르고 삭제 → 토스트 '되돌리기'(편집 모드가 아니면 먼저 길게 누르라고 안내)
  *  4. AI(AI 를 쓸 수 있는 기기만): AI 초안이 채워진 모습 미리보기 — 광고·서버 없음
  * 홈·설정의 '1분 체험해 보기'로만 열려요(들어오자마자 띄우지 않아요 — 앱인토스 다크패턴 정책).
  */
@@ -51,6 +51,8 @@ export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScre
   const [checked, setChecked] = useState<number[]>([]);
   const [swapped, setSwapped] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  /** 세부 목표 화면이 편집 모드인지 — 3단계 안내를 상태에 맞춰요 */
+  const [editing, setEditing] = useState(false);
   const [step, setStep] = useState<Step>('stamp');
 
   const steps: Step[] = aiAvailable ? ['stamp', 'move', 'edit', 'ai'] : ['stamp', 'move', 'edit'];
@@ -105,7 +107,9 @@ export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScre
         : step === 'edit'
           ? ready
             ? "지운 칸은 아래 토스트의 '되돌리기'로 살릴 수 있어요"
-            : '편집 모드에서 칸을 쭉 끌어 지울 칸을 골라 삭제해 보세요. 편집 모드는 칸을 길게 누르면 돼요'
+            : editing
+              ? '꾹 누르지 말고 칸을 빠르게 끌면 지나간 칸이 골라져요. 골라서 삭제해 보세요'
+              : '먼저 칸을 길게 눌러 편집 모드로 들어가요'
           : 'AI로 초안을 만들면 이렇게 채워져요';
 
   const banner = (
@@ -163,6 +167,7 @@ export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScre
         onDeleteCells={deleteCells}
         onSwapCells={swapCells}
         editScreen="trial"
+        onEditingChange={setEditing}
       />
     </>
   );

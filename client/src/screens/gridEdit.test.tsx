@@ -135,7 +135,7 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(container.querySelector('.mg-jiggle')).not.toBeNull();
     // 가운데(세부 목표 이름) + 글이 있는 실천 3칸
     expect(container.querySelectorAll('.mg-jiggle button.mg-cell[data-filled]')).toHaveLength(4);
-    expect(screen.getByText('칸을 누르면 고치고, 쭉 끌면 지울 칸을 골라요')).toBeInTheDocument();
+    expect(screen.getByText('칸을 누르면 고치고, 빠르게 끌면 지울 칸을 골라요')).toBeInTheDocument();
     expect(logEvent).toHaveBeenCalledWith('edit_mode_enter', { screen: 'sub', via: 'longpress' });
     fireEvent.pointerUp(a);
     fireEvent.click(a);
@@ -187,7 +187,7 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(cell('받아쓰기')).not.toHaveClass('mg-cell-done'); // 고른 칸은 ✓, '완료' 도장은 오늘 한 실천만
     expect(screen.getByRole('button', { name: '3칸 삭제' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '선택 해제' })).toBeInTheDocument();
-    expect(screen.getByText('지울 칸을 누르거나 쭉 끌어서 골라요')).toBeInTheDocument();
+    expect(screen.getByText('지울 칸을 누르거나 빠르게 끌어서 골라요')).toBeInTheDocument();
   });
 
   it('길게 눌러 편집 모드가 된 손가락을 떼지 않고 끌면 고르기가 아니라 옮기기예요(3.0 — 옮길 수 없으면 아무 일도 없어요)', () => {
@@ -428,7 +428,7 @@ describe('자리 바꾸기 (3.0, 사용자 2026-10-21 — 아이폰 홈 화면�
   it("편집 모드 안내에 꾹 눌러 끌기가 들어가고, 키보드 입구 '자리 바꾸기'가 생겨요", () => {
     subScreen(0, { onSwapCells: vi.fn() });
     reveal('편집');
-    expect(screen.getByText('칸을 누르면 고치고, 쭉 끌면 지울 칸을 골라요. 꾹 눌러 끌면 자리를 바꿔요')).toBeInTheDocument();
+    expect(screen.getByText('칸을 누르면 고치고, 빠르게 끌면 지울 칸을 골라요. 꾹 눌러 끌면 자리를 바꿔요')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '자리 바꾸기' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '지울 칸 고르기' })).toBeInTheDocument();
   });
@@ -587,7 +587,7 @@ describe('자리 바꾸기 (3.0, 사용자 2026-10-21 — 아이폰 홈 화면�
     const onSwapCells = vi.fn();
     const { container } = homeScreen({ onSwapCells });
     reveal('편집');
-    expect(screen.getByText('칸을 누르면 고치고, 쭉 끌면 지울 칸을 골라요. 꾹 눌러 끌면 자리를 바꿔요')).toBeInTheDocument();
+    expect(screen.getByText('칸을 누르면 고치고, 빠르게 끌면 지울 칸을 골라요. 꾹 눌러 끌면 자리를 바꿔요')).toBeInTheDocument();
     const goal = cell('토익 900점');
     holdAndDrag(goal, cell('듣기'));
     expect(container.querySelector('.mg-cell-lifted')).toBeNull();
