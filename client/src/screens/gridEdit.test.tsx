@@ -172,7 +172,7 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(editingNow()).toBe(true);
     expect(['받아쓰기', '쉐도잉', '팟캐스트'].map((t) => cell(t).getAttribute('aria-pressed'))).toEqual(['true', 'true', 'true']);
     expect(within(cell('받아쓰기')).getByText('✓')).toBeInTheDocument();
-    expect(cell('받아쓰기')).not.toHaveClass('mg-cell-done'); // 고른 칸은 ✓, 브랜드 색 채움은 오늘 한 실천만
+    expect(cell('받아쓰기')).not.toHaveClass('mg-cell-done'); // 고른 칸은 ✓, '완료' 도장은 오늘 한 실천만
     expect(screen.getByRole('button', { name: '3칸 삭제' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '선택 해제' })).toBeInTheDocument();
     expect(screen.getByText('지울 칸을 누르거나 쭉 끌어서 골라요')).toBeInTheDocument();

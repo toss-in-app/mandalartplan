@@ -1,6 +1,6 @@
 /**
  * 공유 이미지 카드 (계약 events.md '공유' 절).
- * 기본: 1080×1350 PNG, 9×9 만다라트 + 오늘 한 실천(앱 화면과 같은 '색칠' — 브랜드 색 칸) + 워터마크 "만다라트".
+ * 기본: 1080×1350 PNG, 9×9 만다라트 + 오늘 한 실천(앱 화면과 같은 '완료' 도장) + 워터마크 "만다라트".
  * 고화질(기능 5 리워드): 같은 레이아웃을 2배로 그리고 워터마크를 빼요.
  *
  * 캔버스 없이도 검증할 수 있게 레이아웃 계산(layoutCard)·줄바꿈(wrapText)을 그리기(drawCard)와 분리했어요.
@@ -8,7 +8,7 @@
  */
 import { colors } from '@toss/tds-colors';
 
-import { brandColor, withAlpha } from '../theme';
+import { brandColor, stampInk, withAlpha } from '../theme';
 import { cellView, type CellView } from './cells';
 import { getProgress, hasAiText, type Board } from './mandalart';
 
@@ -178,19 +178,51 @@ interface CellStyle {
   background: string;
   color: string;
   weight: 500 | 600 | 700;
+  /** 오늘 한 실천: 글 위에 '완료' 도장 */
+  stamped: boolean;
 }
 
-/** 앱 화면(components/Block.tsx)과 같은 모양: 오늘 한 실천 = 브랜드 색으로 채우고 흰 글씨, 다 한 세부 목표 = 더 진한 틴트. ✓ 는 쓰지 않아요 */
+/** 앱 화면(components/Block.tsx)과 같은 모양: 오늘 한 실천 = 옅은 칸 + 흐린 글씨 + '완료' 도장, 다 한 세부 목표 = 더 진한 틴트. ✓ 는 쓰지 않아요 */
 function cellStyle(view: CellView): CellStyle {
   switch (view.kind) {
     case 'goal':
-      return { background: brandColor, color: colors.white, weight: 700 };
+      return { background: brandColor, color: colors.white, weight: 700, stamped: false };
     case 'sub':
-      return { background: withAlpha(brandColor, view.checked ? 0.36 : 0.14), color: view.text ? colors.grey900 : colors.grey500, weight: view.checked ? 700 : 600 };
+      return {
+        background: withAlpha(brandColor, view.checked ? 0.36 : 0.14),
+        color: view.text ? colors.grey900 : colors.grey500,
+        weight: view.checked ? 700 : 600,
+        stamped: false,
+      };
     default:
-      if (view.checked) return { background: brandColor, color: colors.white, weight: 600 };
-      return { background: view.text ? colors.grey100 : colors.grey50, color: colors.grey800, weight: 500 };
+      if (view.checked) return { background: colors.grey50, color: colors.grey400, weight: 500, stamped: true };
+      return { background: view.text ? colors.grey100 : colors.grey50, color: colors.grey800, weight: 500, stamped: false };
   }
+}
+
+/** '완료' 겹테 도장(앱 화면 grid.css .mg-cell-stamp 와 같은 모양): 살짝 기울인 원 두 겹 + 가운데 글자 */
+function drawStamp(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number): void {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((-14 * Math.PI) / 180);
+  ctx.globalAlpha = 0.92;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.fill();
+  ctx.strokeStyle = stampInk;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, radius - 6, 0, Math.PI * 2);
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = stampInk;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  font(ctx, Math.round(radius * 0.62), 700);
+  ctx.fillText('완료', 0, 1);
+  ctx.restore();
 }
 
 /** 레이아웃을 캔버스에 그려요. ctx 는 (CARD_WIDTH × scale) × (CARD_HEIGHT × scale) 크기여야 해요. */
@@ -233,6 +265,7 @@ export function drawCard(ctx: CanvasRenderingContext2D, layout: CardLayout, opti
       ctx.fillStyle = style.color;
       lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, startY + i * lineHeight));
     }
+    if (style.stamped) drawStamp(ctx, c.x + c.w / 2, c.y + c.h / 2, c.w * 0.31);
   }
 
   // 바닥글(워터마크)

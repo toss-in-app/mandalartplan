@@ -125,7 +125,7 @@ describe('편집 모드에서 칸 고치기 (바텀시트, 2.1 — 편집 화면
 });
 
 describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
-  it('글이 있는 실천 칸은 체크 토글, 가운데(세부 목표)는 누를 수 없는 이름표, 편집 버튼은 없어요. 오늘 체크한 칸은 aria-pressed + 브랜드 색으로 채움(✓ 없음)', () => {
+  it("글이 있는 실천 칸은 체크 토글, 가운데(세부 목표)는 누를 수 없는 이름표, 편집 버튼은 없어요. 오늘 체크한 칸은 aria-pressed + '완료' 도장(✓ 없음)", () => {
     const onToggle = vi.fn();
     wrap(<SubScreen board={fullBoard} subIndex={0} checkin={record} onToggle={onToggle} onChangeAction={vi.fn()} onChangeSubTitle={vi.fn()} onDeleteCells={vi.fn()} />);
     const sub = fullBoard.subs[0];
@@ -133,9 +133,10 @@ describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
     expect(screen.getByText(/오늘 2\/8/)).toBeInTheDocument();
     const checked = screen.getByRole('button', { name: `${sub.actions[0]}, 오늘 했어요` });
     expect(checked).toHaveAttribute('aria-pressed', 'true');
-    // 오늘 한 실천은 브랜드 색으로 채운 칸(.mg-cell-done)에 흰 글씨, ✓ 는 편집 모드에서 고른 칸에만
+    // 오늘 한 실천은 옅어진 칸(grey50)에 '완료' 도장(.mg-cell-done 안의 .mg-cell-stamp, 글자는 CSS). ✓ 는 편집 모드에서 고른 칸에만
     expect(checked).toHaveClass('mg-cell-done');
-    expect(checked).toHaveStyle({ backgroundColor: 'rgb(107, 92, 255)', color: 'rgb(255, 255, 255)' });
+    expect(checked).toHaveStyle({ backgroundColor: 'rgb(249, 250, 251)' });
+    expect(checked.querySelector('.mg-cell-stamp')).toHaveAttribute('data-label', '완료');
     expect(checked.querySelector('.mg-cell-check')).toBeNull();
     const unchecked = screen.getByRole('button', { name: `${sub.actions[2]}, 오늘 아직` });
     expect(unchecked).toHaveAttribute('aria-pressed', 'false');

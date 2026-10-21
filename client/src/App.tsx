@@ -24,7 +24,8 @@ import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card
 import { notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { clearBlockCells, editTarget } from './lib/cellEdit';
 import { applyCheckin, todayChecked, todaySet, toggleCheck } from './lib/checkin';
-import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, hasAiText, ringIndex } from './lib/mandalart';
+import { subCompleted } from './lib/cells';
+import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, hasAiText, ringIndex, splitActionIndex } from './lib/mandalart';
 import { formatDateTime } from './lib/format';
 import { atHistoryBottom, goBack, navigate, useRoute } from './lib/router';
 import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
@@ -282,11 +283,13 @@ function App() {
   const record = state.checkins.byBoard[board.id];
   const openSub = (subIndex: number) => navigate({ name: 'sub', sub: subIndex });
 
-  /** 실천 칸 탭 = 오늘 했어요 체크/해제. 처음 체크한 순간을 settings 에 남겨요(알림 안내용). */
+  /**
+   * 실천 칸 탭 = 오늘 했어요 체크/해제. 처음 체크한 순간을 settings 에 남겨요(알림 안내용).
+   * 진동(2.1, '완료' 도장): 도장을 찍을 때는 톡, 뗄 때는 더 약하게, 그 세부 목표의 실천에 오늘 도장을 다 찍은 순간은 '성공'.
+   */
   const toggleToday = (actionIndex: number) => {
     const now = Date.now();
     const date = dateKey();
-    void haptic('tap');
     const current = app.getState();
     if (!current) return;
     const first = current.settings.firstCheckinAt === null;
@@ -295,9 +298,11 @@ function App() {
     if (first) app.updateSettings((settings) => ({ ...settings, firstCheckinAt: now }));
     const nextRecord = next.byBoard[board.id];
     const checkedNow = todaySet(nextRecord, date);
+    const crossed = checkedNow.has(actionIndex);
+    void haptic(!crossed ? 'tickWeak' : subCompleted(board, splitActionIndex(actionIndex).subIndex, checkedNow) ? 'success' : 'tap');
     logEvent('action_check', {
       index: actionIndex,
-      checked: checkedNow.has(actionIndex),
+      checked: crossed,
       todayCount: checkedNow.size,
       streak: streak(nextRecord, date),
       first,

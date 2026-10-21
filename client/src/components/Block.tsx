@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 
 import { cellView, type CellView } from '../lib/cells';
 import { CENTER, ringIndex, type Board } from '../lib/mandalart';
-import { brandColor, withAlpha } from '../theme';
+import { brandColor, stampInk, withAlpha } from '../theme';
 import './grid.css';
 
 export type BlockSize = 'small' | 'large' | 'main';
@@ -11,11 +11,11 @@ export type BlockSize = 'small' | 'large' | 'main';
 /**
  * 칸 색. 빈 자리 글까지 글자 대비 4.5:1 이상으로 맞춰요.
  * 오늘 한 표시와 편집 모드의 '고른 칸'은 모양을 나눠요(2.1, 사용자 결정 — 둘 다 ✓ 라 헷갈렸어요):
- *  - 오늘 한 실천: 브랜드 색으로 꽉 채우고 흰 글씨(대비 4.6:1) — 습관 기록의 '색칠'. 회색 칸과 밝기부터 달라서
- *    색을 못 봐도 구분되고, 9×9·공유 이미지에서도 한눈에 세어져요. 취소선은 한글 가로획과 겹쳐 읽기 어렵고
- *    '취소·지난 값'으로 읽혀 쓰지 않아요(1차 안, 2026-10-21 사용자 반려)
+ *  - 오늘 한 실천: 옅어진 칸 위에 '완료' 도장이 쿵 찍히고 아래 글씨는 흐려져요(.mg-cell-done, grid.css .mg-cell-stamp).
+ *    사용자 결정(2026-10-21): 하나하나 지우는 재미 + 블라인드처럼 덮는 느낌 → 시안 넷(롤 블라인드·회색 가림막·완료 도장·뒤집기) 중 도장.
+ *    끝낸 일을 그 자리에서 덮되 글씨는 남겨 무엇을 했는지 보이고, 9×9·공유 이미지에서도 읽혀요
  *  - 실천을 오늘 다 한 세부 목표: 더 진한 틴트 + 칸 아래 '오늘 다 했어요'(화면이 caption 으로 넣어요)
- *  - 테두리와 ✓ 는 편집 모드에서 지울 칸으로 고른 것만(selectedStyle). 편집 모드에선 오늘 한 표시를 빼서 둘이 같이 보이지 않아요
+ *  - 테두리 강조와 ✓ 는 편집 모드에서 지울 칸으로 고른 것만(selectedStyle). 편집 모드에선 오늘 한 표시를 빼서 둘이 같이 보이지 않아요
  */
 function cellStyle(view: CellView): CSSProperties {
   switch (view.kind) {
@@ -33,8 +33,8 @@ function cellStyle(view: CellView): CSSProperties {
       };
     default:
       if (view.checked) {
-        // 오늘 한 실천: 꽉 채운 브랜드 색 + 흰 글씨. 옅은 세부 목표 칸(14%)·회색 실천 칸과 밝기가 크게 달라요
-        return { background: brandColor, color: colors.white, fontWeight: 600 };
+        // 오늘 한 실천: 한 단계 옅어진 칸. 도장과 흐려지는 글씨는 grid.css(굵기는 그대로라 줄바꿈이 바뀌지 않아요)
+        return { background: colors.grey50, color: colors.grey800 };
       }
       if (!view.text) {
         // 빈 실천 칸은 흰 바탕에 옅은 테두리로 '비어 있음'을 보여줘요
@@ -57,7 +57,7 @@ function selectedStyle(view: CellView, size: BlockSize): CSSProperties {
   };
 }
 
-/** 오늘 한 실천 칸 표시(.mg-cell-done — 모양은 cellStyle, 클래스는 상태를 찾는 데 써요) */
+/** 오늘 한 실천 칸 표시(.mg-cell-done) — 칸 색은 cellStyle, '완료' 도장과 흐려지는 글씨는 grid.css */
 function cellClass(view: CellView, extra = ''): string {
   return `mg-cell${view.kind === 'action' && view.checked ? ' mg-cell-done' : ''}${extra}`;
 }
@@ -147,6 +147,8 @@ function CellContent({ view, caption, size, invite = false, next = false, select
       <span className="mg-cell-text">{text}</span>
       {next && !view.text && <span className="mg-cell-hint">눌러서 적기</span>}
       {caption && <span className="mg-cell-caption">{caption}</span>}
+      {/* 오늘 한 실천의 '완료' 도장. 체크하는 순간 찍히는 움직임이 나오게 늘 그려 두고 .mg-cell-done 일 때만 보여요(글자는 CSS 가 data-label 로) */}
+      {view.kind === 'action' && view.text && <span className="mg-cell-stamp" data-label="완료" aria-hidden />}
       {selected && size === 'main' && (
         <span
           className="mg-cell-check"
@@ -168,13 +170,15 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
   const selectMode = selected !== undefined;
   const styleOf = (view: CellView, cell: number) => (selected?.has(cell) ? selectedStyle(view, size) : cellStyle(view));
   const className = `mg-block mg-block-${size}`;
+  // 오늘 한 실천에 찍는 도장 잉크 색(grid.css .mg-cell-stamp)
+  const stampVar = { ['--mg-stamp' as string]: stampInk } as CSSProperties;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
   // 오늘 체크를 넘긴 화면(홈·세부 목표)만 실천 칸을 '오늘 했어요/아직' 토글로 읽어요. 편집 모드는 칸 글만
   const checkMode = checked !== undefined;
 
   if (onSelect) {
     return (
-      <button type="button" className={className} onClick={onSelect} aria-label={blockButtonLabel(views, label)}>
+      <button type="button" className={className} style={stampVar} onClick={onSelect} aria-label={blockButtonLabel(views, label)}>
         {views.map((view, cell) => (
           <span key={cell} className={cellClass(view)} style={styleOf(view, cell)}>
             <CellContent view={view} caption={caption?.(view, cell) ?? null} size={size} />
@@ -185,7 +189,7 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
   }
 
   return (
-    <div className={className} role="group" aria-label={label}>
+    <div className={className} style={stampVar} role="group" aria-label={label}>
       {views.map((view, cell) => {
         const cap = caption?.(view, cell) ?? null;
         // 빈 칸은 화면에 글이 없어도 스크린리더가 어느 칸인지 알 수 있게 이름을 붙여요
