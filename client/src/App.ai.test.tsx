@@ -305,4 +305,29 @@ describe('App (AI 초안)', () => {
     await screen.findByText('핵심 목표는 홈의 편집에서 적어요');
     expect(screen.queryByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' })).not.toBeInTheDocument();
   });
+
+  it('칸이 다 찬 판으로 초안 화면에 들어오면(딥링크 등) 광고 버튼이 잠겨요 — 광고만 보고 채울 게 없으니까', async () => {
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    window.localStorage.setItem(
+      '__ait_storage:mandalart.boards.v1',
+      JSON.stringify({
+        version: 1,
+        active: 0,
+        boards: [
+          {
+            id: 'b1759000000000',
+            goal: '토익 900점',
+            subs: Array.from({ length: 8 }, (_, i) => ({ title: `영역 ${i + 1}`, actions: Array.from({ length: 8 }, (__, j) => `실천 ${i + 1}-${j + 1}`) })),
+            templateId: null,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      }),
+    );
+    renderAt('#/draft');
+    await screen.findByText('채울 빈 칸이 없어요. 칸을 비우면 AI가 채울 수 있어요');
+    expect(screen.getByRole('button', { name: '광고 보고 AI로 빈 칸 채우기' })).toBeDisabled();
+    expect(ad.watched).toBe(0);
+  });
 });

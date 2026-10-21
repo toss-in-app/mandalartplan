@@ -199,7 +199,8 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
     );
   }
 
-  const canMake = cleanCell(goal).length > 0 && runsLeft > 0;
+  // 칸이 다 찬 판(딥링크 등으로 들어온 경우)에서는 광고만 보고 채울 게 없으니 막아요
+  const canMake = cleanCell(goal).length > 0 && runsLeft > 0 && (!partial || fillCount > 0);
   return (
     <>
       <Top
