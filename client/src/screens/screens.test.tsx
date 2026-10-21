@@ -2,15 +2,13 @@ import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { cheerFor, getBundledContent } from '../content';
+import { getBundledContent } from '../content';
 import { actionIndex, createEmptyBoard, type Board } from '../lib/mandalart';
 import { dateKey, type CheckinRecord } from '../lib/state';
-import { addDays } from '../lib/stats';
 import { boardFromTemplate } from '../lib/template';
 import { OverviewScreen } from './OverviewScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { SubScreen } from './SubScreen';
-import { TodayScreen } from './TodayScreen';
 
 const NOW = 1759000000000;
 const content = getBundledContent();
@@ -178,60 +176,6 @@ describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
     fireEvent.click(sheetDone());
     expect(onChangeAction).toHaveBeenCalledWith(1, 0, '책 20쪽 읽기');
     expect(onToggle).not.toHaveBeenCalled();
-  });
-});
-
-describe('TodayScreen (기록)', () => {
-  it('오늘 체크가 없으면 안내만 — 홈으로 버튼은 딥링크(히스토리 바닥)일 때만, 기록이 없으면 배너도 없어요', () => {
-    const onDone = vi.fn();
-    const { unmount } = wrap(<TodayScreen board={fullBoard} record={undefined} content={content} onDone={onDone} />);
-    expect(screen.getByText('오늘 한 실천을 체크해 보세요')).toBeInTheDocument();
-    expect(screen.queryByText('홈으로')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('ad-banner')).not.toBeInTheDocument();
-    unmount();
-    wrap(<TodayScreen board={fullBoard} record={undefined} content={content} onDone={onDone} showHome />);
-    fireEvent.click(screen.getByText('홈으로'));
-    expect(onDone).toHaveBeenCalledTimes(1);
-  });
-
-  it('체크가 있으면 세부 목표별 목록 + 격려 문구 + 알림 버튼(있을 때) + 하단 배너 자리', () => {
-    const onNotification = vi.fn();
-    wrap(<TodayScreen board={fullBoard} record={record} content={content} onNotification={onNotification} onDone={vi.fn()} />);
-    expect(screen.getByText(/1일째 · 2개 실천/)).toBeInTheDocument();
-    expect(screen.getByText(fullBoard.subs[0].actions[0])).toBeInTheDocument();
-    expect(screen.getByText(fullBoard.subs[0].actions[1])).toBeInTheDocument();
-    expect(screen.queryByText(fullBoard.subs[0].actions[2])).not.toBeInTheDocument(); // 체크 안 한 실천은 없어요
-    expect(screen.getByText(cheerFor(content, today))).toBeInTheDocument(); // 같은 날은 같은 격려 문구
-    fireEvent.click(screen.getByText('매일 저녁 알림 받기'));
-    expect(onNotification).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('ad-banner')).toBeInTheDocument();
-  });
-
-  it('주간·월간 탭: 요약·세부 목표별·달력, 기간 이동, stats_view, 배너는 탭을 바꿔도 그대로', () => {
-    const onStatsView = vi.fn();
-    const twoWeeksAgo = addDays(today, -14);
-    const history: CheckinRecord = { days: { ...record.days, [twoWeeksAgo]: [actionIndex(1, 0)] }, lastCompletedAt: NOW };
-    wrap(<TodayScreen board={fullBoard} record={history} content={content} onDone={vi.fn()} onStatsView={onStatsView} />);
-    const banner = screen.getByTestId('ad-banner');
-
-    fireEvent.click(screen.getByText('주간'));
-    expect(onStatsView).toHaveBeenLastCalledWith({ period: 'week', offset: 0, activeDays: 1, checks: 2 });
-    expect(screen.getByText('실천한 날')).toBeInTheDocument();
-    expect(screen.getByText('세부 목표별')).toBeInTheDocument();
-    expect(screen.getByText(fullBoard.subs[0].actions[0])).toBeInTheDocument(); // 많이 한 실천
-    expect(screen.getByText('이번 주에 안 한 실천')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '다음 주' })).toBeDisabled();
-    expect(screen.getByTestId('ad-banner')).toBe(banner);
-
-    // 지난주는 체크가 없어서 안내 한 줄
-    fireEvent.click(screen.getByRole('button', { name: '지난주' }));
-    expect(onStatsView).toHaveBeenLastCalledWith({ period: 'week', offset: -1, activeDays: 0, checks: 0 });
-    expect(screen.getByText('이 기간은 쉬어 갔어요')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('월간'));
-    expect(onStatsView).toHaveBeenLastCalledWith(expect.objectContaining({ period: 'month', offset: 0 }));
-    expect(screen.getByRole('img', { name: /달력/ })).toBeInTheDocument();
-    expect(screen.getByTestId('ad-banner')).toBe(banner);
   });
 });
 

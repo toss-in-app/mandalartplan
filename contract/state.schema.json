@@ -350,6 +350,44 @@
             }
           },
           "description": "2026-10-21 추가 (2.1 1분 체험판 안내 카드). 없으면 기본값. 이 기기에만 남고 백업에는 싣지 않아요"
+        },
+        "records": {
+          "type": "object",
+          "required": [
+            "widgets"
+          ],
+          "properties": {
+            "widgets": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "streak",
+                      "week",
+                      "board",
+                      "calendar",
+                      "badges",
+                      "report",
+                      "score",
+                      "year",
+                      "weekday",
+                      "review",
+                      "total"
+                    ]
+                  },
+                  "uniqueItems": true,
+                  "minItems": 1,
+                  "maxItems": 11
+                }
+              ],
+              "description": "기록 위젯 판에 보이는 위젯을 순서대로. null 이면 기본 배치(streak·week·board·calendar·badges·report — 아직 고친 적 없음, 다음 버전에서 기본이 바뀌면 따라가요). 목록에 없는 위젯 = 숨긴 위젯. 모르는 id·중복은 읽을 때 버리고, 하나도 안 남으면 null"
+            }
+          },
+          "description": "2026-10-21 추가 (3.0 기록 위젯 판). 없으면 기본값 { widgets: null }. 이 기기에만 남고 백업에는 싣지 않아요"
         }
       }
     },

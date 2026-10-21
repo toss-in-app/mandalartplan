@@ -14,6 +14,8 @@ describe('parseRoute / routeToHash', () => {
       { name: 'settings' as const },
       { name: 'draft' as const },
       { name: 'trial' as const },
+      { name: 'record' as const, widget: 'board' as const },
+      { name: 'record' as const, widget: 'year' as const },
     ];
     for (const route of routes) expect(parseRoute(routeToHash(route))).toEqual(route);
   });
@@ -27,6 +29,9 @@ describe('parseRoute / routeToHash', () => {
     expect(parseRoute('#/block/4/9')).toEqual({ name: 'home' });
     expect(parseRoute('#/nope')).toEqual({ name: 'home' });
     expect(parseRoute('#/checkin')).toEqual({ name: 'today' });
+    // 위젯 대시보드(3.0): 모르는 위젯은 홈
+    expect(parseRoute('#/record/streak')).toEqual({ name: 'record', widget: 'streak' });
+    expect(parseRoute('#/record/nope')).toEqual({ name: 'home' });
   });
 });
 
@@ -38,6 +43,7 @@ describe('routeFromSchemeUrl', () => {
     expect(routeFromSchemeUrl('intoss-private://mandalartplan/sub/2')).toEqual({ name: 'sub', sub: 2 });
     expect(routeFromSchemeUrl('https://mandalartplan.apps.tossmini.com/share')).toEqual({ name: 'share' });
     expect(routeFromSchemeUrl('intoss://mandalartplan/draft')).toEqual({ name: 'draft' });
+    expect(routeFromSchemeUrl('intoss://mandalartplan/record/calendar')).toEqual({ name: 'record', widget: 'calendar' });
     expect(routeFromSchemeUrl('')).toBeNull();
     expect(routeFromSchemeUrl('not a url')).toBeNull();
   });

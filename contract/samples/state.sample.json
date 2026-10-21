@@ -164,6 +164,17 @@
     },
     "trial": {
       "cardDismissedAt": null
+    },
+    "records": {
+      "widgets": [
+        "streak",
+        "board",
+        "calendar",
+        "week",
+        "badges",
+        "report",
+        "score"
+      ]
     }
   }
 }

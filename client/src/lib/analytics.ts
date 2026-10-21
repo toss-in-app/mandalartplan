@@ -34,7 +34,11 @@ export type EventName =
   /** 제자리 편집 모드(2.1): 들어가기, 여러 칸 지우기·되돌리기 */
   | 'edit_mode_enter'
   | 'cells_delete'
-  | 'cells_delete_undo';
+  | 'cells_delete_undo'
+  /** 기록 위젯 판(3.0): 위젯을 눌러 대시보드 열기, 판 고치기(숨기기·넣기·옮기기), 지난주 리포트 글 공유 */
+  | 'record_open'
+  | 'record_widget_edit'
+  | 'report_share';
 
 export type EventParams = Record<string, string | number | boolean | null | undefined>;
 

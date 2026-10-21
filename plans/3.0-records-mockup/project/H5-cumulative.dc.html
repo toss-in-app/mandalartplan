@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>누적 도장 대시보드</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#5B4ED9}a:hover{color:#4A3FC0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; word-break: keep-all; box-sizing: border-box; position: relative; overflow: hidden; background: #FFFFFF; font-family: 'Noto Sans KR', system-ui, sans-serif; color: #191F28; display: flex; flex-direction: column">
+<header style="flex-shrink: 0; padding: 14px 24px 10px">
+<a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 24px; font-size: 13px; font-weight: 600; color: #6B7684; text-decoration: none">기록</a>
+<h1 style="margin: 0; font-size: 24px; line-height: 34px; font-weight: 700">누적 도장</h1>
+</header>
+<div style="padding: 8px 24px 0">
+<p style="margin: 0; font-size: 14px; color: #6B7684">5월 2일 첫 도장부터</p>
+<p style="margin: 4px 0 0; font-size: 40px; line-height: 50px; font-weight: 700; letter-spacing: -1px">도장 403개</p>
+<p style="margin: 4px 0 0; font-size: 15px; color: #333D4B">500개까지 <b style="color: #5B4ED9">97개</b> 남았어요 · 지금 속도면 11월 중순</p>
+</div>
+<div style="margin: 16px 24px 0">
+<svg width="342" height="196" viewBox="0 0 342 196" role="img" aria-label="누적 도장 곡선: 5월 42, 6월 103, 7월 158, 8월 231, 9월 319, 10월 21일 403. 다음 목표 500">
+<path d="M10 25.7H332" stroke="#B8B1FF" stroke-width="1.5" stroke-dasharray="5 4"></path>
+<path d="M10 83.5H332M10 141.2H332" stroke="#F2F4F6" stroke-width="1"></path>
+<polygon points="10,170 60,157.9 112,140.3 164,124.4 216,103.4 268,78 303,53.7 303,170" fill="rgba(107,92,255,0.08)"></polygon>
+<polyline points="10,170 60,157.9 112,140.3 164,124.4 216,103.4 268,78 303,53.7" fill="none" stroke="#6B5CFF" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+<circle cx="303" cy="53.7" r="6" fill="#6B5CFF"></circle>
+<g fill="#FFFFFF" stroke="#5B4ED9" stroke-width="1.5"><circle cx="110" cy="141.2" r="7"></circle><circle cx="256" cy="83.5" r="7"></circle></g>
+<g font-family="Noto Sans KR, sans-serif" font-size="11" fill="#6B7684">
+<text x="332" y="20" text-anchor="end" fill="#5B4ED9" font-weight="700">500</text>
+<text x="10" y="79">300</text>
+<text x="10" y="137">100</text>
+<text x="60" y="190" text-anchor="middle">5월</text><text x="112" y="190" text-anchor="middle">6월</text><text x="164" y="190" text-anchor="middle">7월</text><text x="216" y="190" text-anchor="middle">8월</text><text x="268" y="190" text-anchor="middle">9월</text><text x="303" y="190" text-anchor="middle" fill="#5B4ED9" font-weight="700">지금</text>
+</g>
+</svg>
+</div>
+<h2 style="margin: 16px 24px 8px; font-size: 17px; font-weight: 700; color: #333D4B">지나온 길</h2>
+<ol style="margin: 0; padding: 0 24px; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 15px">
+<li style="display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 2px solid #5B4ED9; transform: rotate(-12deg)"></span><span>첫 도장</span><span style="color: #6B7684">5월 2일</span></li>
+<li style="display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 2px solid #5B4ED9; transform: rotate(-12deg)"></span><span>도장 100개</span><span style="color: #6B7684">6월 28일</span></li>
+<li style="display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 2px solid #5B4ED9; transform: rotate(-12deg)"></span><span>도장 300개</span><span style="color: #6B7684">9월 17일</span></li>
+<li style="display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; color: #6B7684"><span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 2px dashed #B0B8C1"></span><span>도장 500개</span><span>97개 남음</span></li>
+</ol>
+<aside aria-label="광고" style="margin: 20px 20px 0; height: 56px; flex-shrink: 0; border-radius: 12px; background: #F2F4F6; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #6B7684">배너 광고</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

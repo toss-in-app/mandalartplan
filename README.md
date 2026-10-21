@@ -41,7 +41,7 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
 ├── apps-in-toss.config.ts   #   appName·브랜드 색·네비게이션 바·웹뷰 옵션 (콘솔 appName 과 같아야 함)
 └── src/
     ├── main.tsx             #   TDSMobileAITProvider
-    ├── App.tsx              #   라우트: home · sub/:s · block/:n · overview · today · share · settings
+    ├── App.tsx              #   라우트: home · sub/:s · block/:n · overview · today(기록 위젯 판) · record/:위젯 · share · settings
     ├── content/             #   bundled.json(생성) + 로더(원격 content.json 시도, 실패 시 번들)
     ├── backup/              #   Supabase 백업·복원: config(URL·publishable 키) · key(익명 키 sha256) · api(RPC fetch) · useBackup
     ├── ads/                 #   광고: config(그룹 ID, 비면 테스트 ID) · fullScreen(load/show 약속) · useInterstitial · useRewardedAd · banner(TossAds 초기화) · rules(하루 1회)
@@ -54,26 +54,29 @@ client/                      # 미니앱 (React 18 + Vite + TDS + @apps-in-toss/
     │   ├── router.ts        #   pushState 라우터 + Environment.initialURL 딥링크
     │   ├── cells.ts         #   블록·칸 index → 보드의 어느 글인지
     │   ├── checkin.ts       #   오늘 체크 토글·세부 목표별 묶기
+    │   ├── stats.ts · records.ts · badges.ts  #   기록 숫자(기간 주·월·년, 연속·꾸준함 점수·요일별·누적·1년 잔디, 배지 12개) — 체크 기록에서 계산
+    │   ├── widgets.ts       #   기록 위젯 판 목록·기본 배치·숨기기/넣기/옮기기
     │   ├── card.ts          #   공유 이미지 카드(1080×1350 캔버스): 레이아웃·줄바꿈·그리기
     │   └── bridge.ts        #   햅틱·공유·사진첩 저장(photos 권한)·공유 링크 브릿지 래퍼
     ├── hooks/useAppState.ts #   상태 하나 + 부분별 디바운스 저장
     ├── lib/analytics.ts     #   분석 이벤트(Analytics.log, 이름표는 contract/events.md)
-    ├── components/          #   9×9 격자(TDS 에 없는 영역이라 직접 그림) · AdBanner(토스 배너 1개)
-    └── screens/             #   Home · Sub · Block · Overview · Today · Share · Settings
+    ├── components/          #   9×9 격자(TDS 에 없는 영역이라 직접 그림) · AdBanner(토스 배너 1개) · records/(위젯·대시보드 그림)
+    └── screens/             #   Home · Sub · Overview · Records(위젯 판) · Record(대시보드) · Share · Settings · Draft · Trial
 ```
 
 ## 단계 현황
+- **3.0.0 개발 중(2026-10-21)** — 기록 위젯 판: 위젯을 누르면 그 대시보드, 길게 누르면 판 편집. 설계 `plans/3.0-records-widgets-design.md`, 기록 `releases/3.0.0.md`. 2.1.0(태그 `v2.1.0`)은 따로 QR 테스트·검토.
 - **다음 버전 후보** — `plans/next-version.md`: AI 초안 리워드 전용 지면으로 교체(공지 54047 복구 뒤, 2.0.1 크기) · 토스 사용자 인증으로 AI·백업 키 묶기(2.1.0 크기).
 - **2.0.0 출시 2026-10-20 13:53** — 태그 `v2.0.0`(커밋 `90b6451`), 콘솔 번들 `20261020-15`, 검토 승인 13:48. AI 초안(리워드 광고 1회 = AI 1회, 하루 10회)·생성형 AI 고지와 'AI 초안' 표시·저녁 8시 알림·서울 백업. 기록은 `releases/2.0.0.md`, GitHub 릴리즈 v2.0.0(최신).
 - **1.1.0 출시 2026-10-20 10:01** — 태그 `v1.1.0`(커밋 `ee8654e`), 콘솔 번들 `20261020-11`, 검토 승인 10:01. 칸을 눌러 바텀시트에서 적기·빈 칸 초대 표시. 기록은 `releases/1.1.0.md`, GitHub 릴리즈 v1.1.0.
 - **1.0.1 출시 2026-10-19 20:05** — 태그 `v1.0.1`(커밋 `339cc2e`), 콘솔 번들 `20261019-6`, 홈 '기록 보기' 전면 광고 사전 안내. 기록은 `releases/1.0.1.md`, GitHub 릴리즈 v1.0.1.
 - **1.0.0 출시 2026-10-19 18:00** — 태그 `v1.0.0`(커밋 `5588715`), 콘솔 라이브 번들 `20261019-5`, 검토 승인 17:31. 기록은 `releases/1.0.0.md`, GitHub 릴리즈 v1.0.0.
 - 1~6단계 완료(콘솔 등록 2026-09-29, appName `mandalartplan`, 기능 9개·테스트 104개 2026-10-08). 8단계: `static/` 이 GitHub Pages(Actions)로 https://toss-in-app.github.io/mandalartplan/ 에 배포됨(2026-10-08). 다음은 9단계 앱 정보(콘솔 입력)·7단계 광고 그룹·10단계 QR.
-- 끝난 기능: 체크인(홈 3×3·세부 3×3 탭 체크·전체 보기·기록(오늘·주간·월간 통계)), 설정·초기화(예시 템플릿은 2.1 에서 없앰 — 예시는 1분 체험판에서만), Supabase 백업·복원, 공유(이미지 저장·글·링크), 광고(전면·리워드·배너, 테스트 ID), 알림 동의(템플릿 코드는 `.env`), 두 번째 판(리워드 잠금 해제·판 바꾸기 시트·판별 체크 기록), 분석 이벤트(`Analytics.log`, `contract/events.md` 20개).
+- 끝난 기능: 체크인(홈 3×3·세부 3×3 탭 체크·전체 보기·기록(3.0 위젯 판: 위젯 11개·대시보드 10개, 전에는 오늘·주간·월간 탭)), 설정·초기화(예시 템플릿은 2.1 에서 없앰 — 예시는 1분 체험판에서만), Supabase 백업·복원, 공유(이미지 저장·글·링크), 광고(전면·리워드·배너, 테스트 ID), 알림 동의(템플릿 코드는 `.env`), 두 번째 판(리워드 잠금 해제·판 바꾸기 시트·판별 체크 기록), 분석 이벤트(`Analytics.log`, `contract/events.md` 20개).
 - 홈 마무리(안내 한 줄·공지·시즌 문구·문구 점검)까지 끝. 남은 기능 없음.
 
 ## 앱인토스 규칙 대응
 - 네비게이션 바: `navigationBar.withBackButton` + 브라우저 히스토리 → 뒤로가기·시스템 백버튼 동작, 첫 화면에서 뒤로가기 = 종료
 - 라이트 모드만, TDS 컴포넌트, 다이얼로그 왼쪽 버튼 '닫기', 해요체, 느낌표·이모지 없음(콘텐츠 검증에서 차단)
-- 진입 즉시 바텀시트·팝업 없음. 광고는 설계된 지점(홈→기록 전면 1, 하루 1회 · 고화질 저장·두 번째 판 리워드 2 · 기록 하단 배너 1)에만. 개발·QR 테스트는 공식 테스트 ID, 라이브 ID 는 `.env.production`
+- 진입 즉시 바텀시트·팝업 없음. 광고는 설계된 지점(홈→기록 전면 1, 하루 1회 · 고화질 저장·두 번째 판 리워드 2 · 기록 위젯 판·대시보드 하단 배너 화면마다 1)에만. 개발·QR 테스트는 공식 테스트 ID, 라이브 ID 는 `.env.production`
 - 데이터는 기기 로컬에만. 개인정보 수집 없음(`static/privacy/`)

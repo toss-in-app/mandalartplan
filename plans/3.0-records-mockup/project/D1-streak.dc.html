@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>연속 대시보드</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#5B4ED9}a:hover{color:#4A3FC0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; word-break: keep-all; box-sizing: border-box; position: relative; overflow: hidden; background: #FFFFFF; font-family: 'Noto Sans KR', system-ui, sans-serif; color: #191F28; display: flex; flex-direction: column">
+<header style="flex-shrink: 0; padding: 14px 24px 10px">
+<a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 24px; font-size: 13px; font-weight: 600; color: #6B7684; text-decoration: none">기록</a>
+<h1 style="margin: 0; font-size: 24px; line-height: 34px; font-weight: 700">연속</h1>
+</header>
+<div style="margin: 20px auto 0; width: 176px; height: 176px; box-sizing: border-box; border-radius: 50%; border: 6px solid #5B4ED9; box-shadow: inset 0 0 0 6px #FFFFFF, inset 0 0 0 9px #5B4ED9; transform: rotate(-8deg); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #5B4ED9">
+<span style="font-size: 56px; line-height: 60px; font-weight: 700; letter-spacing: -2px">12</span>
+<span style="font-size: 16px; font-weight: 700">일째 연속</span>
+</div>
+<p style="margin: 18px 24px 0; text-align: center; font-size: 18px; font-weight: 700">오늘 도장으로 12일째가 됐어요</p>
+<p style="margin: 4px 24px 0; text-align: center; font-size: 14px; color: #4E5968">이틀만 더 이으면 2주 연속이에요</p>
+<section style="margin: 20px 20px 0; padding: 14px 12px; border-radius: 16px; background: #F9FAFB">
+<p style="margin: 0 4px 10px; font-size: 13px; color: #6B7684">최근 14일</p>
+<div role="img" aria-label="최근 14일: 10월 9일 하루 쉬고 10일부터 오늘까지 12일 연속" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px 4px; justify-items: center">
+<sc-for list="{{chain}}" as="day" hint-placeholder-count="14">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 3px"><span style="width: 30px; height: 30px; box-sizing: border-box; border-radius: 50%; border: {{day.border}}; background: {{day.bg}}; transform: rotate(-12deg)"></span><span style="font-size: 11px; color: {{day.color}}; font-weight: {{day.weight}}">{{day.label}}</span></span>
+</sc-for>
+</div>
+</section>
+<div style="margin: 14px 20px 0; border-radius: 16px; border: 1px solid #E5E8EB">
+<div style="padding: 13px 16px; display: flex; justify-content: space-between; font-size: 15px; border-bottom: 1px solid #F2F4F6"><span style="color: #4E5968">최고 기록</span><b>23일 · 8월 3일 ~ 25일</b></div>
+<div style="padding: 13px 16px; display: flex; justify-content: space-between; font-size: 15px"><span style="color: #4E5968">다음 고비</span><b>14일 · 21일 · 30일</b></div>
+</div>
+<p style="margin: 12px 24px 0; font-size: 13px; line-height: 19px; color: #6B7684">쉬어 간 날이 있어도 기록은 그대로 남아요. 이번 달 쉰 날 3일.</p>
+<aside aria-label="광고" style="margin: 14px 20px 0; height: 56px; flex-shrink: 0; border-radius: 12px; background: #F2F4F6; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #6B7684">배너 광고</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chain = [];
+    for (let d = 8; d <= 21; d += 1) {
+      const rest = d === 9;
+      const today = d === 21;
+      chain.push({
+        key: d,
+        label: today ? '오늘' : `${d}`,
+        border: rest ? '2px dashed #D1D6DB' : '2.5px solid #5B4ED9',
+        bg: rest ? 'transparent' : today ? '#6B5CFF' : '#F3F1FF',
+        color: today ? '#5B4ED9' : rest ? '#B0B8C1' : '#4E5968',
+        weight: today ? '700' : '400',
+      });
+    }
+    return { chain };
+  }
+}
+</script>
+</body>
+</html>

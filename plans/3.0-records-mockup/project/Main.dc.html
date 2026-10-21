@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기록 위젯 판</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#5B4ED9}a:hover{color:#4A3FC0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; word-break: keep-all; box-sizing: border-box; position: relative; overflow: hidden; background: #FFFFFF; font-family: 'Noto Sans KR', system-ui, sans-serif; color: #191F28; display: flex; flex-direction: column">
+<header style="flex-shrink: 0; padding: 20px 24px 2px">
+<h1 style="margin: 0; font-size: 24px; line-height: 34px; font-weight: 700">기록</h1>
+</header>
+<p style="flex-shrink: 0; margin: 0 24px 16px; font-size: 14px; color: #6B7684">10월 21일 수요일 · 오늘 도장 4개</p>
+<div style="flex-shrink: 0; margin: 0 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<a href="D1-streak.dc.html" aria-label="연속 12일째. 눌러서 연속 대시보드 열기" style="box-sizing: border-box; height: 128px; padding: 16px; border-radius: 20px; background: #F9FAFB; display: flex; flex-direction: column; text-decoration: none; color: #191F28">
+<span style="display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: #4E5968">연속<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B95A1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span><span style="margin-top: 6px; font-size: 28px; line-height: 36px; font-weight: 700; color: #5B4ED9">12일째</span><span aria-hidden="true" style="margin-top: auto; display: flex; gap: 6px"><span style="width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #9A90FF; border: 0"></span><span style="width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #9A90FF; border: 0"></span><span style="width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #9A90FF; border: 0"></span><span style="width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #9A90FF; border: 0"></span><span style="width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #9A90FF; border: 0"></span><span style="width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #9A90FF; border: 0"></span><span style="width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #5B4ED9; border: 0"></span></span>
+</a>
+<a href="D2-stamps.dc.html" aria-label="이번 주 도장 15개, 지난주 이맘때 19개. 눌러서 이번 주 도장 대시보드 열기" style="box-sizing: border-box; height: 128px; padding: 16px; border-radius: 20px; background: #F9FAFB; display: flex; flex-direction: column; text-decoration: none; color: #191F28">
+<span style="display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: #4E5968">이번 주 도장<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B95A1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span><span style="margin-top: 6px; font-size: 28px; line-height: 36px; font-weight: 700; color: #191F28">15개</span><span aria-hidden="true" style="margin-top: auto; height: 28px; display: flex; align-items: flex-end; gap: 5px"><span style="width: 10px; height: 28px; border-radius: 3px; background: #C9C3FF"></span><span style="width: 10px; height: 23px; border-radius: 3px; background: #C9C3FF"></span><span style="width: 10px; height: 19px; border-radius: 3px; background: #5B4ED9"></span><span style="width: 10px; height: 3px; border-radius: 2px; background: #E5E8EB"></span><span style="width: 10px; height: 3px; border-radius: 2px; background: #E5E8EB"></span><span style="width: 10px; height: 3px; border-radius: 2px; background: #E5E8EB"></span><span style="width: 10px; height: 3px; border-radius: 2px; background: #E5E8EB"></span></span>
+</a>
+<a href="D3-board.dc.html" aria-label="이번 달 만다라트: 수면이 가장 진해요, 쉬는 가지는 사람과의 관계. 눌러서 이번 달 만다라트 대시보드 열기" style="grid-column: 1 / -1; box-sizing: border-box; height: 140px; padding: 16px; border-radius: 20px; background: #F9FAFB; display: flex; flex-direction: column; text-decoration: none; color: #191F28">
+<span style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px"><span style="display: flex; flex-direction: column; min-width: 0"><span style="display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: #4E5968">이번 달 만다라트<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B95A1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span><span style="margin-top: 6px; font-size: 20px; line-height: 28px; font-weight: 700; color: #191F28">수면이 가장 진해요</span><span style="margin-top: 4px; font-size: 12px; line-height: 17px; color: #4E5968">쉬는 가지 · 사람과의 관계</span></span><span aria-hidden="true" style="flex-shrink: 0; display: grid; grid-template-columns: repeat(3, 30px); gap: 3px"><sc-for list="{{board}}" as="cell" hint-placeholder-count="9"><span style="width: 30px; height: 30px; border-radius: 7px; background: {{cell.bg}}"></span></sc-for></span></span>
+</a>
+<a href="D4-calendar.dc.html" aria-label="10월 달력: 18일 실천, 도장 84개. 눌러서 10월 달력 대시보드 열기" style="grid-column: 1 / -1; box-sizing: border-box; height: 140px; padding: 16px; border-radius: 20px; background: #F9FAFB; display: flex; flex-direction: column; text-decoration: none; color: #191F28">
+<span style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px"><span style="display: flex; flex-direction: column; min-width: 0"><span style="display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: #4E5968">10월 달력<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B95A1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span><span style="margin-top: 6px; font-size: 22px; line-height: 30px; font-weight: 700; color: #191F28">18일 실천</span><span style="margin-top: 4px; font-size: 12px; line-height: 17px; color: #4E5968">도장 84개 · 오늘 4개</span></span><span aria-hidden="true" style="flex-shrink: 0; display: grid; grid-template-columns: repeat(7, 11px); gap: 5px"><sc-for list="{{days}}" as="day" hint-placeholder-count="34"><span style="width: 11px; height: 11px; border-radius: 50%; background: {{day.bg}}; box-shadow: {{day.ring}}"></span></sc-for></span></span>
+</a>
+<a href="D5-badges.dc.html" aria-label="배지 12개 중 6개. 눌러서 배지 대시보드 열기" style="box-sizing: border-box; height: 128px; padding: 16px; border-radius: 20px; background: #F9FAFB; display: flex; flex-direction: column; text-decoration: none; color: #191F28">
+<span style="display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: #4E5968">배지<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B95A1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span><span style="margin-top: 6px; display: flex; align-items: baseline; gap: 4px"><span style="font-size: 28px; line-height: 36px; font-weight: 700">6개</span><span style="font-size: 13px; color: #4E5968">/ 12</span></span><span aria-hidden="true" style="margin-top: auto; display: flex; gap: 6px"><span style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: 2px solid #5B4ED9; background: #F3F1FF; color: #5B4ED9; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700">300</span><span style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: 2px solid #5B4ED9; background: #F3F1FF; color: #5B4ED9; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700">20일</span><span style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: 2px solid #5B4ED9; background: #F3F1FF; color: #5B4ED9; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700">30번</span></span>
+</a>
+<a href="D6-weekly-report.dc.html" aria-label="지난주 리포트: 도장 38개, 10월 12일부터 18일. 눌러서 지난주 리포트 대시보드 열기" style="box-sizing: border-box; height: 128px; padding: 16px; border-radius: 20px; background: #F3F1FF; display: flex; flex-direction: column; text-decoration: none; color: #191F28">
+<span style="display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: #4E5968">지난주 리포트<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B95A1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span><span style="margin-top: 6px; font-size: 22px; line-height: 30px; font-weight: 700; color: #191F28">도장 38개</span><span style="margin-top: auto; font-size: 12px; line-height: 17px; color: #4E5968">10월 12일 ~ 18일</span>
+</a>
+</div>
+<aside aria-label="광고" style="margin: 14px 20px 0; height: 56px; flex-shrink: 0; border-radius: 12px; background: #F2F4F6; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #4E5968">배너 광고</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const counts = [3, 5, 0, 2, 6, 4, 0, 5, 0, 2, 4, 6, 5, 8, 4, 7, 3, 5, 6, 5, 4];
+    const startDay = 1;
+    const ink = (n) => (n === 0 ? '#E5E8EB' : n <= 3 ? '#C9C3FF' : n <= 5 ? '#9A90FF' : '#5B4ED9');
+    const days = [];
+    for (let i = 0; i < 3; i += 1) days.push({ key: `e${i}`, bg: 'transparent', ring: 'none' });
+    for (let d = 1; d <= 31; d += 1) {
+      const n = d <= 21 ? counts[d - 1] : -1;
+      const bg = n < 0 || d < startDay ? '#F2F4F6' : ink(n);
+      days.push({ key: `d${d}`, bg, ring: d === 21 ? '0 0 0 2px #FFFFFF, 0 0 0 3.5px #191F28' : 'none' });
+    }
+    const heat = (n) => (n >= 15 ? '#5B4ED9' : n >= 10 ? '#8E83FF' : n >= 6 ? '#C2BBFF' : n >= 1 ? '#E3DFFF' : '#F2F4F6');
+    const subs = [19, 16, 14, 12, 8, 3, 7, 5];
+    const board = [0, 1, 2, 3, -1, 4, 5, 6, 7].map((s, i) => ({ key: i, bg: s < 0 ? '#6B5CFF' : heat(subs[s]) }));
+    return { days, board };
+  }
+}
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@
  * Storage 키 3개 — boards(판 1~2) · checkins(판별 날짜 → 실천 번호) · settings.
  */
 import { TOTAL_ACTIONS, createEmptyBoard, normalizeBoard, type Board } from './mandalart';
+import { normalizeWidgetList, type RecordWidgetId } from './widgets';
 
 export const KEYS = {
   boards: 'mandalart.boards.v1',
@@ -62,6 +63,12 @@ export interface TrialSettings {
   cardDismissedAt: number | null;
 }
 
+/** 기록 위젯 판 (3.0). 이 기기에만 남겨요(백업에는 싣지 않아요) */
+export interface RecordsSettings {
+  /** 판에 보이는 위젯을 순서대로. null 이면 기본 배치(아직 고친 적 없음) — lib/widgets.ts */
+  widgets: RecordWidgetId[] | null;
+}
+
 export interface SettingsState {
   version: 1;
   notification: NotificationStatus;
@@ -72,6 +79,7 @@ export interface SettingsState {
   ads: AdsSettings;
   ai: AiSettings;
   trial: TrialSettings;
+  records: RecordsSettings;
 }
 
 const BACKUP_KEY_RE = /^k[0-9a-f]{64}$/;
@@ -166,6 +174,7 @@ export function createDefaultSettings(): SettingsState {
     ads: { lastInterstitialDate: null },
     ai: { noticeAt: null, runs: { date: null, count: 0 } },
     trial: { cardDismissedAt: null },
+    records: { widgets: null },
   };
 }
 
@@ -196,6 +205,8 @@ export function normalizeSettings(input: unknown): SettingsState | null {
   }
   const trial = raw.trial && typeof raw.trial === 'object' ? (raw.trial as Record<string, unknown>) : {};
   if (typeof trial.cardDismissedAt === 'number' && trial.cardDismissedAt >= 0) s.trial.cardDismissedAt = Math.floor(trial.cardDismissedAt);
+  const records = raw.records && typeof raw.records === 'object' ? (raw.records as Record<string, unknown>) : {};
+  s.records.widgets = normalizeWidgetList(records.widgets);
   return s;
 }
 

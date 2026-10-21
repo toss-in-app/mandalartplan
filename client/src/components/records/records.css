@@ -1,0 +1,796 @@
+/* 기록 위젯 판·대시보드 (3.0). TDS 에 없는 그림(위젯 카드·작은 달력·3×3·9×9·잔디·고리)은 직접 그려요.
+   회색은 tds-colors 값 그대로, 브랜드 색과 진하기는 인라인으로 넘겨요(theme.ts). */
+
+/* ───── 위젯 판 ───── */
+
+.rc-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 20px;
+  /* 길게 누를 때 글자 고르기·안드로이드 메뉴가 뜨지 않게 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.rc-widget {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 128px;
+  padding: 16px;
+  border: 0;
+  border-radius: 20px;
+  background: #f9fafb;
+  color: #191f28;
+  font: inherit;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s ease;
+}
+
+.rc-widget-wide {
+  grid-column: 1 / -1;
+  min-height: 140px;
+}
+
+button.rc-widget {
+  cursor: pointer;
+}
+
+button.rc-widget:not(:disabled):active {
+  opacity: 0.6;
+}
+
+button.rc-widget:disabled {
+  cursor: default;
+}
+
+.rc-widget-label {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #4e5968;
+}
+
+.rc-widget-value {
+  margin-top: 6px;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-widget-value-text {
+  margin-top: 6px;
+  font-size: 19px;
+  line-height: 26px;
+  font-weight: 700;
+}
+
+.rc-widget-small {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4e5968;
+}
+
+.rc-widget-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 17px;
+  color: #4e5968;
+}
+
+.rc-widget-foot {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.rc-clamp2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.rc-wide-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rc-wide-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rc-hint {
+  margin: 0;
+  padding: 0 24px;
+  font-size: 14px;
+  line-height: 20px;
+  color: #6b7684;
+}
+
+.rc-hint:not(:empty) {
+  padding-bottom: 14px;
+}
+
+.rc-empty {
+  margin: 0 20px 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f2f4f6;
+  text-align: center;
+}
+
+/* ───── 편집 모드: 아이폰 홈 화면처럼 흔들리고, 끌어서 자리를 바꿔요 ───── */
+
+.rc-board-edit .rc-widget {
+  /* 위젯 위에서는 어느 쪽으로 끌어도 스크롤 대신 옮기기(위젯 사이·아래 '숨긴 위젯'을 끌면 스크롤) */
+  touch-action: none;
+  animation: rc-jiggle 0.32s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+
+.rc-board-edit .rc-widget:nth-child(even) {
+  animation-delay: -0.16s;
+  animation-direction: reverse;
+}
+
+@keyframes rc-jiggle {
+  0% { rotate: -1deg; }
+  50% { rotate: 1deg; }
+  100% { rotate: -1deg; }
+}
+
+.rc-board-edit .rc-widget-dragging {
+  z-index: 2;
+  animation: none;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16), 0 0 0 1px #e5e8eb;
+  scale: 1.03;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-board-edit .rc-widget {
+    animation: none;
+  }
+}
+
+.rc-minus {
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.rc-minus > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #6b7684;
+}
+
+.rc-minus > span > i {
+  display: block;
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  background: #ffffff;
+}
+
+.rc-minus[aria-disabled='true'] > span {
+  background: #b0b8c1;
+}
+
+.rc-tray {
+  margin: 20px 20px 0;
+  padding: 14px 14px 16px;
+  border: 1.5px dashed #d1d6db;
+  border-radius: 18px;
+}
+
+.rc-tray h2 {
+  margin: 0 2px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #4e5968;
+}
+
+.rc-tray-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rc-chip {
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 20px;
+  background: #f2f4f6;
+  color: #333d4b;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* 키보드·스크린리더용 입구('편집', '앞으로·뒤로'): 평소엔 안 보이고 포커스하면 보여요 */
+.rc-reveal {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.rc-reveal:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  clip: auto;
+  margin: 0 20px 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #f2f4f6;
+  color: #333d4b;
+  font-size: 14px;
+}
+
+.rc-widget .rc-reveal:focus {
+  margin: 8px 0 0;
+}
+
+/* ───── 위젯 안 작은 그림 ───── */
+
+.rc-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.rc-dots > i {
+  display: block;
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+
+.rc-minibars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 28px;
+}
+
+.rc-minibars > i {
+  display: block;
+  width: 10px;
+  border-radius: 3px;
+}
+
+.rc-mini3 {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(3, 30px);
+  gap: 3px;
+}
+
+.rc-mini3 > i {
+  display: block;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+}
+
+.rc-minical {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(7, 11px);
+  gap: 5px;
+}
+
+.rc-minical > i {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.rc-minigrass {
+  display: grid;
+  flex-shrink: 0;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 6px);
+  gap: 1px;
+}
+
+.rc-minigrass > i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+}
+
+.rc-badges-row {
+  display: flex;
+  gap: 6px;
+}
+
+.rc-badge-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.rc-meter {
+  height: 8px;
+  border-radius: 4px;
+  background: #e5e8eb;
+  overflow: hidden;
+}
+
+.rc-meter > i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+/* ───── 대시보드 공통 ───── */
+
+.rc-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 20px 8px;
+}
+
+/* 기간 옮기기 아이콘 버튼의 터치 영역 (권장 최소 44px) */
+.rc-nav-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.rc-nav-label {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.rc-head {
+  padding: 8px 24px 0;
+}
+
+.rc-head-label {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: #6b7684;
+}
+
+.rc-head-number {
+  margin: 4px 0 0;
+  font-size: 44px;
+  line-height: 52px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-head-title {
+  margin: 4px 0 0;
+  font-size: 22px;
+  line-height: 32px;
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+.rc-head-text {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: #4e5968;
+  word-break: keep-all;
+}
+
+.rc-card {
+  margin: 16px 20px 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.rc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.rc-rows > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rc-rows > li > span:first-child {
+  color: #4e5968;
+}
+
+.rc-rows > li > b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-note {
+  margin: 12px 24px 0;
+  font-size: 13px;
+  line-height: 19px;
+  color: #6b7684;
+  word-break: keep-all;
+}
+
+.rc-section-title {
+  margin: 24px 24px 10px;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 700;
+  color: #333d4b;
+}
+
+/* 연속: 큰 고리 */
+.rc-ring {
+  position: relative;
+  width: 172px;
+  height: 172px;
+  margin: 16px auto 0;
+}
+
+.rc-ring > div {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 최근 14일·일주일 동그라미 */
+.rc-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px 4px;
+  justify-items: center;
+}
+
+.rc-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #6b7684;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-day > i {
+  display: block;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+
+/* 막대(도장·요일별·회고): 막대 위 숫자, 아래 이름 */
+.rc-bars {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  align-items: end;
+  gap: 8px;
+  height: 168px;
+  padding: 0 24px;
+}
+
+.rc-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 100%;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: #4e5968;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-bar > i {
+  display: block;
+  width: 100%;
+  max-width: 36px;
+  border-radius: 8px 8px 4px 4px;
+}
+
+/* 9×9·3×3 */
+.rc-nine {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 20px;
+}
+
+.rc-nine-block {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.rc-nine-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  padding: 1px;
+  border: 0;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 9px;
+  line-height: 11px;
+  font-weight: 700;
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+button.rc-nine-cell {
+  cursor: pointer;
+}
+
+.rc-three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 20px;
+}
+
+.rc-three > span {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 100px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
+.rc-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 24px 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: #6b7684;
+}
+
+.rc-legend > i {
+  display: block;
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* 달력: 월은 도장 동그라미, 년은 잔디 */
+.rc-month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px 2px;
+  padding: 0 20px;
+}
+
+.rc-month-head {
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  color: #6b7684;
+}
+
+.rc-month-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 3px 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rc-month-day > span {
+  font-size: 11px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-month-day > i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.rc-grass-scroll {
+  overflow-x: auto;
+  padding: 0 20px 4px;
+}
+
+.rc-grass {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: 16px repeat(7, 11px);
+  gap: 3px;
+  width: max-content;
+}
+
+.rc-grass > i {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+}
+
+.rc-grass > em {
+  font-size: 10px;
+  line-height: 16px;
+  font-style: normal;
+  color: #6b7684;
+  white-space: nowrap;
+}
+
+/* 배지 격자 */
+.rc-badges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 8px;
+  margin: 0;
+  padding: 0 20px;
+  list-style: none;
+}
+
+.rc-badges > li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.rc-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* 지난주 리포트: 전체 화면 스토리 */
+.rc-story {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: 32px;
+  color: #ffffff;
+}
+
+.rc-story-bars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 14px 16px 0;
+}
+
+.rc-story-bars > i {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.rc-story-taps {
+  position: absolute;
+  inset: 64px 0 0;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+}
+
+.rc-story-taps > button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.rc-story-body {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  padding: 40px 28px 0;
+}
+
+.rc-story-body button,
+.rc-story-body a,
+.rc-story-body [data-interactive] {
+  pointer-events: auto;
+}

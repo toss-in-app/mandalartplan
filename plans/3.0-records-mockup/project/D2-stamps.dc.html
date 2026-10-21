@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>도장 대시보드</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#5B4ED9}a:hover{color:#4A3FC0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; word-break: keep-all; box-sizing: border-box; position: relative; overflow: hidden; background: #FFFFFF; font-family: 'Noto Sans KR', system-ui, sans-serif; color: #191F28; display: flex; flex-direction: column">
+<header style="flex-shrink: 0; padding: 14px 24px 4px">
+<a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 24px; font-size: 13px; font-weight: 600; color: #6B7684; text-decoration: none">기록</a>
+<h1 style="margin: 0; font-size: 24px; line-height: 34px; font-weight: 700">도장</h1>
+</header>
+<div role="radiogroup" aria-label="기간" style="flex-shrink: 0; margin: 12px 24px 4px; align-self: flex-start; display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: #F2F4F6">
+<button type="button" role="radio" aria-checked="true" style="height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: #FFFFFF; font-family: inherit; font-size: 13px; font-weight: 600; color: #191F28; box-shadow: 0 1px 2px rgba(0,0,0,0.08); cursor: pointer">주</button>
+<button type="button" role="radio" aria-checked="false" style="height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600; color: #4E5968; cursor: pointer">월</button>
+<button type="button" role="radio" aria-checked="false" style="height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600; color: #4E5968; cursor: pointer">년</button>
+</div>
+<div style="padding: 16px 24px 0">
+<p style="margin: 0; font-size: 15px; color: #4E5968">이번 주 찍은 도장</p>
+<p style="margin: 4px 0 0; font-size: 44px; line-height: 54px; font-weight: 700; letter-spacing: -1px">15개</p>
+<p style="margin: 6px 0 0; font-size: 16px; color: #333D4B">오늘 <b style="color: #5B4ED9">4개 더</b> 찍으면 지난주 이맘때(19개)만큼이에요</p>
+</div>
+<div role="img" aria-label="이번 주 요일별 도장: 월 6, 화 5, 수 4, 목요일부터는 아직" style="margin: 28px 24px 0; height: 170px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; align-items: end">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; font-weight: 600; color: #333D4B">6</span><span style="width: 100%; height: 108px; border-radius: 8px; background: #6B5CFF"></span><span style="font-size: 13px; color: #4E5968">월</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; font-weight: 600; color: #333D4B">5</span><span style="width: 100%; height: 90px; border-radius: 8px; background: #6B5CFF"></span><span style="font-size: 13px; color: #4E5968">화</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; font-weight: 700; color: #5B4ED9">4</span><span style="width: 100%; height: 72px; border-radius: 8px; background: #6B5CFF; box-shadow: 0 0 0 3px #E3DFFF"></span><span style="font-size: 13px; font-weight: 700; color: #5B4ED9">오늘</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; color: #B0B8C1">–</span><span style="width: 100%; height: 8px; border-radius: 4px; background: #F2F4F6"></span><span style="font-size: 13px; color: #6B7684">목</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; color: #B0B8C1">–</span><span style="width: 100%; height: 8px; border-radius: 4px; background: #F2F4F6"></span><span style="font-size: 13px; color: #6B7684">금</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; color: #B0B8C1">–</span><span style="width: 100%; height: 8px; border-radius: 4px; background: #F2F4F6"></span><span style="font-size: 13px; color: #6B7684">토</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; color: #B0B8C1">–</span><span style="width: 100%; height: 8px; border-radius: 4px; background: #F2F4F6"></span><span style="font-size: 13px; color: #6B7684">일</span></span>
+</div>
+<div style="margin: 28px 20px 0; border-radius: 16px; border: 1px solid #E5E8EB">
+<div style="padding: 14px 16px; display: flex; justify-content: space-between; font-size: 15px; border-bottom: 1px solid #F2F4F6"><span style="color: #4E5968">지난주 전체</span><b>38개 · 7일 모두</b></div>
+<div style="padding: 14px 16px; display: flex; justify-content: space-between; font-size: 15px; border-bottom: 1px solid #F2F4F6"><span style="color: #4E5968">이번 주 많이 한 가지</span><b>규칙적인 수면</b></div>
+<div style="padding: 14px 16px; display: flex; justify-content: space-between; font-size: 15px"><span style="color: #4E5968">이번 주 아직인 가지</span><b style="color: #C2410C">사람과의 관계</b></div>
+</div>
+<aside aria-label="광고" style="margin: 24px 20px 0; height: 56px; flex-shrink: 0; border-radius: 12px; background: #F2F4F6; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #6B7684">배너 광고</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

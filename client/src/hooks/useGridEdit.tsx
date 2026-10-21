@@ -10,13 +10,14 @@ import { CENTER, type Board } from '../lib/mandalart';
 
 /** 이만큼 누르고 있으면 편집 모드(아이폰 홈 화면처럼 칸이 흔들려요) */
 export const LONG_PRESS_MS = 450;
-/** 손가락이 이만큼 움직이면 누르기가 아니라 끌기·스크롤 */
-const MOVE_SLOP_PX = 10;
+/** 손가락이 이만큼 움직이면 누르기가 아니라 끌기·스크롤(기록 위젯 판 hooks/useWidgetEdit 도 같은 값) */
+export const MOVE_SLOP_PX = 10;
 /** 길게 누르기·끌기 뒤 손을 떼고 이 안에 오는 click 은 그 손가락의 것이라 건너뛰어요 */
-const SKIP_CLICK_MS = 600;
+export const SKIP_CLICK_MS = 600;
 
 /** 분석 이벤트 edit_mode_enter 의 via */
 export type EditVia = 'longpress' | 'button' | 'link';
+
 
 /** 확인 창 설명: 상위 목표를 따라 함께 지워지는 하위 칸 */
 function cascadeNotice(goal: boolean, extra: { subs: number; actions: number }): string | undefined {

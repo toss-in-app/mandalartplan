@@ -108,6 +108,7 @@ describe('settings', () => {
       ads: { lastInterstitialDate: null },
       ai: { noticeAt: null, runs: { date: null, count: 0 } },
       trial: { cardDismissedAt: null },
+      records: { widgets: null },
     });
     expect(normalizeSettings({ version: 0 })).toBeNull();
   });

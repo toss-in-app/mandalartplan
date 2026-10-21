@@ -230,7 +230,7 @@ describe('App (광고)', () => {
     await screen.findByRole('heading', { level: 1, name: '기록' }, { timeout: 4000 });
     await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).ads.lastInterstitialDate).toBe(dateKey()));
     expect(logEvent).toHaveBeenCalledWith('ad_interstitial', { result: 'shown' });
-    await waitFor(() => expect(logEvent).toHaveBeenCalledWith('today_view', { todayCount: 1, streak: 1 }));
+    await waitFor(() => expect(logEvent).toHaveBeenCalledWith('today_view', { todayCount: 1, streak: 1, widgets: 6 }));
     // 기록 화면 하단 배너(mock 자리표시)
     await waitFor(() => expect(screen.getByTestId('ad-banner').querySelector('[data-ait-slot-id]')).not.toBeNull());
   });

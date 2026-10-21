@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>요일별 평균 대시보드</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#5B4ED9}a:hover{color:#4A3FC0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; word-break: keep-all; box-sizing: border-box; position: relative; overflow: hidden; background: #FFFFFF; font-family: 'Noto Sans KR', system-ui, sans-serif; color: #191F28; display: flex; flex-direction: column">
+<header style="flex-shrink: 0; padding: 14px 24px 4px">
+<a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 24px; font-size: 13px; font-weight: 600; color: #6B7684; text-decoration: none">기록</a>
+<h1 style="margin: 0; font-size: 24px; line-height: 34px; font-weight: 700">요일별 평균</h1>
+</header>
+<div role="radiogroup" aria-label="기간" style="flex-shrink: 0; margin: 12px 24px 4px; align-self: flex-start; display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: #F2F4F6">
+<button type="button" role="radio" aria-checked="false" style="height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600; color: #4E5968; cursor: pointer">4주</button>
+<button type="button" role="radio" aria-checked="true" style="height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: #FFFFFF; font-family: inherit; font-size: 13px; font-weight: 600; color: #191F28; box-shadow: 0 1px 2px rgba(0,0,0,0.08); cursor: pointer">8주</button>
+<button type="button" role="radio" aria-checked="false" style="height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600; color: #4E5968; cursor: pointer">전체</button>
+</div>
+<div style="padding: 8px 24px 0">
+<p style="margin: 0; font-size: 14px; color: #6B7684">최근 8주 · 요일마다 평균</p>
+<p style="margin: 4px 0 0; font-size: 22px; line-height: 32px; font-weight: 700">수요일에 가장 많이,<br>토요일엔 쉬어 가요</p>
+</div>
+<div role="img" aria-label="요일별 하루 평균 도장: 월 5.6, 화 4.9, 수 6.1, 목 4.2, 금 4.8, 토 2.4, 일 3.1" style="margin: 20px 24px 0; height: 180px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; align-items: end">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 12px; color: #4E5968">5.6</span><span style="width: 100%; height: 129px; border-radius: 8px; background: #C9C3FF"></span><span style="font-size: 13px; color: #4E5968">월</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 12px; color: #4E5968">4.9</span><span style="width: 100%; height: 113px; border-radius: 8px; background: #C9C3FF"></span><span style="font-size: 13px; color: #4E5968">화</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #5B4ED9">6.1</span><span style="width: 100%; height: 140px; border-radius: 8px; background: #6B5CFF"></span><span style="font-size: 13px; font-weight: 700; color: #5B4ED9">수</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 12px; color: #4E5968">4.2</span><span style="width: 100%; height: 97px; border-radius: 8px; background: #C9C3FF"></span><span style="font-size: 13px; color: #4E5968">목</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 12px; color: #4E5968">4.8</span><span style="width: 100%; height: 110px; border-radius: 8px; background: #C9C3FF"></span><span style="font-size: 13px; color: #4E5968">금</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #B45309">2.4</span><span style="width: 100%; height: 55px; border-radius: 8px; background: #FDE7C2"></span><span style="font-size: 13px; font-weight: 700; color: #B45309">토</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 12px; color: #4E5968">3.1</span><span style="width: 100%; height: 71px; border-radius: 8px; background: #C9C3FF"></span><span style="font-size: 13px; color: #4E5968">일</span></span>
+</div>
+<h2 style="margin: 24px 24px 6px; font-size: 17px; font-weight: 700; color: #333D4B">요일마다 많이 한 가지</h2>
+<ul style="margin: 0; padding: 0; list-style: none; font-size: 15px">
+<li style="padding: 9px 24px; display: grid; grid-template-columns: 40px 1fr auto"><b>월</b><span>규칙적인 수면</span><span style="color: #6B7684">평균 1.8번</span></li>
+<li style="padding: 9px 24px; display: grid; grid-template-columns: 40px 1fr auto"><b style="color: #5B4ED9">수</b><span>꾸준한 운동</span><span style="color: #6B7684">평균 1.6번</span></li>
+<li style="padding: 9px 24px; display: grid; grid-template-columns: 40px 1fr auto"><b>금</b><span>마음 돌보기</span><span style="color: #6B7684">평균 1.1번</span></li>
+<li style="padding: 9px 24px; display: grid; grid-template-columns: 40px 1fr auto"><b style="color: #B45309">토</b><span>일과 쉼의 균형</span><span style="color: #6B7684">평균 0.9번</span></li>
+</ul>
+<aside aria-label="광고" style="margin: 18px 20px 0; height: 56px; flex-shrink: 0; border-radius: 12px; background: #F2F4F6; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #6B7684">배너 광고</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

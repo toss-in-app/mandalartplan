@@ -7,15 +7,15 @@
 | `board_edit` | 편집 모드(2.1 제자리 편집, 홈·세부 목표 화면)에서 값이 바뀐 뒤 '완료'·화면 이탈 | `block`(0~8: 4 = 홈, 둘레 = 그 세부 목표 화면) |
 | `board_filled` | 73칸이 처음 다 찼을 때(판마다 1회) | `templateId`, `ai`(true/false — AI 결과를 넣은 판인지, 2.0) |
 | `action_check` | 세부 목표 화면에서 실천 칸 탭 | `index`(0~63), `checked`(true/false), `todayCount`, `streak`, `first`(처음 체크한 순간이면 true) |
-| `today_view` | 홈 '기록 보기' 진입(기록 화면, 오늘 탭) | `todayCount`, `streak` |
-| `stats_view` | 기록 화면 주간·월간 탭을 열거나 기간을 옮겼을 때 (v3, 2026-10-16) | `period`(week/month), `offset`(0 = 이번, -1 = 지난…), `activeDays`, `checks` |
+| `today_view` | 홈 '기록 보기' 진입 — 3.0 부터 기록 위젯 판(이름은 그대로) | `todayCount`, `streak`, `widgets`(판에 보이는 위젯 수, 3.0) |
+| `stats_view` | 기간이 있는 대시보드(도장·만다라트·달력·1년 잔디·요일별 평균)를 열거나 기간·옮기기를 바꿨을 때 (3.0 — 전에는 기록 화면 주간·월간 탭) | `widget`(3.0, 연 위젯 id), `period`(week/month/year, 요일별 평균은 4w/8w/all), `offset`(0 = 이번, -1 = 지난…), `activeDays`, `checks` |
 | `ad_interstitial` | 전면 결과 | `result`(shown/skipped/failed) |
 | `reward_unlock` | `userEarnedReward` | `type`(hdImage/extraBoard) |
 | `board_add` | 두 번째 판 추가(리워드 직후 또는 설정 '빈 판 추가') | `boards`(2) |
 | `board_switch` | 홈 제목 셀렉터 → 판 바꾸기 시트에서 다른 판 선택 | `to`(0~1) |
 | `share_image_save` | 이미지 저장 성공 | `hd`(true/false) |
 | `share_text` · `share_link` | 공유 시트 호출 | |
-| `notification_agree` | 동의 요청 결과 | `result`(agreed/declined), `from`(home/today/settings) |
+| `notification_agree` | 동의 요청 결과 | `result`(agreed/declined), `from`(home/today = 기록 위젯 판 위 버튼/settings) |
 | `template_apply` | ~~예시 템플릿 적용~~ — 2.1 에서 '예시로 시작하기'를 없애 더는 보내지 않음 | `templateId` |
 | `reset` | 처음부터 다시 만들기 확인 | |
 
@@ -28,9 +28,19 @@
 
 | 이름 | 언제 | 파라미터 |
 |------|------|----------|
-| `edit_mode_enter` | 홈·세부 목표 화면(1분 체험판 포함)이 편집 모드로 바뀔 때 | `screen`(home/sub/trial), `via`(longpress = 칸 길게 누르기 / button = 키보드·스크린리더 입구 '편집' / link = 예전 편집 화면 링크 `block/:n`. 평소 옆으로 쓸기로 들어가던 swipe 는 출시 전에 없앰) |
+| `edit_mode_enter` | 홈·세부 목표 화면(1분 체험판 포함)·기록 위젯 판(3.0)이 편집 모드로 바뀔 때 | `screen`(home/sub/trial/records), `via`(longpress = 칸 길게 누르기 / button = 키보드·스크린리더 입구 '편집' / link = 예전 편집 화면 링크 `block/:n`. 평소 옆으로 쓸기로 들어가던 swipe 는 출시 전에 없앰) |
 | `cells_delete` | 편집 모드에서 고른 칸을 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수 — 상위 목표를 따라 함께 지운 하위 칸 포함: 세부 목표 → 그 실천, 핵심 목표 → 전부), `area`(goals = 홈: 핵심 목표·세부 목표 / actions = 세부 목표 화면: 세부 목표 이름·실천) |
 | `cells_delete_undo` | 토스트의 '되돌리기' | `count`(`cells_delete` 와 같은 수) |
+
+### 기록 위젯 판 (3.0 — `client/src/screens/RecordsScreen.tsx`·`RecordScreen.tsx`, 설계 `plans/3.0-records-widgets-design.md`)
+
+| 이름 | 언제 | 파라미터 |
+|------|------|----------|
+| `record_open` | 판에서 위젯을 눌러 그 대시보드(`#/record/<위젯>`)로 갈 때. 아직 열 수 없는 위젯(지난주 리포트 첫 주·쉰 주, 지난달 기록 없음)은 버튼이 아니라 보내지 않음 | `widget`(streak/week/board/calendar/badges/report/score/year/weekday/review/total) |
+| `record_widget_edit` | 편집 모드에서 판을 바꿨을 때 — − 숨기기, '숨긴 위젯'의 ＋ 넣기, 끌어서(또는 키보드 '앞으로·뒤로') 옮기기. 끌기는 손을 뗐을 때 자리가 바뀌었으면 1회 | `action`(hide/add/move), `widget`, `visible`(바꾼 뒤 판에 보이는 위젯 수) |
+| `report_share` | 지난주 리포트 마지막 장 '글로 공유하기' 결과 | `result`(shared/copied/failed) |
+
+- 편집 모드에 들어가면 `edit_mode_enter`(`screen` = records, `via` = longpress/button). 배치는 `settings.records.widgets` 에 남고 백업에는 싣지 않는다.
 
 ### 1분 체험판 (2.1 — 홈 맨 위 안내 카드·설정 '1분 체험해 보기', `client/src/screens/TrialScreen.tsx`)
 
@@ -48,7 +58,7 @@
 | `interstitial-today` | 전면 | 홈 '기록 보기' → today 전환 | 하루 1회 · 오늘 체크 1개 이상일 때만 · 사전 로딩 · 실패 시 건너뜀 |
 | `rewarded-hd-image` | 리워드 | 공유 화면 '고화질로 저장' | 보상 = 고화질 저장 1회, `userEarnedReward` 에서만 |
 | `rewarded-extra-board` | 리워드 | 설정 '두 번째 만다라트 판' | 보상 = `unlocks.extraBoard = true`(영구). 2026-10-20~ 공지 54047 동안 `rewarded-ai-draft` 가 이 지면을 함께 씀(콘솔 보상 이름 '기회' 1) |
-| `banner-today` | 배너 | 기록 화면 맨 아래(모든 탭) | 1개, refresh 없음, 버튼과 24px 이상 |
+| `banner-today` | 배너 | 기록 위젯 판 맨 아래와 대시보드마다 맨 아래(지난주 리포트는 마지막 장) — 3.0 | 화면마다 1개, refresh 없음, 버튼과 24px 이상, 체크 기록이 있을 때만, 판 편집 모드에선 숨김(다시 불러오지 않음) |
 
 ## 알림 템플릿 (콘솔 정기 발송, 기능성)
 | 발송 코드(templateCode) | 발송 | 제목(7자, 명사형) / 내용(25자, ~요.) | 링크 |

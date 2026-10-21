@@ -1,5 +1,5 @@
 /**
- * 기록 통계 (화면 흐름 v3 '기록' 화면의 주간·월간 탭).
+ * 기록 통계 (화면 흐름 v3 '기록' 화면의 주간·월간 탭 → 3.0 위젯 판의 대시보드 기간 주·월·년, 더 많은 숫자는 lib/records.ts).
  * 데이터는 이미 쌓이는 체크 기록 그대로 써요: checkins.byBoard[판].days['YYYY-MM-DD'] = 그날 체크한 실천 번호.
  * 기록은 "몇 번째 칸을 체크했나" 라서, 실천 문구를 고치면 예전 기록도 지금 문구로 집계돼요.
  * 날짜는 시간대와 무관하게 'YYYY-MM-DD' 문자열끼리 계산해요(UTC 자정 기준 Date 로만 더하고 빼요).
@@ -7,7 +7,7 @@
 import { ACTION_COUNT, SUB_COUNT, TOTAL_ACTIONS, type Board } from './mandalart';
 import type { CheckinRecord } from './state';
 
-export type StatsPeriod = 'week' | 'month';
+export type StatsPeriod = 'week' | 'month' | 'year';
 
 export interface PeriodRange {
   period: StatsPeriod;
@@ -19,7 +19,7 @@ export interface PeriodRange {
   end: string;
   /** start~end 의 모든 날짜 */
   dates: string[];
-  /** '10월 13일 ~ 19일' · '2026년 10월' */
+  /** '10월 13일 ~ 19일' · '2026년 10월' · '2026년' */
   label: string;
 }
 
@@ -89,7 +89,8 @@ export function weekdayLabel(key: string): string {
   return WEEKDAY_LABELS[weekdayIndex(key)];
 }
 
-function datesBetween(start: string, end: string): string[] {
+/** start~end 의 모든 날짜(둘 다 포함) */
+export function datesBetween(start: string, end: string): string[] {
   const dates: string[] = [];
   for (let cursor = start; cursor <= end; cursor = addDays(cursor, 1)) dates.push(cursor);
   return dates;
@@ -100,7 +101,8 @@ function parts(key: string): { y: number; m: number; d: number } {
   return { y, m, d };
 }
 
-function weekLabel(start: string, end: string): string {
+/** '10월 13일 ~ 19일'·'9월 29일 ~ 10월 5일'(해가 다르면 해까지) */
+export function rangeLabel(start: string, end: string): string {
   const a = parts(start);
   const b = parts(end);
   if (a.y !== b.y) return `${a.y}년 ${a.m}월 ${a.d}일 ~ ${b.y}년 ${b.m}월 ${b.d}일`;
@@ -112,7 +114,7 @@ function weekLabel(start: string, end: string): string {
 export function weekRange(today: string, offset: number): PeriodRange {
   const start = addDays(addDays(today, -weekdayIndex(today)), offset * 7);
   const end = addDays(start, 6);
-  return { period: 'week', offset, start, end, dates: datesBetween(start, end), label: weekLabel(start, end) };
+  return { period: 'week', offset, start, end, dates: datesBetween(start, end), label: rangeLabel(start, end) };
 }
 
 /** today 가 든 달에서 offset 달 옮긴 기간 */
@@ -132,8 +134,17 @@ export function monthRange(today: string, offset: number): PeriodRange {
   };
 }
 
+/** today 가 든 해(1월~12월)에서 offset 해 옮긴 기간 */
+export function yearRange(today: string, offset: number): PeriodRange {
+  const year = parts(today).y + offset;
+  const start = `${year}-01-01`;
+  const end = `${year}-12-31`;
+  return { period: 'year', offset, start, end, dates: datesBetween(start, end), label: `${year}년` };
+}
+
 export function periodRange(period: StatsPeriod, today: string, offset: number): PeriodRange {
-  return period === 'week' ? weekRange(today, offset) : monthRange(today, offset);
+  if (period === 'week') return weekRange(today, offset);
+  return period === 'month' ? monthRange(today, offset) : yearRange(today, offset);
 }
 
 /** 가장 오래된 기록 날짜 (없으면 null) */

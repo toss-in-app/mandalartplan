@@ -28,14 +28,16 @@ import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, hasAiText, r
 import { formatDateTime } from './lib/format';
 import { atHistoryBottom, goBack, navigate, useRoute } from './lib/router';
 import { MAX_BOARDS, dateKey, streak, type BoardsState } from './lib/state';
+import { visibleWidgets } from './lib/widgets';
 import { DraftScreen } from './screens/DraftScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OverviewScreen } from './screens/OverviewScreen';
+import { RecordScreen } from './screens/RecordScreen';
+import { RecordsScreen } from './screens/RecordsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { ShareScreen } from './screens/ShareScreen';
 import { SubScreen } from './screens/SubScreen';
 import { TrialScreen } from './screens/TrialScreen';
-import { TodayScreen } from './screens/TodayScreen';
 import './App.css';
 
 /** 상태를 읽기 전(첫 렌더)의 자리 — 판 바꾸기 시트는 판이 2개일 때만 열리니 비어 있어도 돼요 */
@@ -230,21 +232,22 @@ function App() {
     updateSettings((settings) => (settings.seenContentVersion >= contentVersion ? settings : { ...settings, seenContentVersion: contentVersion }));
   }, [stateLoaded, contentVersion, updateSettings]);
 
-  // 분석(contract/events.md): 화면 진입은 라우트가 바뀔 때 1회(home_view·today_view), board_filled 는 보고 있는 판이 73칸이 되는 순간(판마다 사실상 1회).
+  // 분석(contract/events.md): 화면 진입은 라우트가 바뀔 때 1회(home_view·today_view = 기록 위젯 판), board_filled 는 보고 있는 판이 73칸이 되는 순간(판마다 사실상 1회).
   // 값은 ref 로 읽어 상태가 바뀔 때마다 다시 보내지 않아요. 편집(board_edit·edit_mode_enter)은 화면의 제자리 편집 모드가 보내요(hooks/useGridEdit).
-  const latest = useRef({ filled: 0, boards: 0, todayCount: 0, streak: 0 });
+  const latest = useRef({ filled: 0, boards: 0, todayCount: 0, streak: 0, widgets: 0 });
   latest.current = {
     filled: activeBoard ? getProgress(activeBoard).filled : 0,
     boards: app.state?.boards.boards.length ?? 0,
     todayCount: todayChecks,
     streak: app.state && activeBoard ? streak(app.state.checkins.byBoard[activeBoard.id], today) : 0,
+    widgets: app.state ? visibleWidgets(app.state.settings.records.widgets).length : 0,
   };
   const loaded = app.state !== null;
   const screen = route.name;
   useEffect(() => {
     if (!loaded) return;
     if (screen === 'home') logEvent('home_view', { filled: latest.current.filled, boards: latest.current.boards });
-    else if (screen === 'today') logEvent('today_view', { todayCount: latest.current.todayCount, streak: latest.current.streak });
+    else if (screen === 'today') logEvent('today_view', { todayCount: latest.current.todayCount, streak: latest.current.streak, widgets: latest.current.widgets });
   }, [loaded, screen]);
 
   const filledRef = useRef<{ id: string; filled: number } | null>(null);
@@ -326,6 +329,14 @@ function App() {
     else if (result === 'failed') toast.openToast('공유하지 못했어요. 잠시 뒤에 다시 해 주세요');
   };
 
+  /** 지난주 리포트 마지막 장 '글로 공유하기'(3.0) */
+  const shareReport = async (text: string) => {
+    const result = await shareText(text);
+    logEvent('report_share', { result });
+    if (result === 'copied') toast.openToast('글을 복사했어요');
+    else if (result === 'failed') toast.openToast('공유하지 못했어요. 잠시 뒤에 다시 해 주세요');
+  };
+
   const shareBoardLink = async () => {
     setShareBusy(true);
     try {
@@ -345,7 +356,7 @@ function App() {
   };
 
   /**
-   * 알림 동의 (홈 행 · 기록 화면(오늘 탭) 버튼 · 설정 행에서 사용자가 누른 뒤에만). 결과를 settings.notification 에 남겨요.
+   * 알림 동의 (홈 행 · 기록 위젯 판 위 버튼 · 설정 행에서 사용자가 누른 뒤에만). 결과를 settings.notification 에 남겨요.
    * 이미 동의한 상태에서 설정 행을 누르면 끄는 길(토스 앱 알림 설정)을 안내해요.
    */
   const askNotification = async (from: 'home' | 'today' | 'settings') => {
@@ -369,7 +380,7 @@ function App() {
     }
   };
   const notificationReady = notificationAvailable();
-  /** 홈 행·기록 화면(오늘 탭) 버튼은 첫 체크 뒤, 아직 묻지 않았을 때만. 거부했으면 설정에서만 */
+  /** 홈 행·기록 위젯 판 버튼은 첫 체크 뒤, 아직 묻지 않았을 때만. 거부했으면 설정에서만 */
   const notificationPrompt = notificationReady && state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown';
 
   /**
@@ -668,13 +679,31 @@ function App() {
       break;
     case 'today':
       view = (
-        <TodayScreen
+        <RecordsScreen
           board={board}
           record={record}
-          content={content}
+          widgets={state.settings.records.widgets}
+          onChangeWidgets={(next) => app.updateSettings((settings) => ({ ...settings, records: { ...settings.records, widgets: next } }))}
+          onOpen={(widget) => {
+            logEvent('record_open', { widget });
+            navigate({ name: 'record', widget });
+          }}
           onNotification={notificationPrompt ? () => void askNotification('today') : undefined}
           onDone={goBack}
           showHome={atHistoryBottom()}
+        />
+      );
+      break;
+    case 'record':
+      view = (
+        <RecordScreen
+          key={route.widget}
+          widget={route.widget}
+          board={board}
+          record={record}
+          content={content}
+          onClose={goBack}
+          onShareReport={(text) => void shareReport(text)}
           onStatsView={(info) => logEvent('stats_view', { ...info })}
         />
       );

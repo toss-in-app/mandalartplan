@@ -1,6 +1,8 @@
 import { Environment, graniteEvent } from '@apps-in-toss/web-framework';
 import { useEffect, useState } from 'react';
 
+import { isRecordWidgetId, type RecordWidgetId } from './widgets';
+
 /**
  * 해시 기반 화면 전환.
  *
@@ -22,7 +24,10 @@ export type Route =
    */
   | { name: 'block'; block: number; cell?: number }
   | { name: 'overview' }
+  /** 기록 위젯 판 (3.0 — 이름은 예전 '오늘 기록' 그대로라 딥링크 `today` 도 여기로) */
   | { name: 'today' }
+  /** 위젯을 눌러 여는 그 위젯의 대시보드 (3.0) */
+  | { name: 'record'; widget: RecordWidgetId }
   | { name: 'share' }
   | { name: 'settings' }
   /** AI 초안 만들기 (2.0) */
@@ -37,6 +42,8 @@ export function parseRoute(hash: string): Route {
   if (block) return block[2] === undefined ? { name: 'block', block: Number(block[1]) } : { name: 'block', block: Number(block[1]), cell: Number(block[2]) };
   const sub = /^#\/sub\/([0-7])$/.exec(hash);
   if (sub) return { name: 'sub', sub: Number(sub[1]) };
+  const record = /^#\/record\/([a-z0-9]+)$/.exec(hash);
+  if (record && isRecordWidgetId(record[1])) return { name: 'record', widget: record[1] };
   if (hash === '#/overview') return { name: 'overview' };
   if (hash === '#/today' || hash === '#/checkin') return { name: 'today' };
   if (hash === '#/share') return { name: 'share' };
@@ -53,6 +60,8 @@ export function routeToHash(route: Route): string {
       return route.cell === undefined ? `#/block/${route.block}` : `#/block/${route.block}/${route.cell}`;
     case 'sub':
       return `#/sub/${route.sub}`;
+    case 'record':
+      return `#/record/${route.widget}`;
     case 'home':
       return '#/';
     default:
