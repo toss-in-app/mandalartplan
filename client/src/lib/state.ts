@@ -56,6 +56,12 @@ export interface AiSettings {
   runs: { date: string | null; count: number };
 }
 
+/** 1분 체험판 (2.1). 이 기기에만 남겨요(백업에는 싣지 않아요) */
+export interface TrialSettings {
+  /** 홈 맨 위 '1분 체험' 안내 카드를 거둔 시각 — ✕를 누르거나 체험판을 끝까지 했을 때. null 이면 실천을 적기 전까지 보여요 */
+  cardDismissedAt: number | null;
+}
+
 export interface SettingsState {
   version: 1;
   notification: NotificationStatus;
@@ -65,6 +71,7 @@ export interface SettingsState {
   backup: BackupSettings;
   ads: AdsSettings;
   ai: AiSettings;
+  trial: TrialSettings;
 }
 
 const BACKUP_KEY_RE = /^k[0-9a-f]{64}$/;
@@ -158,6 +165,7 @@ export function createDefaultSettings(): SettingsState {
     backup: { enabled: false, key: null, lastBackupAt: null },
     ads: { lastInterstitialDate: null },
     ai: { noticeAt: null, runs: { date: null, count: 0 } },
+    trial: { cardDismissedAt: null },
   };
 }
 
@@ -186,6 +194,8 @@ export function normalizeSettings(input: unknown): SettingsState | null {
   if (typeof runs.date === 'string' && DATE_RE.test(runs.date) && typeof runs.count === 'number' && runs.count >= 0) {
     s.ai.runs = { date: runs.date, count: Math.floor(runs.count) };
   }
+  const trial = raw.trial && typeof raw.trial === 'object' ? (raw.trial as Record<string, unknown>) : {};
+  if (typeof trial.cardDismissedAt === 'number' && trial.cardDismissedAt >= 0) s.trial.cardDismissedAt = Math.floor(trial.cardDismissedAt);
   return s;
 }
 

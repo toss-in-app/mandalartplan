@@ -161,6 +161,9 @@
         "date": null,
         "count": 0
       }
+    },
+    "trial": {
+      "cardDismissedAt": null
     }
   }
 }

@@ -32,12 +32,13 @@
 | `cells_delete` | 편집 모드에서 고른 칸을 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수 — 상위 목표를 따라 함께 지운 하위 칸 포함: 세부 목표 → 그 실천, 핵심 목표 → 전부), `area`(goals = 홈: 핵심 목표·세부 목표 / actions = 세부 목표 화면: 세부 목표 이름·실천) |
 | `cells_delete_undo` | 토스트의 '되돌리기' | `count`(`cells_delete` 와 같은 수) |
 
-### 1분 체험판 (2.1 — 홈·설정 '1분 체험해 보기', `client/src/screens/TrialScreen.tsx`)
+### 1분 체험판 (2.1 — 홈 맨 위 안내 카드·설정 '1분 체험해 보기', `client/src/screens/TrialScreen.tsx`)
 
 | 이름 | 언제 | 파라미터 |
 |------|------|----------|
-| `trial_start` | 홈·설정의 '1분 체험해 보기'를 눌렀을 때(`#/trial` 로 바로 들어오면 보내지 않음) | `from`(home/settings) |
-| `trial_finish` | 마지막 버튼('내 만다라트 시작하기'·'내 만다라트로 돌아가기')을 눌렀을 때 | `steps`(2 = 도장·편집 / 3 = AI 미리보기까지, AI 를 쓸 수 있는 기기만 3) |
+| `trial_start` | 홈 맨 위 안내 카드나 설정의 '1분 체험해 보기'를 눌렀을 때(`#/trial` 로 바로 들어오면 보내지 않음) | `from`(home = 홈 안내 카드 / settings) |
+| `trial_finish` | 마지막 버튼('내 만다라트 시작하기'·'내 만다라트로 돌아가기')을 눌렀을 때. 홈 안내 카드도 이때 거둬요 | `steps`(2 = 도장·편집 / 3 = AI 미리보기까지, AI 를 쓸 수 있는 기기만 3) |
+| `trial_card_close` | 홈 맨 위 안내 카드의 ✕ | |
 
 - 체험판의 판·체크는 저장하지 않는 예시라 `action_check`·`board_edit`·`cells_delete`·`cells_delete_undo` 를 보내지 않는다. 편집 모드에 들어가면 `edit_mode_enter`(`screen` = trial)만 보낸다.
 

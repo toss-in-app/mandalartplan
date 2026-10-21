@@ -75,10 +75,11 @@ describe('App (설정·예시 템플릿)', () => {
 });
 
 describe('App (1분 체험판, 2.1)', () => {
-  it("빈 판 홈의 '1분 체험해 보기'로 체험판을 열고, 체험판에서 찍은 도장은 내 판·체크에 저장되지 않아요", async () => {
+  it("처음 온 사람의 홈 맨 위 안내 카드로 체험판을 열고, 체험판에서 찍은 도장은 내 판·체크에 저장되지 않아요", async () => {
     renderApp();
     await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
-    fireEvent.click(screen.getByText('1분 체험해 보기'));
+    const card = screen.getByRole('region', { name: '1분 체험 안내' });
+    fireEvent.click(within(card).getByRole('button', { name: '1분 체험해 보기' }));
     expect(logEvent).toHaveBeenCalledWith('trial_start', { from: 'home' });
     await screen.findByText(/체험판 · 저장되지 않아요 · 1\//); // AI 를 쓸 수 있으면 3단계, 아니면 2단계
     const action = getBundledContent().templates[0].subs[0].actions[0];
@@ -89,6 +90,41 @@ describe('App (1분 체험판, 2.1)', () => {
     expect(boards === null || JSON.parse(boards).boards[0].goal === '').toBe(true);
     const checkins = window.localStorage.getItem('__ait_storage:mandalart.checkins.v1');
     expect(checkins === null || !checkins.includes(String(new Date().getFullYear()))).toBe(true);
+  });
+
+  it("카드는 ✕로 닫으면 사라지고, 다시 들어와도 보이지 않아요(이 기기 설정에 남겨요)", async () => {
+    const { unmount } = renderApp();
+    fireEvent.click(within(await screen.findByRole('region', { name: '1분 체험 안내' })).getByRole('button', { name: '안내 닫기' }));
+    expect(logEvent).toHaveBeenCalledWith('trial_card_close');
+    await waitFor(() => expect(screen.queryByRole('region', { name: '1분 체험 안내' })).not.toBeInTheDocument());
+    await waitFor(() => expect(JSON.parse(window.localStorage.getItem('__ait_storage:mandalart.settings.v1')!).trial.cardDismissedAt).toEqual(expect.any(Number)));
+    unmount();
+    renderApp();
+    await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
+    expect(screen.queryByRole('region', { name: '1분 체험 안내' })).not.toBeInTheDocument();
+  });
+
+  it('체험판을 끝까지 하면 홈 맨 위 카드가 사라져요', async () => {
+    renderApp();
+    fireEvent.click(within(await screen.findByRole('region', { name: '1분 체험 안내' })).getByRole('button', { name: '1분 체험해 보기' }));
+    const action = getBundledContent().templates[0].subs[0].actions[0];
+    fireEvent.click(await screen.findByRole('button', { name: `${action}, 오늘 아직` }));
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    // 2단계: 키보드 입구로 실천 하나 지우기(길게 누르기·끌기와 같은 일)
+    fireEvent.click(screen.getByRole('button', { name: '편집' }));
+    fireEvent.click(screen.getByRole('button', { name: '지울 칸 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: action }));
+    fireEvent.click(screen.getByRole('button', { name: '1칸 삭제' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '삭제' }));
+    // AI 를 쓸 수 있으면 3단계(AI 미리보기)가 하나 더 있어요
+    const stepButton = () => screen.getByRole('button', { name: /^(다음|내 만다라트 시작하기)$/ });
+    await waitFor(() => expect(stepButton()).toBeEnabled());
+    const hasAiStep = stepButton().textContent === '다음';
+    fireEvent.click(stepButton());
+    if (hasAiStep) fireEvent.click(await screen.findByRole('button', { name: '내 만다라트 시작하기' }));
+    expect(logEvent).toHaveBeenCalledWith('trial_finish', { steps: hasAiStep ? 3 : 2 });
+    await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
+    expect(screen.queryByRole('region', { name: '1분 체험 안내' })).not.toBeInTheDocument();
   });
 
   it("설정에도 '1분 체험해 보기'가 있어요", async () => {

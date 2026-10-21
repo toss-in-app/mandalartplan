@@ -283,11 +283,15 @@ function App() {
 
   const record = state.checkins.byBoard[board.id];
   const openSub = (subIndex: number) => navigate({ name: 'sub', sub: subIndex });
-  /** 1분 체험판(2.1). 홈·설정의 '1분 체험해 보기'로만 열려요 */
+  /** 1분 체험판(2.1). 홈 맨 위 안내 카드·설정의 '1분 체험해 보기'로만 열려요 */
   const openTrial = (from: 'home' | 'settings') => {
     logEvent('trial_start', { from });
     navigate({ name: 'trial' });
   };
+  /** 홈 맨 위 안내 카드는 처음 온 사람에게만: 실천을 적기 전, ✕로 닫거나 체험판을 끝까지 하기 전까지 */
+  const showTrialCard = getProgress(board).actionsFilled === 0 && state.settings.trial.cardDismissedAt === null;
+  const dismissTrialCard = () =>
+    app.updateSettings((settings) => (settings.trial.cardDismissedAt !== null ? settings : { ...settings, trial: { ...settings.trial, cardDismissedAt: Date.now() } }));
 
   /**
    * 실천 칸 탭 = 오늘 했어요 체크/해제. 처음 체크한 순간을 settings 에 남겨요(알림 안내용).
@@ -610,7 +614,18 @@ function App() {
       onStartWithTemplate={openTemplatePicker}
       onAiDraft={aiEnabled ? () => navigate({ name: 'draft' }) : undefined}
       onDeleteCells={(cells) => deleteCells(CENTER, cells)}
-      onTrial={() => openTrial('home')}
+      trialCard={
+        showTrialCard
+          ? {
+              ai: aiEnabled,
+              onOpen: () => openTrial('home'),
+              onClose: () => {
+                logEvent('trial_card_close');
+                dismissTrialCard();
+              },
+            }
+          : undefined
+      }
       editLink={editLink}
     />
   );
@@ -720,6 +735,8 @@ function App() {
           fresh={getProgress(board).actionsFilled === 0}
           onFinish={(steps) => {
             logEvent('trial_finish', { steps });
+            // 끝까지 해 봤으면 홈 맨 위 안내 카드는 거둬요
+            dismissTrialCard();
             goBack();
           }}
         />

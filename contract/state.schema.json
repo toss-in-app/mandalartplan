@@ -330,6 +330,26 @@
             }
           },
           "description": "2.0 추가(2026-10-20, AI 초안). 없으면 기본값 { noticeAt: null, runs: { date: null, count: 0 } }"
+        },
+        "trial": {
+          "type": "object",
+          "required": [
+            "cardDismissedAt"
+          ],
+          "properties": {
+            "cardDismissedAt": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/epochMs"
+                }
+              ],
+              "description": "홈 맨 위 '1분 체험' 안내 카드를 거둔 시각 — ✕를 누르거나 체험판을 끝까지 했을 때. null 이면 실천을 적기 전까지 카드를 보여요"
+            }
+          },
+          "description": "2026-10-21 추가 (2.1 1분 체험판 안내 카드). 없으면 기본값. 이 기기에만 남고 백업에는 싣지 않아요"
         }
       }
     },

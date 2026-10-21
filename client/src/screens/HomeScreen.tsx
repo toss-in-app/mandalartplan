@@ -6,6 +6,7 @@ import { emptyCellCount, hasBoardText } from '../ai/rules';
 import { AiDraftBadge } from '../components/AiDraftBadge';
 import { Block } from '../components/Block';
 import { EditDoneButton } from '../components/EditDoneButton';
+import { TrialCard } from '../components/TrialCard';
 import { useCellEditor } from '../hooks/useCellEditor';
 import { useGridEdit } from '../hooks/useGridEdit';
 import { editTarget } from '../lib/cellEdit';
@@ -45,8 +46,8 @@ interface HomeScreenProps {
   onAiDraft?: () => void;
   /** 편집 모드에서 고른 칸(0~8)을 지우고 되돌리기 함수를 돌려줘요(2.1) */
   onDeleteCells?: (cells: number[]) => () => void;
-  /** '1분 체험해 보기'(2.1) — 아직 실천을 하나도 적지 않은 동안 아래 목록 맨 위에 보여요. 없으면 숨겨요 */
-  onTrial?: () => void;
+  /** 맨 위 '1분 체험' 안내 카드(2.1). 처음 온 사람에게만 넘겨요(실천을 적기 전, 닫거나 체험판을 끝까지 하기 전). 없으면 숨겨요 */
+  trialCard?: { ai: boolean; onOpen: () => void; onClose: () => void };
   /** 예전 편집 화면 링크(`block/4`, 콘솔 앱 내 기능 '만다라트 작성')로 들어왔을 때: 편집 모드로 시작, cell 이 있으면 그 칸 입력창, '완료'는 편집 모드를 끝내고 onDone */
   editLink?: { cell: number | null; onDone: () => void };
 }
@@ -78,7 +79,7 @@ export function HomeScreen({
   onStartWithTemplate,
   onAiDraft,
   onDeleteCells,
-  onTrial,
+  trialCard,
   editLink,
 }: HomeScreenProps) {
   const editor = useCellEditor({ onChangeGoal, onChangeSubTitle });
@@ -156,6 +157,8 @@ export function HomeScreen({
           </Text>
         </div>
       )}
+
+      {trialCard && <TrialCard {...trialCard} />}
 
       {edit.revealButton}
 
@@ -304,14 +307,6 @@ export function HomeScreen({
       {edit.bottomBar}
 
       <List>
-        {onTrial && progress.actionsFilled === 0 && (
-          // 처음 쓰는 사람용 체험판 입구(누를 때만 열려요 — 들어오자마자 띄우지 않아요)
-          <ListRow
-            onClick={onTrial}
-            withArrow
-            contents={<ListRow.Texts type="2RowTypeA" top="1분 체험해 보기" bottom="예시 판에서 도장·편집·AI를 미리 눌러 봐요" />}
-          />
-        )}
         {notificationVisible && (
           <ListRow
             onClick={onNotification}

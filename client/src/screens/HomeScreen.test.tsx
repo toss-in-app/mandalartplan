@@ -22,6 +22,7 @@ interface Handlers {
   onChangeGoal?: (goal: string) => void;
   onChangeSubTitle?: (subIndex: number, title: string) => void;
   todayAdNotice?: boolean;
+  trialCard?: { ai: boolean; onOpen: () => void; onClose: () => void };
 }
 
 /** 칸 편집 시트 안의 '완료' */
@@ -53,6 +54,7 @@ function renderHome(board: Board, content: Content, checkin?: CheckinRecord, han
         onSwitchBoard={noop}
         onNotification={noop}
         onStartWithTemplate={noop}
+        trialCard={handlers.trialCard}
       />
     </TDSMobileAITProvider>,
   );
@@ -195,5 +197,30 @@ describe('HomeScreen (홈 마무리)', () => {
     second.unmount();
     renderHome(filledBoard(true), { ...content, notice: null, season: { ...season, from: '2000-01-01', to: '2000-01-02' } });
     expect(screen.queryByText(season.message)).not.toBeInTheDocument();
+  });
+});
+
+describe('HomeScreen 맨 위 1분 체험 안내 카드 (2.1)', () => {
+  it("카드: '1분 체험해 보기'·✕, AI 를 못 쓰는 기기는 문구에서 AI 를 빼요. 아래 목록에는 체험 행이 없어요", () => {
+    const onOpen = vi.fn();
+    const onClose = vi.fn();
+    const { unmount } = renderHome(createEmptyBoard(1759000000000), getBundledContent(), undefined, { trialCard: { ai: true, onOpen, onClose } });
+    const card = screen.getByRole('region', { name: '1분 체험 안내' });
+    expect(within(card).getByText('처음이세요? 1분 체험부터')).toBeInTheDocument();
+    expect(within(card).getByText(/도장 찍기·고치기·AI를 미리 해 봐요/)).toBeInTheDocument();
+    fireEvent.click(within(card).getByRole('button', { name: '1분 체험해 보기' }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(card).getByRole('button', { name: '안내 닫기' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByText('1분 체험해 보기')).toHaveLength(1);
+    unmount();
+    renderHome(createEmptyBoard(1759000000000), getBundledContent(), undefined, { trialCard: { ai: false, onOpen, onClose } });
+    expect(screen.getByText(/도장 찍기·고치기를 미리 해 봐요/)).toBeInTheDocument();
+  });
+
+  it('카드를 넘기지 않으면(실천을 적었거나, 닫았거나, 체험판을 끝까지 했을 때) 보이지 않아요', () => {
+    renderHome(filledBoard(true), getBundledContent());
+    expect(screen.queryByRole('region', { name: '1분 체험 안내' })).not.toBeInTheDocument();
+    expect(screen.queryByText('1분 체험해 보기')).not.toBeInTheDocument();
   });
 });

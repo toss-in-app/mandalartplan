@@ -107,6 +107,7 @@ describe('settings', () => {
       backup: { enabled: false, key: null, lastBackupAt: null },
       ads: { lastInterstitialDate: null },
       ai: { noticeAt: null, runs: { date: null, count: 0 } },
+      trial: { cardDismissedAt: null },
     });
     expect(normalizeSettings({ version: 0 })).toBeNull();
   });
@@ -116,5 +117,11 @@ describe('settings', () => {
     expect(s?.ai).toEqual({ noticeAt: 7, runs: { date: '2026-10-20', count: 3 } });
     const bad = normalizeSettings({ version: 1, ai: { noticeAt: 'x', runs: { date: '10/20', count: 3 } } });
     expect(bad?.ai).toEqual({ noticeAt: null, runs: { date: null, count: 0 } });
+  });
+
+  it('1분 체험판(2.1): 홈 안내 카드를 거둔 시각, 없거나 모양이 다르면 null', () => {
+    expect(normalizeSettings({ version: 1 })?.trial).toEqual({ cardDismissedAt: null });
+    expect(normalizeSettings({ version: 1, trial: { cardDismissedAt: 1759000000123.7 } })?.trial).toEqual({ cardDismissedAt: 1759000000123 });
+    expect(normalizeSettings({ version: 1, trial: { cardDismissedAt: 'x' } })?.trial).toEqual({ cardDismissedAt: null });
   });
 });
