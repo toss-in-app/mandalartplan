@@ -39,6 +39,8 @@ interface SettingsScreenProps {
   hasAnyText: boolean;
   extraBoard: ExtraBoardPanelProps;
   backup: BackupPanelProps;
+  /** '1분 체험해 보기'(2.1) — 언제든 다시 해 볼 수 있게 */
+  onTrial: () => void;
   onReset: () => void;
 }
 
@@ -49,7 +51,7 @@ const NOTIFICATION_LABEL: Record<NotificationStatus, string> = {
 };
 
 /**
- * 설정. 매일 저녁 알림(동의 요청·상태) · 두 번째 판(리워드 잠금) | 백업 | 약관 | 초기화 · 버전.
+ * 설정. 매일 저녁 알림(동의 요청·상태) · 1분 체험해 보기 · 두 번째 판(리워드 잠금) | 백업 | 약관 | 초기화 · 버전.
  * (예시 템플릿 불러오기는 2.1 에서 뺐어요 — 사용자 결정 2026-10-21. 예시는 빈 판 홈의 '예시로 시작하기'에서만)
  * 묶음 사이는 TDS Border(height16)로 나누고, 되돌릴 수 없는 초기화는 맨 아래 따로 둬요.
  */
@@ -61,6 +63,7 @@ export function SettingsScreen({
   hasAnyText,
   extraBoard,
   backup,
+  onTrial,
   onReset,
 }: SettingsScreenProps) {
   const rightText = (text: string) => (
@@ -80,6 +83,7 @@ export function SettingsScreen({
           contents={<ListRow.Texts type="2RowTypeA" top="매일 저녁 알림" bottom="저녁 8시에 오늘 실천을 체크하라고 알려요" />}
           right={rightText(notificationAvailable ? NOTIFICATION_LABEL[notification] : '준비 중')}
         />
+        <ListRow withArrow onClick={onTrial} contents={<ListRow.Texts type="2RowTypeA" top="1분 체험해 보기" bottom="예시 판에서 도장·편집·AI를 다시 눌러 봐요" />} />
         {!extraBoard.unlocked && (
           <ListRow
             disabled={extraBoard.busy}

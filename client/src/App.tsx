@@ -35,6 +35,7 @@ import { OverviewScreen } from './screens/OverviewScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { ShareScreen } from './screens/ShareScreen';
 import { SubScreen } from './screens/SubScreen';
+import { TrialScreen } from './screens/TrialScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import './App.css';
 
@@ -282,6 +283,11 @@ function App() {
 
   const record = state.checkins.byBoard[board.id];
   const openSub = (subIndex: number) => navigate({ name: 'sub', sub: subIndex });
+  /** 1분 체험판(2.1). 홈·설정의 '1분 체험해 보기'로만 열려요 */
+  const openTrial = (from: 'home' | 'settings') => {
+    logEvent('trial_start', { from });
+    navigate({ name: 'trial' });
+  };
 
   /**
    * 실천 칸 탭 = 오늘 했어요 체크/해제. 처음 체크한 순간을 settings 에 남겨요(알림 안내용).
@@ -605,6 +611,7 @@ function App() {
       onStartWithTemplate={openTemplatePicker}
       onAiDraft={aiEnabled ? () => navigate({ name: 'draft' }) : undefined}
       onDeleteCells={(cells) => deleteCells(CENTER, cells)}
+      onTrial={() => openTrial('home')}
       editLink={editLink}
     />
   );
@@ -701,7 +708,21 @@ function App() {
             onRestore: () => void restoreBackup(),
             onDisable: () => void disableBackup(),
           }}
+          onTrial={() => openTrial('settings')}
           onReset={() => void resetAll()}
+        />
+      );
+      break;
+    case 'trial':
+      view = (
+        <TrialScreen
+          content={content}
+          aiAvailable={aiEnabled}
+          fresh={getProgress(board).actionsFilled === 0}
+          onFinish={(steps) => {
+            logEvent('trial_finish', { steps });
+            goBack();
+          }}
         />
       );
       break;

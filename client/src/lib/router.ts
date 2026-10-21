@@ -26,7 +26,9 @@ export type Route =
   | { name: 'share' }
   | { name: 'settings' }
   /** AI 초안 만들기 (2.0) */
-  | { name: 'draft' };
+  | { name: 'draft' }
+  /** 1분 체험판 (2.1) — 예시 판에서 도장·편집·AI 를 미리 해 봐요. 저장하지 않아요 */
+  | { name: 'trial' };
 
 const HOME: Route = { name: 'home' };
 
@@ -40,6 +42,7 @@ export function parseRoute(hash: string): Route {
   if (hash === '#/share') return { name: 'share' };
   if (hash === '#/settings') return { name: 'settings' };
   if (hash === '#/draft') return { name: 'draft' };
+  if (hash === '#/trial') return { name: 'trial' };
   return HOME;
 }
 

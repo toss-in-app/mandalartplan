@@ -74,6 +74,33 @@ describe('App (설정·예시 템플릿)', () => {
 
 });
 
+describe('App (1분 체험판, 2.1)', () => {
+  it("빈 판 홈의 '1분 체험해 보기'로 체험판을 열고, 체험판에서 찍은 도장은 내 판·체크에 저장되지 않아요", async () => {
+    renderApp();
+    await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
+    fireEvent.click(screen.getByText('1분 체험해 보기'));
+    expect(logEvent).toHaveBeenCalledWith('trial_start', { from: 'home' });
+    await screen.findByText(/체험판 · 저장되지 않아요 · 1\//); // AI 를 쓸 수 있으면 3단계, 아니면 2단계
+    const action = getBundledContent().templates[0].subs[0].actions[0];
+    fireEvent.click(screen.getByRole('button', { name: `${action}, 오늘 아직` }));
+    await screen.findByText('잘했어요! 다시 누르면 도장이 들려요');
+    // 내 판은 그대로 비어 있고, 오늘 체크도 저장되지 않았어요
+    const boards = window.localStorage.getItem('__ait_storage:mandalart.boards.v1');
+    expect(boards === null || JSON.parse(boards).boards[0].goal === '').toBe(true);
+    const checkins = window.localStorage.getItem('__ait_storage:mandalart.checkins.v1');
+    expect(checkins === null || !checkins.includes(String(new Date().getFullYear()))).toBe(true);
+  });
+
+  it("설정에도 '1분 체험해 보기'가 있어요", async () => {
+    renderApp();
+    await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
+    fireEvent.click(screen.getByText('설정'));
+    fireEvent.click(await screen.findByText('1분 체험해 보기'));
+    expect(logEvent).toHaveBeenCalledWith('trial_start', { from: 'settings' });
+    await screen.findByText(/체험판 · 저장되지 않아요/);
+  });
+});
+
 describe('App (공유)', () => {
   afterEach(() => {
     vi.restoreAllMocks();

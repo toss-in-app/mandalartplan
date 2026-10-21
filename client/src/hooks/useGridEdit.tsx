@@ -1,4 +1,4 @@
-import { CTAButton, ConfirmDialog, FixedBottomCTA, useDialog, useToast } from '@toss/tds-mobile';
+import { CTAButton, ConfirmDialog, FixedBottomCTA, useDialog, useWebToast } from '@toss/tds-mobile';
 import { useEffect, useRef, useState, type ComponentProps, type PointerEvent, type ReactNode } from 'react';
 
 import type { Block } from '../components/Block';
@@ -23,8 +23,8 @@ interface UseGridEditOptions {
   board: Board;
   /** 지금 보이는 3×3 블록(0~8). 홈 = 가운데(4), 세부 목표 화면 = 그 둘레 블록 */
   block: number;
-  /** 분석 이벤트용: 어느 화면의 편집 모드인지 */
-  screen: 'home' | 'sub';
+  /** 어느 화면의 편집 모드인지(분석 이벤트). trial = 1분 체험판 — 저장하지 않는 판이라 화면을 떠나면 '되돌리기' 토스트도 닫아요 */
+  screen: 'home' | 'sub' | 'trial';
   /** 편집 모드에서 칸을 누르면(지울 칸을 고르는 중이 아닐 때) — 그 칸의 입력 시트를 열어요 */
   onEditCell: (cell: number) => void;
   /** 고른 칸(0~8)을 지우고 되돌리기 함수를 돌려줘요. 없으면 끌어서 고르기·삭제를 못 해요 */
@@ -45,7 +45,9 @@ interface UseGridEditOptions {
  */
 export function useGridEdit({ board, block, screen, onEditCell, onDeleteCells, startEditing = false }: UseGridEditOptions) {
   const { openConfirm } = useDialog();
-  const toast = useToast();
+  // useToast 와 같은 웹 토스트예요(Provider 에 toast 를 넘기지 않아서). 체험판 판은 화면과 함께 사라지니 그 판의 '되돌리기' 토스트도
+  // 화면을 떠날 때 닫고(useToast 에는 닫기가 없어요), 내 판에선 화면을 옮겨도 되돌릴 수 있게 남겨 둬요
+  const toast = useWebToast({ exitOnUnmount: screen === 'trial' });
   const [editing, setEditing] = useState(startEditing);
   const [selected, setSelected] = useState<ReadonlySet<number>>(() => new Set());
   /** 키보드로 '지울 칸 고르기'를 켰을 때: 아직 고른 칸이 없어도 누르면 고르기 */

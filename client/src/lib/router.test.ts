@@ -13,6 +13,7 @@ describe('parseRoute / routeToHash', () => {
       { name: 'share' as const },
       { name: 'settings' as const },
       { name: 'draft' as const },
+      { name: 'trial' as const },
     ];
     for (const route of routes) expect(parseRoute(routeToHash(route))).toEqual(route);
   });

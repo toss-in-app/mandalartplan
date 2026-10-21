@@ -28,9 +28,18 @@
 
 | 이름 | 언제 | 파라미터 |
 |------|------|----------|
-| `edit_mode_enter` | 홈·세부 목표 화면이 편집 모드로 바뀔 때 | `screen`(home/sub), `via`(longpress = 칸 길게 누르기 / swipe = 옆으로 쓸기 / button = 키보드·스크린리더 입구 '편집' / link = 예전 편집 화면 링크 `block/:n`) |
+| `edit_mode_enter` | 홈·세부 목표 화면(1분 체험판 포함)이 편집 모드로 바뀔 때 | `screen`(home/sub/trial), `via`(longpress = 칸 길게 누르기 / swipe = 옆으로 쓸기 / button = 키보드·스크린리더 입구 '편집' / link = 예전 편집 화면 링크 `block/:n`) |
 | `cells_delete` | 편집 모드에서 고른 칸을 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수), `area`(goals = 홈: 핵심 목표·세부 목표 / actions = 세부 목표 화면: 세부 목표 이름·실천) |
 | `cells_delete_undo` | 토스트의 '되돌리기' | `count` |
+
+### 1분 체험판 (2.1 — 홈·설정 '1분 체험해 보기', `client/src/screens/TrialScreen.tsx`)
+
+| 이름 | 언제 | 파라미터 |
+|------|------|----------|
+| `trial_start` | 홈·설정의 '1분 체험해 보기'를 눌렀을 때(`#/trial` 로 바로 들어오면 보내지 않음) | `from`(home/settings) |
+| `trial_finish` | 마지막 버튼('내 만다라트 시작하기'·'내 만다라트로 돌아가기')을 눌렀을 때 | `steps`(2 = 도장·편집 / 3 = AI 미리보기까지, AI 를 쓸 수 있는 기기만 3) |
+
+- 체험판의 판·체크는 저장하지 않는 예시라 `action_check`·`board_edit`·`cells_delete`·`cells_delete_undo` 를 보내지 않는다. 편집 모드에 들어가면 `edit_mode_enter`(`screen` = trial)만 보낸다.
 
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 | 이름 | 유형 | 지점 | 규칙 |

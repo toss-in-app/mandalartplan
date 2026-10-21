@@ -29,6 +29,8 @@ interface SubScreenProps {
   onDeleteCells?: (cells: number[]) => () => void;
   /** 예전 편집 화면 링크(`block/:n`)로 들어왔을 때: 편집 모드로 시작, cell 이 있으면 그 칸 입력창, '완료'는 편집 모드를 끝내고 onDone */
   editLink?: { cell: number | null; onDone: () => void };
+  /** 편집 모드의 화면 이름(분석 이벤트). 1분 체험판은 'trial' — 화면을 떠나면 '되돌리기' 토스트도 닫아요 */
+  editScreen?: 'sub' | 'trial';
 }
 
 /**
@@ -37,13 +39,13 @@ interface SubScreenProps {
  * 오늘 한 실천 칸에는 '완료' 도장이 찍히고 글씨가 흐려져요(✓ 는 편집 모드의 '고른 칸'만).
  * 고치기·지우기는 편집 버튼 없이 칸을 길게 눌러 그 자리에서(2.1 제자리 편집 모드, `useGridEdit`) — 오른쪽 위 '완료'로 끝내요.
  */
-export function SubScreen({ board, subIndex, checkin, onToggle, onChangeAction, onChangeSubTitle, aiFill, onDeleteCells, editLink }: SubScreenProps) {
+export function SubScreen({ board, subIndex, checkin, onToggle, onChangeAction, onChangeSubTitle, aiFill, onDeleteCells, editLink, editScreen = 'sub' }: SubScreenProps) {
   const block = cellOfRing(subIndex);
   const editor = useCellEditor({ onChangeAction, onChangeSubTitle });
   const edit = useGridEdit({
     board,
     block,
-    screen: 'sub',
+    screen: editScreen,
     onEditCell: (cell) => editor.openFromTap(editTarget(board, block, cell)),
     onDeleteCells,
     startEditing: Boolean(editLink),

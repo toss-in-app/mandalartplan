@@ -28,6 +28,9 @@ export type EventName =
   | 'ai_draft_reward'
   | 'ai_draft_result'
   | 'ai_draft_apply'
+  /** 1분 체험판(2.1): 열기, 끝까지 하기 */
+  | 'trial_start'
+  | 'trial_finish'
   /** 제자리 편집 모드(2.1): 들어가기, 여러 칸 지우기·되돌리기 */
   | 'edit_mode_enter'
   | 'cells_delete'

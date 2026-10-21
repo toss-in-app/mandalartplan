@@ -249,6 +249,7 @@ describe('SettingsScreen (설정 행 상태)', () => {
         hasAnyText={false}
         extraBoard={extraLocked}
         backup={{ ...backupOff, configured: false }}
+        onTrial={vi.fn()}
         onReset={vi.fn()}
       />,
     );
@@ -271,6 +272,7 @@ describe('SettingsScreen (설정 행 상태)', () => {
         hasAnyText
         extraBoard={extraLocked}
         backup={backupOn}
+        onTrial={vi.fn()}
         onReset={onReset}
       />,
     );
