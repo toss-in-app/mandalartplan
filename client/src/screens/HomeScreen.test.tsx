@@ -123,7 +123,7 @@ describe('HomeScreen (홈 마무리)', () => {
     fireEvent.click(screen.getByRole('button', { name: '전체 보기' }));
     expect(onOverview).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: '완료' })).not.toBeInTheDocument();
-    expect(screen.getByText('칸을 길게 누르면 고치거나 지울 수 있어요')).toBeInTheDocument();
+    expect(screen.queryByText('칸을 길게 누르면 고치거나 지울 수 있어요')).not.toBeInTheDocument(); // 평소엔 안내 문구 없음(2.1)
   });
 
   it('전면 광고가 나올 차례면 기록 보기 버튼에 AD 표시와 안내 한 줄, 아니면 둘 다 없어요', () => {

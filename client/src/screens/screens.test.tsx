@@ -145,9 +145,9 @@ describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
     expect(onToggle).toHaveBeenCalledWith(actionIndex(0, 2));
     expect(screen.queryByRole('button', { name: sub.title })).not.toBeInTheDocument();
     expect(screen.getAllByText(sub.title).length).toBeGreaterThanOrEqual(2); // 제목 + 가운데 이름표
-    // 고치기·지우기는 칸을 길게 눌러서(2.1). 오른쪽 위에는 편집 모드에서만 '완료'
+    // 고치기·지우기는 칸을 길게 눌러서(2.1). 오른쪽 위에는 편집 모드에서만 '완료', 평소엔 3×3 아래 안내 문구도 없어요
     expect(screen.queryByRole('button', { name: '완료' })).not.toBeInTheDocument();
-    expect(screen.getByText('칸을 길게 누르면 고치거나 지울 수 있어요')).toBeInTheDocument();
+    expect(screen.queryByText('칸을 길게 누르면 고치거나 지울 수 있어요')).not.toBeInTheDocument();
   });
 
   it("실천 8개를 오늘 다 체크하면 안내가 바뀌고 가운데 이름표가 진해지며 '오늘 다 했어요'가 붙어요", () => {

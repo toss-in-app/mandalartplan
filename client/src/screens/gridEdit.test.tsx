@@ -107,10 +107,10 @@ function swipe(a: HTMLElement, ...rest: HTMLElement[]) {
 }
 
 describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아이폰처럼)', () => {
-  it('평소엔 편집 버튼 없이 길게 누르기 안내만 있고, 짧게 누르면 평소 동작(체크)', () => {
+  it('평소엔 편집 버튼도 3×3 아래 안내 문구도 없고, 짧게 누르면 평소 동작(체크)', () => {
     const { onToggle } = subScreen(0);
     expect(editingNow()).toBe(false);
-    expect(screen.getByText('칸을 길게 누르면 고치거나 지울 수 있어요')).toBeInTheDocument();
+    expect(screen.queryByText('칸을 길게 누르면 고치거나 지울 수 있어요')).not.toBeInTheDocument();
     tap(cell('받아쓰기'));
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(sheetOpen()).toBe(false);

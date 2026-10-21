@@ -278,18 +278,14 @@ export function useGridEdit({ board, block, screen, onEditCell, onDeleteCells, s
   const blockProps = (normal: Omit<BlockModeProps, 'selected'>): BlockModeProps =>
     editing ? { nextCell: null, interactive: picking ? (cell) => isFilled(cell) : () => true, selected: picking ? selected : undefined } : normal;
 
-  /** 3×3 아래 한 줄 안내. 모드가 바뀌면 스크린리더가 읽어요 */
+  /** 3×3 아래 한 줄 안내 — 편집 모드에서만(평소 '칸을 길게 누르면…'은 사용자 2026-10-21 결정으로 뺐어요, 길게 누르기는 1분 체험판에서 익혀요). 모드가 바뀌면 스크린리더가 읽어요 */
   const hint: string | null = picking
     ? '지울 칸을 누르거나 쭉 끌어서 골라요'
     : editing
       ? canDelete && anyFilled
         ? '칸을 누르면 고치고, 쭉 끌면 지울 칸을 골라요'
         : '칸을 누르면 글을 적어요'
-      : anyFilled
-        ? canDelete
-          ? '칸을 길게 누르면 고치거나 지울 수 있어요'
-          : '칸을 길게 누르면 고칠 수 있어요'
-        : null;
+      : null;
 
   const bottomBar: ReactNode = picking ? (
     <FixedBottomCTA.Double
