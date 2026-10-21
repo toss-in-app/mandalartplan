@@ -1,6 +1,7 @@
 import { colors } from '@toss/tds-colors';
-import { Text, Top } from '@toss/tds-mobile';
+import { Button, Text, Top } from '@toss/tds-mobile';
 
+import { AdMark } from '../components/AiDraftBadge';
 import { Block } from '../components/Block';
 import { useCellEditor } from '../hooks/useCellEditor';
 import { editTarget } from '../lib/cellEdit';
@@ -19,13 +20,15 @@ interface SubScreenProps {
   onEdit: () => void;
   /** 빈 실천 칸을 눌러 시트에서 적었을 때 */
   onChangeAction: (subIndex: number, actionIndex: number, text: string) => void;
+  /** '빈 실천 AI로 채우기'(2.1) — 핵심 목표·이 세부 목표가 있고 빈 실천이 있을 때만. 없으면 숨겨요 */
+  aiFill?: { label: string; caption: string; disabled: boolean; onPress: () => void };
 }
 
 /**
  * 세부 목표 화면 = 그 목표의 3×3. 실천 칸을 누르면 오늘 했어요 체크/해제, 빈 칸을 누르면 그 자리에서 바텀시트로 적어요.
  * 가운데(세부 목표 이름)는 누를 수 없는 이름표 — 편집은 오른쪽 위 버튼. 실천을 오늘 다 하면 가운데가 진해져요.
  */
-export function SubScreen({ board, subIndex, checkin, onToggle, onEdit, onChangeAction }: SubScreenProps) {
+export function SubScreen({ board, subIndex, checkin, onToggle, onEdit, onChangeAction, aiFill }: SubScreenProps) {
   const editor = useCellEditor({ onChangeAction });
   const today = dateKey();
   const checked = todaySet(checkin, today);
@@ -63,6 +66,24 @@ export function SubScreen({ board, subIndex, checkin, onToggle, onEdit, onChange
           }}
         />
       </div>
+
+      {aiFill && (
+        <>
+          <div style={{ padding: '16px 20px 0' }}>
+            <Button display="block" size="large" color="dark" variant="weak" disabled={aiFill.disabled} onClick={aiFill.onPress} aria-label={`광고 보고 ${aiFill.label}`}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <AdMark onBrand={false} />
+                <span>{aiFill.label}</span>
+              </span>
+            </Button>
+          </div>
+          <div className="text-balance" style={{ padding: '8px 24px 0' }}>
+            <Text typography="t7" color={colors.grey600} display="block">
+              {aiFill.caption}
+            </Text>
+          </div>
+        </>
+      )}
 
       <div style={{ padding: '20px 24px 40px' }}>
         <Text typography="t7" color={colors.grey600} display="block">

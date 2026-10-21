@@ -4,6 +4,10 @@ import { AI_DAILY_RUNS } from './rules';
 export const AI_MESSAGES = {
   /** 목표 입력 '광고 보고 만들기' 위 */
   draftCaption: (left: number) => `광고를 끝까지 보면 AI가 초안을 만들어요 · 오늘 ${left}번 남았어요`,
+  /** 칸을 일부 채운 판: 목표 입력 '광고 보고 채우기' 위 */
+  fillDraftCaption: (left: number) => `광고를 끝까지 보면 AI가 빈 칸을 채워요 · 오늘 ${left}번 남았어요`,
+  /** 칸을 일부 채운 판: 목표 입력 화면 부제 */
+  fillDraftSubtitle: (empty: number) => `적어 둔 칸은 그대로 두고 빈 칸 ${empty}개만 채워요`,
   /** 미리보기 '다시 만들기' 위 */
   remakeCaption: (left: number) => `다시 만들기는 광고를 한 번 더 봐요 · 오늘 ${left}번 남았어요`,
   /** 편집 화면 채우기 버튼 아래 */

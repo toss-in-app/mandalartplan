@@ -254,4 +254,55 @@ describe('App (AI 초안)', () => {
     await screen.findByRole('heading', { level: 1, name: '8구단 드래프트 1순위' });
     expect(screen.queryByText('AI 초안')).not.toBeInTheDocument();
   });
+
+  it("칸을 일부 채운 판(2.1): 홈 'AI로 빈 칸 채우기' → 빈 칸만 채운 미리보기 → 빈 칸에 넣기, 적어 둔 칸은 그대로", async () => {
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('토익 900점', ['듣기', '', '읽기']); // 빈 칸 = 세부 목표 6 + 실천 64
+    renderAt();
+    expect(await screen.findByText('빈 칸 70개만 채워요. 적어 둔 칸은 그대로예요.')).toBeInTheDocument();
+    expect(screen.queryByText('AI로 초안 만들기')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'AI로 빈 칸 채우기' }));
+
+    await screen.findByText('적어 둔 칸은 그대로 두고 빈 칸 70개만 채워요');
+    expect(screen.queryByText('예시')).not.toBeInTheDocument(); // 예시 목표는 빈 판에서만
+    expect(screen.getByRole('textbox', { name: '핵심 목표' })).toHaveValue('토익 900점');
+    expect(screen.getByText('광고를 끝까지 보면 AI가 빈 칸을 채워요 · 오늘 10번 남았어요')).toBeInTheDocument();
+    expect(ad.watched).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: '광고 보고 AI로 빈 칸 채우기' }));
+
+    await screen.findByText('적어 둔 칸은 그대로예요. 넣은 뒤에도 칸을 눌러 고칠 수 있어요');
+    expect(ad.watched).toBe(1);
+    // 서버에는 사용자가 적은 세부 목표를 그대로 보내요(빈 칸만 채움)
+    expect(server.calls.find((c) => c.mode === 'subs')?.subs).toEqual(['듣기', '', '읽기', '', '', '', '', '']);
+    expect(logEvent).toHaveBeenCalledWith('ai_draft_start', { mode: 'draft', from: 'partial' });
+
+    fireEvent.click(screen.getByText('빈 칸에 넣기'));
+    await screen.findByRole('heading', { level: 1, name: '토익 900점' });
+    await waitFor(() =>
+      expect(savedBoard().subs.map((s: { title: string }) => s.title)).toEqual(['듣기', '영역 2', '읽기', '영역 4', '영역 5', '영역 6', '영역 7', '영역 8']),
+    );
+    // 판이 다 차면 버튼이 사라져요
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'AI로 빈 칸 채우기' })).not.toBeInTheDocument());
+  });
+
+  it("세부 목표 화면(2.1): '빈 실천 AI로 채우기'로 그 세부 목표의 빈 실천만 채워요", async () => {
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('토익 900점', ['듣기']);
+    renderAt('#/sub/0');
+    await screen.findByText("'듣기'의 빈 실천 8칸을 채워요. 광고를 끝까지 보면 채워져요 · 오늘 10번 남았어요");
+    fireEvent.click(screen.getByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' }));
+    await waitFor(() => expect(savedBoard().subs[0].actions).toEqual(Array.from({ length: 8 }, (_, j) => `실천 1-${j + 1}`)));
+    expect(server.calls).toEqual([expect.objectContaining({ mode: 'actions', only: 0 })]);
+    expect(ad.watched).toBe(1);
+    expect(logEvent).toHaveBeenCalledWith('ai_draft_start', { mode: 'actions', from: 'sub' });
+    await waitFor(() => expect(screen.queryByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' })).not.toBeInTheDocument());
+  });
+
+  it('핵심 목표가 없으면 세부 목표 화면에 채우기 버튼이 없어요', async () => {
+    saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
+    saveBoard('', ['듣기']);
+    renderAt('#/sub/0');
+    await screen.findByText('핵심 목표는 홈의 편집에서 적어요');
+    expect(screen.queryByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' })).not.toBeInTheDocument();
+  });
 });

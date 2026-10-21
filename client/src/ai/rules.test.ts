@@ -6,6 +6,8 @@ import {
   AI_DAILY_RUNS,
   canFillActions,
   canFillSubs,
+  emptyCellCount,
+  hasBoardText,
   cleanCell,
   markAiDraft,
   mergeActions,
@@ -144,5 +146,26 @@ describe('AI 기록(칸 단위)', () => {
     expect(mergeActions(board, 1, ['a', '', '', '', '', '', '', 'h']).cells).toEqual([17, 24]); // 1 + 8 + 1×8 + 0 · +7
     const draft = boardWith((b) => b.subs.forEach((sub, i) => (sub.title = `영역 ${i}`)));
     expect(mergeDraft(createEmptyBoard(NOW), '목표', draft).cells).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+});
+
+describe('판 전체 빈 칸 (2.1 홈 AI로 빈 칸 채우기)', () => {
+  it('세부 목표·실천을 하나라도 적었는지(핵심 목표는 빼고)', () => {
+    expect(hasBoardText(createEmptyBoard(NOW))).toBe(false);
+    expect(hasBoardText(boardWith((b) => (b.goal = '토익 900점')))).toBe(false);
+    expect(hasBoardText(boardWith((b) => (b.subs[3].title = '읽기')))).toBe(true);
+    expect(hasBoardText(boardWith((b) => (b.subs[3].actions[2] = '단어 30개')))).toBe(true);
+  });
+
+  it('빈 세부 목표 + 모든 빈 실천', () => {
+    expect(emptyCellCount(createEmptyBoard(NOW))).toBe(72);
+    const partial = boardWith((b) => {
+      b.subs[0].title = '듣기';
+      b.subs[0].actions[0] = '받아쓰기';
+      b.subs[2].title = '읽기';
+    });
+    expect(emptyCellCount(partial)).toBe(6 + 63);
+    const full = boardWith((b) => b.subs.forEach((sub, i) => ((sub.title = `영역 ${i}`), (sub.actions = sub.actions.map((_, j) => `실천 ${j}`)))));
+    expect(emptyCellCount(full)).toBe(0);
   });
 });

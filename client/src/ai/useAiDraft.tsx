@@ -10,7 +10,7 @@ import type { Board } from '../lib/mandalart';
 import { dateKey } from '../lib/state';
 import { AiDraftError, requestActions, requestSubs, type AiErrorCode, type AiMeta } from './api';
 import { getAiKey } from './key';
-import { cleanCell, emptySubCount, markAiDraft, mergeActions, mergeDraft, mergeSubs, recordRun, runsLeft, subsNeedingActions } from './rules';
+import { cleanCell, emptySubCount, hasBoardText, markAiDraft, mergeActions, mergeDraft, mergeSubs, recordRun, runsLeft, subsNeedingActions } from './rules';
 import { looksLikeSelfHarm } from './safety';
 
 type AppState = ReturnType<typeof useAppState>;
@@ -21,6 +21,8 @@ interface Reward {
 
 /** draft = 목표 입력 화면에서 판 전체, subs = 편집 화면 빈 세부 목표, actions = 편집 화면 한 세부 목표의 빈 실천 */
 export type AiMode = 'draft' | 'subs' | 'actions';
+/** 분석 이벤트 `ai_draft_start` 의 from: 판 전체 초안은 빈 판에서(new)·칸을 일부 채운 판에서(partial), 채우기는 편집 화면(edit)·세부 목표 화면(sub) */
+export type AiFrom = 'new' | 'partial' | 'edit' | 'sub';
 
 /** 서버를 부르기 전에 멈춘 이유. dismissed 말고는 광고를 보지 않았어요. busy = 이미 진행 중(두 번 누름) */
 export type AiStopReason = 'limit' | 'self_harm' | 'notice_closed' | 'no_ad' | 'dismissed' | 'key' | 'busy';
@@ -94,7 +96,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
       setNoticeOpen(true);
     });
 
-  const prepare = async (mode: AiMode, texts: string[]): Promise<{ ok: true; key: string } | { ok: false; reason: AiStopReason }> => {
+  const prepare = async (mode: AiMode, texts: string[], from: AiFrom): Promise<{ ok: true; key: string } | { ok: false; reason: AiStopReason }> => {
     const state = app.getState();
     if (!state || runsLeft(state.settings.ai, dateKey()) === 0) return { ok: false, reason: 'limit' };
     if (looksLikeSelfHarm(...texts)) return { ok: false, reason: 'self_harm' };
@@ -110,7 +112,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
     } catch {
       return { ok: false, reason: 'key' };
     }
-    logEvent('ai_draft_start', { mode });
+    logEvent('ai_draft_start', { mode, from });
     let outcome = await reward.watch();
     // 개발 서버 전용: AIT Devtools 의 모의 광고는 보상(userEarnedReward)을 주지 않아서, localStorage 'mandalart.dev.aiReward' = '1' 이면
     // 끝까지 본 것으로 쳐요(만드는 중·미리보기 화면 확인용). 출시 빌드에서는 import.meta.env.DEV 가 false 라 이 줄이 빠져요.
@@ -139,7 +141,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
 
   const generateDraft = async (goal: string, base: Board, hooks: DraftHooks): Promise<AiResult<DraftValue>> => {
     const cleanGoal = cleanCell(goal);
-    const prep = await prepare('draft', [cleanGoal, ...boardTexts(base)]);
+    const prep = await prepare('draft', [cleanGoal, ...boardTexts(base)], hasBoardText(base) ? 'partial' : 'new');
     if (!prep.ok) return { kind: 'stopped', reason: prep.reason };
     hooks.onStarted?.();
     const onProgress = hooks.onProgress ?? (() => {});
@@ -204,13 +206,13 @@ export function useAiDraft(app: AppState, reward: Reward) {
   };
 
   /** 편집 화면: 결과를 바로 판에 넣어요(빈 칸만). 돌려준 수 = 새로 채운 칸 */
-  const fill = async (mode: 'subs' | 'actions', subIndex: number | null): Promise<AiResult<number>> => {
+  const fill = async (mode: 'subs' | 'actions', subIndex: number | null, from: AiFrom): Promise<AiResult<number>> => {
     const board = app.board;
     if (!board || running.current) return { kind: 'stopped', reason: 'busy' };
     running.current = true;
     setBusy(true);
     try {
-      const prep = await prepare(mode, boardTexts(board));
+      const prep = await prepare(mode, boardTexts(board), from);
       if (!prep.ok) return { kind: 'stopped', reason: prep.reason };
       const startedAt = Date.now();
       const titles = board.subs.map((sub) => sub.title);
@@ -263,8 +265,8 @@ export function useAiDraft(app: AppState, reward: Reward) {
     busy,
     runDraft,
     applyDraft,
-    fillSubs: () => fill('subs', null),
-    fillActions: (subIndex: number) => fill('actions', subIndex),
+    fillSubs: (from: AiFrom = 'edit') => fill('subs', null, from),
+    fillActions: (subIndex: number, from: AiFrom = 'edit') => fill('actions', subIndex, from),
     noticeSheet,
   };
 }

@@ -528,8 +528,8 @@ function App() {
     else toast.openToast(AI_MESSAGES.failBody);
   };
 
-  /** 편집 화면 아래 AI 버튼: 가운데 블록은 빈 세부 목표, 둘레 블록은 그 세부 목표의 빈 실천 */
-  const aiFillFor = (block: number) => {
+  /** AI 채우기 버튼: 가운데 블록은 빈 세부 목표, 둘레 블록은 그 세부 목표의 빈 실천. 편집 화면과 세부 목표 화면(2.1)이 같이 써요 */
+  const aiFillFor = (block: number, from: 'edit' | 'sub' = 'edit') => {
     if (!aiEnabled) return undefined;
     const left = ai.runsLeft;
     const disabled = left === 0 || ai.busy;
@@ -539,19 +539,19 @@ function App() {
         label: '빈 칸 AI로 채우기',
         caption: left === 0 ? AI_MESSAGES.limit : AI_MESSAGES.fillCaption(`비어 있는 세부 목표 ${emptySubCount(board)}칸만 채워요.`, left),
         disabled,
-        onPress: () => void ai.fillSubs().then(afterFill),
+        onPress: () => void ai.fillSubs(from).then(afterFill),
       };
     }
     const subIndex = ringIndex(block);
     if (!canFillActions(board, subIndex)) return undefined;
     return {
-      label: '실천 AI로 추천',
+      label: '빈 실천 AI로 채우기',
       caption:
         left === 0
           ? AI_MESSAGES.limit
           : AI_MESSAGES.fillCaption(`'${board.subs[subIndex].title.trim()}'의 빈 실천 ${emptyActionCount(board, subIndex)}칸을 채워요.`, left),
       disabled,
-      onPress: () => void ai.fillActions(subIndex).then(afterFill),
+      onPress: () => void ai.fillActions(subIndex, from).then(afterFill),
     };
   };
 
@@ -574,6 +574,7 @@ function App() {
           onToggle={toggleToday}
           onEdit={() => navigate({ name: 'block', block: cellOfRing(route.sub) })}
           onChangeAction={app.setAction}
+          aiFill={aiFillFor(cellOfRing(route.sub), 'sub')}
         />
       );
       break;

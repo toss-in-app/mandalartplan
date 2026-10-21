@@ -3,7 +3,7 @@ import { Button, CTAButton, Chip, ChipItem, FixedBottomCTA, ProgressBar, Text, T
 import { useEffect, useRef, useState } from 'react';
 
 import { AI_MESSAGES, CARE_PHONE_URL } from '../ai/messages';
-import { cleanCell } from '../ai/rules';
+import { cleanCell, emptyCellCount, hasBoardText } from '../ai/rules';
 import type { AiResult, DraftHooks, DraftProgress, DraftValue } from '../ai/useAiDraft';
 import { AdMark, AiDraftBadge } from '../components/AiDraftBadge';
 import { MandalartGrid } from '../components/MandalartGrid';
@@ -52,6 +52,9 @@ function AdLabel({ children, onBrand }: { children: string; onBrand: boolean }) 
  */
 export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithTemplate }: DraftScreenProps) {
   const [goal, setGoal] = useState(board.goal);
+  /** 칸을 일부 채운 판에서 왔어요(2.1) — 적어 둔 칸은 그대로 두고 빈 칸만 채운다는 문구로 */
+  const partial = hasBoardText(board);
+  const fillCount = emptyCellCount(board);
   const [phase, setPhase] = useState<Phase>('input');
   const [progress, setProgress] = useState<DraftProgress | null>(null);
   const [draft, setDraft] = useState<DraftValue | null>(null);
@@ -136,7 +139,7 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
     return (
       <>
         <Top
-          title={<Top.TitleParagraph size={22}>초안을 만들고 있어요</Top.TitleParagraph>}
+          title={<Top.TitleParagraph size={22}>{partial ? '빈 칸을 채우고 있어요' : '초안을 만들고 있어요'}</Top.TitleParagraph>}
           subtitleBottom={
             <Top.SubtitleParagraph size={17}>{progress ? '세부 목표를 정했어요. 실천을 채우고 있어요' : '세부 목표를 정하고 있어요'}</Top.SubtitleParagraph>
           }
@@ -172,7 +175,9 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
         <Top
           subtitleTop={<AiDraftBadge />}
           title={<Top.TitleParagraph size={22}>{draft.board.goal}</Top.TitleParagraph>}
-          subtitleBottom={<Top.SubtitleParagraph size={17}>시작한 뒤에도 칸을 눌러 고칠 수 있어요</Top.SubtitleParagraph>}
+          subtitleBottom={
+            <Top.SubtitleParagraph size={17}>{partial ? '적어 둔 칸은 그대로예요. 넣은 뒤에도 칸을 눌러 고칠 수 있어요' : '시작한 뒤에도 칸을 눌러 고칠 수 있어요'}</Top.SubtitleParagraph>
+          }
         />
         <MandalartGrid board={draft.board} />
         <div style={{ height: 160 }} />
@@ -188,7 +193,7 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
               <AdLabel onBrand={false}>다시 만들기</AdLabel>
             </CTAButton>
           }
-          rightButton={<CTAButton onClick={() => onApply(goal, draft)}>이대로 시작하기</CTAButton>}
+          rightButton={<CTAButton onClick={() => onApply(goal, draft)}>{partial ? '빈 칸에 넣기' : '이대로 시작하기'}</CTAButton>}
         />
       </>
     );
@@ -198,8 +203,10 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
   return (
     <>
       <Top
-        title={<Top.TitleParagraph size={22}>AI 초안 만들기</Top.TitleParagraph>}
-        subtitleBottom={<Top.SubtitleParagraph size={17}>핵심 목표를 적으면 세부 목표 8개와 실천 64개를 채워요</Top.SubtitleParagraph>}
+        title={<Top.TitleParagraph size={22}>{partial ? 'AI로 빈 칸 채우기' : 'AI 초안 만들기'}</Top.TitleParagraph>}
+        subtitleBottom={
+          <Top.SubtitleParagraph size={17}>{partial ? AI_MESSAGES.fillDraftSubtitle(fillCount) : '핵심 목표를 적으면 세부 목표 8개와 실천 64개를 채워요'}</Top.SubtitleParagraph>
+        }
       />
       <div className="mg-cell-editor" style={{ padding: '0 24px', ['--mg-brand' as string]: issue === 'refused' ? colors.red500 : brandColor }}>
         <Text typography="t7" color={colors.grey600} fontWeight="medium">
@@ -260,7 +267,8 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
             </Button>
           </div>
         </section>
-      ) : (
+      ) : partial ? null : (
+        // 예시 목표는 빈 판에서만 — 칸을 일부 채운 판에서 목표를 바꾸면 적어 둔 칸과 어긋나요
         <div style={{ paddingTop: 24 }}>
           <div style={{ padding: '0 24px 10px' }}>
             <Text typography="t7" color={colors.grey600} fontWeight="medium">
@@ -287,15 +295,23 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply, onStartWithT
       <FixedBottomCTA
         topAccessory={
           <CtaCaption
-            text={runsLeft === 0 ? AI_MESSAGES.limit : notCounted ? AI_MESSAGES.notCounted(runsLeft) : AI_MESSAGES.draftCaption(runsLeft)}
+            text={
+              runsLeft === 0
+                ? AI_MESSAGES.limit
+                : notCounted
+                  ? AI_MESSAGES.notCounted(runsLeft)
+                  : partial
+                    ? AI_MESSAGES.fillDraftCaption(runsLeft)
+                    : AI_MESSAGES.draftCaption(runsLeft)
+            }
             strong={runsLeft === 0}
           />
         }
         disabled={!canMake}
-        aria-label="광고 보고 AI 초안 만들기"
+        aria-label={partial ? '광고 보고 AI로 빈 칸 채우기' : '광고 보고 AI 초안 만들기'}
         onClick={() => void generate()}
       >
-        <AdLabel onBrand>광고 보고 만들기</AdLabel>
+        <AdLabel onBrand>{partial ? '광고 보고 채우기' : '광고 보고 만들기'}</AdLabel>
       </FixedBottomCTA>
     </>
   );

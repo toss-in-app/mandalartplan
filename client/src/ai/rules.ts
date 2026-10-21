@@ -32,6 +32,16 @@ export function emptyActionCount(board: Board, subIndex: number): number {
   return board.subs[subIndex].actions.filter((action) => !action.trim()).length;
 }
 
+/** 세부 목표·실천을 하나라도 적었는지(핵심 목표는 빼고) — 홈에서 'AI 초안 만들기' 대신 'AI로 빈 칸 채우기'를 보여요 */
+export function hasBoardText(board: Board): boolean {
+  return board.subs.some((sub) => sub.title.trim().length > 0 || sub.actions.some((action) => action.trim().length > 0));
+}
+
+/** 판 전체 초안이 채울 칸 수: 빈 세부 목표 + 모든 빈 실천(빈 세부 목표는 먼저 채워지니 그 아래 실천까지) */
+export function emptyCellCount(board: Board): number {
+  return board.subs.reduce((count, sub) => count + (sub.title.trim() ? 0 : 1) + sub.actions.filter((action) => !action.trim()).length, 0);
+}
+
 /** 편집 화면 '빈 칸 AI로 채우기': 핵심 목표가 있고 빈 세부 목표가 있을 때 */
 export function canFillSubs(board: Board): boolean {
   return board.goal.trim().length > 0 && emptySubCount(board) > 0;

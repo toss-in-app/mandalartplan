@@ -66,7 +66,7 @@ Supabase RPC: `backup_get(p_key)` · `backup_upsert(p_key, p_payload, p_payload_
 | 이벤트 | 언제 | 파라미터 |
 |--------|------|----------|
 | `ai_notice_agree` | 생성형 AI 사전 고지 시트에서 '확인' | |
-| `ai_draft_start` | AD 버튼을 누르고 사전 검사(고지·하루 10회·입력)를 통과해 광고를 띄우기 직전 | `mode`(draft/subs/actions) |
+| `ai_draft_start` | AD 버튼을 누르고 사전 검사(고지·하루 10회·입력)를 통과해 광고를 띄우기 직전 | `mode`(draft/subs/actions), `from`(2.1: draft 는 new = 빈 판·핵심 목표만 / partial = 칸을 일부 채운 판, subs·actions 는 edit = 편집 화면 / sub = 세부 목표 화면) |
 | `ai_draft_reward` | 리워드 광고 결과 | `mode`, `result`(rewarded/dismissed/unavailable) |
 | `ai_draft_result` | 서버 응답(보상을 받은 뒤에만 부름) | `mode`, `result`(ok/refused/limited/invalid_output/busy/network/invalid), `ms` |
 | `ai_draft_apply` | 결과를 판에 넣음(미리보기 '이대로 시작하기' 또는 편집 화면 채우기) | `mode`, `filled`(새로 채운 칸 수) |

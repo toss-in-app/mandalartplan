@@ -1,6 +1,7 @@
 import { colors } from '@toss/tds-colors';
 import { Button, List, ListRow, ProgressBar, Text, Top } from '@toss/tds-mobile';
 
+import { emptyCellCount, hasBoardText } from '../ai/rules';
 import { AiDraftBadge } from '../components/AiDraftBadge';
 import { Block } from '../components/Block';
 import { useCellEditor } from '../hooks/useCellEditor';
@@ -38,7 +39,7 @@ interface HomeScreenProps {
   /** '매일 저녁 알림 받기' 행 — 누르면 바로 알림 동의 화면(사용자가 누른 뒤에만) */
   onNotification: () => void;
   onStartWithTemplate: () => void;
-  /** 'AI로 초안 만들기'(2.0) — 세부 목표가 하나도 없을 때 보여요. 없으면(서버 설정 없음·광고 미지원) 버튼을 숨겨요 */
+  /** AI 초안 화면으로 — 빈 판·핵심 목표만이면 'AI로 초안 만들기'(2.0), 칸을 일부 채운 뒤에는 빈 칸이 남아 있는 동안 'AI로 빈 칸 채우기'(2.1). 없으면(서버 설정 없음·광고 미지원) 버튼을 숨겨요 */
   onAiDraft?: () => void;
 }
 
@@ -79,8 +80,11 @@ export function HomeScreen({
   const titleText = hasGoal ? board.goal : boardCount > 1 ? boardLabel(activeIndex) : '만다라트';
 
   const hasSubs = board.subs.some((sub) => sub.title.trim().length > 0);
-  // AI 초안은 세부 목표·실천이 하나도 없을 때(빈 판 또는 핵심 목표만) 홈에서 권해요. 그 뒤로는 편집 화면의 'AI로 채우기'
+  // AI 초안은 세부 목표·실천이 하나도 없을 때(빈 판 또는 핵심 목표만) 홈에서 권해요.
   const offerAi = Boolean(onAiDraft) && !hasSubs && progress.actionsFilled === 0;
+  // 칸을 일부 채운 뒤에도 빈 칸이 남아 있으면 같은 초안 화면으로 빈 칸만 채워요(2.1) — 적어 둔 칸은 그대로
+  const fillCount = emptyCellCount(board);
+  const offerAiFill = Boolean(onAiDraft) && hasBoardText(board) && fillCount > 0;
   const subtitle = isEmpty
     ? '가운데 칸을 눌러 핵심 목표부터 정해 보세요'
     : !hasSubs
@@ -231,6 +235,22 @@ export function HomeScreen({
             기록 보기를 누르면 광고가 한 번 나와요. 오늘은 그 뒤로 광고 없이 볼 수 있어요.
           </Text>
         </div>
+      )}
+
+      {/* 2.1: 칸을 일부 채운 판에서도 AI 를 쓰게. 광고는 다음 화면의 '광고 보고 채우기'에서만 나와요 */}
+      {offerAiFill && (
+        <>
+          <div style={{ padding: '8px 20px 0' }}>
+            <Button display="block" size="large" color="dark" variant="weak" onClick={onAiDraft}>
+              AI로 빈 칸 채우기
+            </Button>
+          </div>
+          <div className="text-balance" style={{ padding: '8px 24px 8px' }}>
+            <Text typography="t7" color={colors.grey600} display="block">
+              빈 칸 {fillCount}개만 채워요. 적어 둔 칸은 그대로예요.
+            </Text>
+          </div>
+        </>
       )}
 
       {editor.sheet}
