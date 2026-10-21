@@ -43,7 +43,12 @@ export function CellEditorSheet({ target, draft, onDraft, onClose, onCommit }: C
       hasTextField
       ctaContentGap={20}
       header={<BottomSheet.Header>{target?.question ?? ''}</BottomSheet.Header>}
-      cta={<BottomSheet.CTA onClick={onCommit}>완료</BottomSheet.CTA>}
+      // 글이 없으면 '완료'를 꺼요(빈 칸으로 저장하지 않아요 — 지우기는 편집 모드의 삭제로, 사용자 2026-10-21)
+      cta={
+        <BottomSheet.CTA disabled={draft.trim().length === 0} onClick={onCommit}>
+          완료
+        </BottomSheet.CTA>
+      }
     >
       {target && (
         <div className="mg-cell-editor" style={{ padding: '4px 24px 0', ['--mg-brand' as string]: brandColor }}>
@@ -68,7 +73,7 @@ export function CellEditorSheet({ target, draft, onDraft, onClose, onCommit }: C
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
                 event.preventDefault();
-                onCommit();
+                if (draft.trim()) onCommit();
               }}
             />
           </div>

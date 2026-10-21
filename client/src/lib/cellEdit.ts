@@ -78,42 +78,57 @@ export function focusEditor() {
 }
 
 /**
- * 편집 화면에서 고른 칸(0~8)의 글을 한꺼번에 지워요(2.1 여러 칸 지우기). 지운 칸은 'AI 초안' 기록에서도 빠져요.
- * 세부 목표 이름을 지워도 그 아래 실천은 그대로예요(고른 칸만 지워요).
- * 돌려주는 `actions` = 지운 실천 번호(0~63) — 오늘 체크에서도 빼려고요.
+ * 편집 모드에서 고른 칸(0~8)의 글을 한꺼번에 지워요(2.1 여러 칸 지우기). 지운 칸은 'AI 초안' 기록에서도 빠져요.
+ * 상위 목표를 지우면 그 아래도 전부 지워요(사용자 결정 2026-10-21): 세부 목표 → 그 실천 8칸, 핵심 목표 → 세부 목표·실천 전부.
+ * 돌려주는 `fields` = 실제로 지운 글(고른 칸 + 함께 지운 하위 칸, 되돌리기용), `actions` = 지운 실천 번호(0~63) — 오늘 체크에서도 빼려고요.
  */
-export function clearBlockCells(board: Board, block: number, cells: readonly number[]): { board: Board; cleared: number; actions: number[] } {
+export function clearBlockCells(board: Board, block: number, cells: readonly number[]): { board: Board; cleared: number; actions: number[]; fields: CellField[] } {
   let next = board;
-  let cleared = 0;
+  const fields: CellField[] = [];
   const actions: number[] = [];
-  const clearSub = (s: number) => {
-    if (!next.subs[s].title) return;
-    next = releaseAiCell({ ...next, subs: next.subs.map((sub, i) => (i === s ? { ...sub, title: '' } : sub)) }, AI_CELL.sub(s));
-    cleared += 1;
-  };
-  for (const cell of new Set(cells)) {
-    if (!Number.isInteger(cell) || cell < 0 || cell > 8) continue;
-    if (block === CENTER) {
-      if (cell === CENTER) {
-        if (!next.goal) continue;
-        next = releaseAiCell({ ...next, goal: '' }, AI_CELL.goal);
-        cleared += 1;
-      } else clearSub(ringIndex(cell));
-      continue;
-    }
-    const s = ringIndex(block);
-    if (cell === CENTER) {
-      clearSub(s);
-      continue;
-    }
-    const a = ringIndex(cell);
-    if (!next.subs[s].actions[a]) continue;
+  const clearAction = (s: number, a: number) => {
+    if (!next.subs[s].actions[a]) return;
     next = releaseAiCell(
       { ...next, subs: next.subs.map((sub, i) => (i === s ? { ...sub, actions: sub.actions.map((t, j) => (j === a ? '' : t)) } : sub)) },
       AI_CELL.action(s, a),
     );
-    cleared += 1;
+    fields.push({ kind: 'action', subIndex: s, actionIndex: a });
     actions.push(actionIndex(s, a));
+  };
+  /** 세부 목표 이름과 그 아래 실천 */
+  const clearSub = (s: number) => {
+    if (next.subs[s].title) {
+      next = releaseAiCell({ ...next, subs: next.subs.map((sub, i) => (i === s ? { ...sub, title: '' } : sub)) }, AI_CELL.sub(s));
+      fields.push({ kind: 'sub', subIndex: s });
+    }
+    for (let a = 0; a < next.subs[s].actions.length; a++) clearAction(s, a);
+  };
+  for (const cell of new Set(cells)) {
+    if (!Number.isInteger(cell) || cell < 0 || cell > 8) continue;
+    if (block === CENTER) {
+      if (cell !== CENTER) {
+        clearSub(ringIndex(cell));
+        continue;
+      }
+      if (next.goal) {
+        next = releaseAiCell({ ...next, goal: '' }, AI_CELL.goal);
+        fields.push({ kind: 'goal' });
+      }
+      for (let s = 0; s < next.subs.length; s++) clearSub(s);
+      continue;
+    }
+    const s = ringIndex(block);
+    if (cell === CENTER) clearSub(s);
+    else clearAction(s, ringIndex(cell));
   }
-  return { board: next, cleared, actions };
+  return { board: next, cleared: fields.length, actions, fields };
+}
+
+const fieldKey = (field: CellField) => (field.kind === 'goal' ? 'goal' : field.kind === 'sub' ? `sub${field.subIndex}` : `action${field.subIndex}.${field.actionIndex}`);
+
+/** 고른 칸을 지울 때 상위 목표를 따라 함께 지워지는 하위 칸 수(확인 창 안내). 고른 칸 자신은 세지 않아요 */
+export function cascadeOf(board: Board, block: number, cells: readonly number[]): { subs: number; actions: number } {
+  const own = new Set(cells.filter((cell) => Number.isInteger(cell) && cell >= 0 && cell <= 8).map((cell) => fieldKey(editTarget(board, block, cell).field)));
+  const extra = clearBlockCells(board, block, cells).fields.filter((field) => !own.has(fieldKey(field)));
+  return { subs: extra.filter((field) => field.kind === 'sub').length, actions: extra.filter((field) => field.kind === 'action').length };
 }

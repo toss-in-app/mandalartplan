@@ -22,7 +22,7 @@ import { logEvent } from './lib/analytics';
 import { canSaveImage, createShareLink, haptic, openUrl, saveImageToPhotos, shareText } from './lib/bridge';
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
 import { notificationAvailable, requestNotificationAgreement } from './notification/agreement';
-import { clearBlockCells, editTarget } from './lib/cellEdit';
+import { clearBlockCells } from './lib/cellEdit';
 import { applyCheckin, todayChecked, todaySet, toggleCheck } from './lib/checkin';
 import { subCompleted } from './lib/cells';
 import { CENTER, TOTAL_CELLS, boardToText, cellOfRing, getProgress, hasAiText, ringIndex, splitActionIndex } from './lib/mandalart';
@@ -502,7 +502,7 @@ function App() {
   };
 
   /**
-   * 제자리 편집 모드의 여러 칸 지우기(2.1, 홈·세부 목표 화면): 고른 칸의 글을 지우고, 지운 실천은 오늘 체크에서도 빼요.
+   * 제자리 편집 모드의 여러 칸 지우기(2.1, 홈·세부 목표 화면): 고른 칸의 글을 지우고(상위 목표면 그 아래도 전부), 지운 실천은 오늘 체크에서도 빼요.
    * 돌려주는 함수 = 되돌리기(토스트 버튼). 그 사이 다른 칸을 고치지 않았으면 판을 지우기 전으로, 고쳤으면 지운 칸 글만 되살려요.
    */
   const deleteCells = (block: number, cells: number[]): (() => void) => {
@@ -523,10 +523,9 @@ function App() {
       app.updateBoard((current) => {
         if (current.id !== before.id) return current;
         if (sameContent(current, result.board)) return before;
-        // 그사이 다른 칸을 고쳤으면 지운 칸만, 아직 비어 있을 때 되살려요('AI 초안' 표시는 되살리지 않아요)
+        // 그사이 다른 칸을 고쳤으면 지운 칸만(함께 지운 하위 칸 포함), 아직 비어 있을 때 되살려요('AI 초안' 표시는 되살리지 않아요)
         let next = current;
-        for (const cell of cells) {
-          const field = editTarget(before, block, cell).field;
+        for (const field of result.fields) {
           if (field.kind === 'goal') {
             if (!next.goal) next = { ...next, goal: before.goal };
           } else if (field.kind === 'sub') {

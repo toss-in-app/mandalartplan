@@ -4,18 +4,26 @@ import { useEffect, useRef, useState, type ComponentProps, type PointerEvent, ty
 import type { Block } from '../components/Block';
 import { logEvent } from '../lib/analytics';
 import { haptic } from '../lib/bridge';
+import { cascadeOf, clearBlockCells } from '../lib/cellEdit';
 import { cellView } from '../lib/cells';
-import { CENTER, ringIndex, type Board } from '../lib/mandalart';
+import { CENTER, type Board } from '../lib/mandalart';
 
 /** 이만큼 누르고 있으면 편집 모드(아이폰 홈 화면처럼 칸이 흔들려요) */
 export const LONG_PRESS_MS = 450;
-/** 손가락이 이만큼 움직이면 누르기가 아니라 쓸기·스크롤 */
+/** 손가락이 이만큼 움직이면 누르기가 아니라 끌기·스크롤 */
 const MOVE_SLOP_PX = 10;
 /** 길게 누르기·끌기 뒤 손을 떼고 이 안에 오는 click 은 그 손가락의 것이라 건너뛰어요 */
 const SKIP_CLICK_MS = 600;
 
 /** 분석 이벤트 edit_mode_enter 의 via */
-export type EditVia = 'longpress' | 'swipe' | 'button' | 'link';
+export type EditVia = 'longpress' | 'button' | 'link';
+
+/** 확인 창 설명: 상위 목표를 따라 함께 지워지는 하위 칸 */
+function cascadeNotice(goal: boolean, extra: { subs: number; actions: number }): string | undefined {
+  const parts = [extra.subs > 0 ? `세부 목표 ${extra.subs}개` : '', extra.actions > 0 ? `실천 ${extra.actions}개` : ''].filter(Boolean);
+  if (parts.length === 0) return undefined;
+  return goal ? `핵심 목표를 지우면 ${parts.join('와 ')}도 함께 지워져요.` : `세부 목표를 지우면 그 아래 ${parts.join('와 ')}도 함께 지워져요.`;
+}
 
 type BlockModeProps = Pick<ComponentProps<typeof Block>, 'checked' | 'caption' | 'nextCell' | 'interactive' | 'selected'>;
 
@@ -38,8 +46,9 @@ interface UseGridEditOptions {
  *  - 칸을 **길게 누르면** 편집 모드: 글이 있는 칸이 흔들리고('wiggle' 진동) 오른쪽 위 '완료'로 끝내요
  *  - 편집 모드에서 **누르면** 그 칸 글 고치기(입력 시트), **쭉 끌면** 지울 칸 고르기(고른 칸 = '오늘 다 했어요' 모양 ✓).
  *    길게 누른 손가락을 떼지 않고 끌어도 골라요
- *  - 평소에도 글이 있는 칸을 **옆으로 쓸면** 바로 편집 모드 + 지울 칸 고르기. 위아래 움직임은 스크롤로 놓아줘요
- *  - 고르는 중에는 누르면 고르기·빼기, 아래 '선택 해제' + 빨간 'n칸 삭제' → 확인 창 → 토스트 '되돌리기'
+ *  - 끌어서 고르기는 편집 모드에서만이에요. 평소에 끌면 아무 일도 없어요(끌다가 편집 모드로 넘어가지 않게 — 사용자 2026-10-21)
+ *  - 고르는 중에는 누르면 고르기·빼기, 아래 '선택 해제' + 빨간 'n칸 삭제' → 확인 창 → 토스트 '되돌리기'.
+ *    상위 목표를 지우면 그 아래도 전부 지워요(`clearBlockCells`) — 확인 창이 함께 지워지는 칸 수를 알려 줘요
  *  - 키보드·스크린리더는 포커스할 때만 보이는 '편집'·'지울 칸 고르기' 입구로 같은 일을 해요
  * 편집 모드에 들어갈 때와 나올 때(완료·화면 이탈) 판이 바뀌었으면 board_edit 를 1회 보내요.
  */
@@ -174,12 +183,10 @@ export function useGridEdit({ board, block, screen, onEditCell, onDeleteCells, s
       const dy = event.clientY - pending.y;
       if (Math.hypot(dx, dy) < MOVE_SLOP_PX) return;
       cancelPress();
-      // 움직였으면 누르기가 아니에요(손을 뗀 뒤 click 으로 입력창을 열지 않게)
+      // 움직였으면 누르기가 아니에요(손을 뗀 뒤 click 으로 체크하거나 입력창을 열지 않게)
       gestured.current = true;
-      // 평소엔 옆으로 쓸 때만(위아래는 스크롤), 편집 모드에선 어느 쪽으로 끌어도 지울 칸 고르기
-      const sideways = Math.abs(dx) > Math.abs(dy);
-      if (!canDelete || !isFilled(pending.cell) || (!editingRef.current && !sideways)) return;
-      enter('swipe');
+      // 끌어서 고르기는 편집 모드에서만(길게 눌러 편집 모드가 된 손가락을 떼지 않고 끌어도). 평소엔 그냥 놓아줘요
+      if (!editingRef.current || !canDelete || !isFilled(pending.cell)) return;
       startDrag(pending.cell);
     }
     if (!drag.current) return;
@@ -230,22 +237,18 @@ export function useGridEdit({ board, block, screen, onEditCell, onDeleteCells, s
   const confirmDelete = async () => {
     const cells = [...selected].sort((a, b) => a - b);
     if (cells.length === 0 || !onDeleteCells) return;
-    // 세부 목표 이름을 지우는데 그 아래 실천(이번에 같이 지우지 않는 것)이 남으면 알려 줘요
-    const keepsActions =
-      block === CENTER
-        ? cells.some((cell) => cell !== CENTER && board.subs[ringIndex(cell)].actions.some((action) => action.trim()))
-        : cells.includes(CENTER) &&
-          board.subs[ringIndex(block)].actions.some((action, a) => action.trim() && !cells.includes(a < CENTER ? a : a + 1));
+    // 상위 목표를 지우면 그 아래도 전부 지워져요: 칸 수는 함께 지워지는 칸까지 세고, 무엇이 함께 지워지는지 알려 줘요
+    const total = clearBlockCells(board, block, cells).cleared;
     const ok = await openConfirm({
-      title: `${cells.length}칸을 삭제할까요?`,
-      description: keepsActions ? '세부 목표를 지워도 그 아래 실천은 그대로예요.' : undefined,
+      title: `${total}칸을 삭제할까요?`,
+      description: cascadeNotice(block === CENTER && cells.includes(CENTER), cascadeOf(board, block, cells)),
       confirmButton: <ConfirmDialog.ConfirmButton color="danger">삭제</ConfirmDialog.ConfirmButton>,
       cancelButton: '닫기',
     });
     if (!ok) return;
     const undo = onDeleteCells(cells);
     clearSelection();
-    toast.openToast(`${cells.length}칸을 삭제했어요`, {
+    toast.openToast(`${total}칸을 삭제했어요`, {
       button: {
         text: '되돌리기',
         onClick: () => {
@@ -303,7 +306,7 @@ export function useGridEdit({ board, block, screen, onEditCell, onDeleteCells, s
     />
   ) : null;
 
-  // 길게 누르기·쓸기를 못 하는 키보드·스크린리더용 입구. 포커스할 때만 보여요(같은 버튼이라 눌러도 포커스가 남아요)
+  // 길게 누르기·끌기를 못 하는 키보드·스크린리더용 입구. 포커스할 때만 보여요(같은 버튼이라 눌러도 포커스가 남아요)
   const revealButton: ReactNode = !editing ? (
     <button type="button" className="mg-reveal-on-focus" onClick={() => enter('button')}>
       편집

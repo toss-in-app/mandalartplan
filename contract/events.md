@@ -28,9 +28,9 @@
 
 | 이름 | 언제 | 파라미터 |
 |------|------|----------|
-| `edit_mode_enter` | 홈·세부 목표 화면(1분 체험판 포함)이 편집 모드로 바뀔 때 | `screen`(home/sub/trial), `via`(longpress = 칸 길게 누르기 / swipe = 옆으로 쓸기 / button = 키보드·스크린리더 입구 '편집' / link = 예전 편집 화면 링크 `block/:n`) |
-| `cells_delete` | 편집 모드에서 고른 칸을 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수), `area`(goals = 홈: 핵심 목표·세부 목표 / actions = 세부 목표 화면: 세부 목표 이름·실천) |
-| `cells_delete_undo` | 토스트의 '되돌리기' | `count` |
+| `edit_mode_enter` | 홈·세부 목표 화면(1분 체험판 포함)이 편집 모드로 바뀔 때 | `screen`(home/sub/trial), `via`(longpress = 칸 길게 누르기 / button = 키보드·스크린리더 입구 '편집' / link = 예전 편집 화면 링크 `block/:n`. 평소 옆으로 쓸기로 들어가던 swipe 는 출시 전에 없앰) |
+| `cells_delete` | 편집 모드에서 고른 칸을 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수 — 상위 목표를 따라 함께 지운 하위 칸 포함: 세부 목표 → 그 실천, 핵심 목표 → 전부), `area`(goals = 홈: 핵심 목표·세부 목표 / actions = 세부 목표 화면: 세부 목표 이름·실천) |
+| `cells_delete_undo` | 토스트의 '되돌리기' | `count`(`cells_delete` 와 같은 수) |
 
 ### 1분 체험판 (2.1 — 홈·설정 '1분 체험해 보기', `client/src/screens/TrialScreen.tsx`)
 

@@ -75,6 +75,7 @@ function sheetDone() {
   while (node && !within(node).queryByText('완료')) node = node.parentElement;
   return within(node!).getByText('완료');
 }
+const sheetDoneButton = () => sheetDone().closest('button')!;
 
 const original = document.elementFromPoint;
 afterEach(() => {
@@ -97,7 +98,7 @@ function tap(el: HTMLElement) {
   fireEvent.click(el);
 }
 
-/** a 에서 시작해 옆으로 쓸며 rest 칸을 지나가요 */
+/** a 를 누른 채 옆으로 끌며 rest 칸을 지나가요 */
 function swipe(a: HTMLElement, ...rest: HTMLElement[]) {
   fingerOver(a, ...rest);
   fireEvent.pointerDown(a, { clientX: 10, clientY: 10 });
@@ -166,17 +167,42 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('옆으로 쓸면 바로 편집 모드로 들어가 지나간 칸을 골라요', () => {
+  it('평소엔 끌어도 편집 모드로 넘어가지 않고 체크도 하지 않아요(끌어서 고르기는 편집 모드에서만, 사용자 2026-10-21)', () => {
+    const { onToggle } = subScreen(0);
+    const a = cell('받아쓰기');
+    swipe(a, cell('쉐도잉'), cell('팟캐스트'));
+    fireEvent.click(a); // 끈 손가락을 뗀 뒤의 click
+    expect(editingNow()).toBe(false);
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(logEvent).not.toHaveBeenCalledWith('edit_mode_enter', expect.anything());
+  });
+
+  it('편집 모드에서 끌면 지나간 칸을 골라요', () => {
     subScreen(0);
+    reveal('편집');
     swipe(cell('받아쓰기'), cell('쉐도잉'), cell('팟캐스트'));
-    expect(editingNow()).toBe(true);
     expect(['받아쓰기', '쉐도잉', '팟캐스트'].map((t) => cell(t).getAttribute('aria-pressed'))).toEqual(['true', 'true', 'true']);
     expect(within(cell('받아쓰기')).getByText('✓')).toBeInTheDocument();
     expect(cell('받아쓰기')).not.toHaveClass('mg-cell-done'); // 고른 칸은 ✓, '완료' 도장은 오늘 한 실천만
     expect(screen.getByRole('button', { name: '3칸 삭제' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '선택 해제' })).toBeInTheDocument();
     expect(screen.getByText('지울 칸을 누르거나 쭉 끌어서 골라요')).toBeInTheDocument();
-    expect(logEvent).toHaveBeenCalledWith('edit_mode_enter', { screen: 'sub', via: 'swipe' });
+  });
+
+  it('길게 눌러 편집 모드가 된 손가락을 떼지 않고 끌어도 골라요', () => {
+    vi.useFakeTimers();
+    subScreen(0);
+    const a = cell('받아쓰기');
+    fingerOver(a, cell('쉐도잉'));
+    fireEvent.pointerDown(a, { clientX: 10, clientY: 10 });
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(editingNow()).toBe(true);
+    fireEvent.pointerMove(a, { clientX: 70, clientY: 12 });
+    fireEvent.pointerUp(a);
+    expect(screen.getByRole('button', { name: '2칸 삭제' })).toBeInTheDocument();
+    expect(logEvent).toHaveBeenCalledWith('edit_mode_enter', { screen: 'sub', via: 'longpress' });
   });
 
   it('위아래로 움직이면 스크롤로 보고 고르지 않아요(길게 누르기도 취소)', () => {
@@ -194,6 +220,7 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
 
   it('고르는 중엔 누르면 고르기·빼기, 고른 칸에서 끌면 빼기 — 다 빼면 아래 버튼이 사라지고 편집 모드는 그대로', () => {
     subScreen(0);
+    reveal('편집');
     swipe(cell('받아쓰기'), cell('쉐도잉'));
     tap(cell('팟캐스트'));
     expect(screen.getByRole('button', { name: '3칸 삭제' })).toBeInTheDocument();
@@ -210,6 +237,7 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
   it("빨간 'n칸 삭제' → 확인 창 → 지우고 토스트의 '되돌리기'. 편집 모드는 이어져요", async () => {
     const undo = vi.fn();
     const { onDeleteCells } = subScreen(0, { onDeleteCells: vi.fn(() => undo) });
+    reveal('편집');
     swipe(cell('받아쓰기'), cell('쉐도잉'));
     fireEvent.click(screen.getByRole('button', { name: '2칸 삭제' }));
     const dialog = await screen.findByRole('dialog');
@@ -225,6 +253,7 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
 
   it("'선택 해제'는 지우지 않고 고르기만 끝내요", () => {
     const { onDeleteCells } = subScreen(0);
+    reveal('편집');
     swipe(cell('받아쓰기'), cell('쉐도잉'));
     fireEvent.click(screen.getByRole('button', { name: '선택 해제' }));
     expect(screen.queryByRole('button', { name: '2칸 삭제' })).not.toBeInTheDocument();
@@ -243,13 +272,69 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(screen.getByRole('button', { name: '1칸 삭제' })).toBeEnabled();
   });
 
-  it('홈에서 실천이 있는 세부 목표 이름을 지우면 실천은 그대로라고 알려 줘요', async () => {
-    homeScreen();
+  it('홈에서 세부 목표를 지우면 그 아래 실천도 함께 지워져요: 확인 창·토스트가 함께 지워지는 칸까지 세요', async () => {
+    const { onDeleteCells } = homeScreen();
     reveal('편집');
     reveal('지울 칸 고르기');
     fireEvent.click(cell('듣기'));
     fireEvent.click(screen.getByRole('button', { name: '1칸 삭제' }));
-    expect(within(await screen.findByRole('dialog')).getByText('세부 목표를 지워도 그 아래 실천은 그대로예요.')).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('4칸을 삭제할까요?')).toBeInTheDocument();
+    expect(within(dialog).getByText('세부 목표를 지우면 그 아래 실천 3개도 함께 지워져요.')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: '삭제' }));
+    await waitFor(() => expect(onDeleteCells).toHaveBeenCalledWith([cellOfRing(0)]));
+    expect((await screen.findAllByText('4칸을 삭제했어요')).length).toBeGreaterThan(0);
+  });
+
+  it('홈에서 핵심 목표를 지우면 세부 목표와 실천까지 전부 지워진다고 알려 줘요', async () => {
+    homeScreen();
+    reveal('편집');
+    reveal('지울 칸 고르기');
+    fireEvent.click(cell('토익 900점'));
+    fireEvent.click(screen.getByRole('button', { name: '1칸 삭제' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('6칸을 삭제할까요?')).toBeInTheDocument(); // 핵심 목표 + 세부 목표 2 + 실천 3
+    expect(within(dialog).getByText('핵심 목표를 지우면 세부 목표 2개와 실천 3개도 함께 지워져요.')).toBeInTheDocument();
+  });
+
+  it('세부 목표 화면에서 가운데(세부 목표 이름)를 지우면 남은 실천도 함께 지워진다고 알려 줘요', async () => {
+    subScreen(0);
+    reveal('편집');
+    reveal('지울 칸 고르기');
+    fireEvent.click(cell('듣기'));
+    fireEvent.click(cell('받아쓰기'));
+    fireEvent.click(screen.getByRole('button', { name: '2칸 삭제' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('4칸을 삭제할까요?')).toBeInTheDocument();
+    expect(within(dialog).getByText('세부 목표를 지우면 그 아래 실천 2개도 함께 지워져요.')).toBeInTheDocument();
+  });
+
+  it("입력 시트: 글이 없거나 다 지우면 '완료'가 꺼지고(Enter 도 저장 안 함), 글을 적으면 다시 켜져요", () => {
+    const { onChangeSubTitle } = subScreen(0);
+    reveal('편집');
+    tap(cell('듣기'));
+    const title = screen.getByPlaceholderText('예: 매일 글쓰기 습관');
+    expect(sheetDoneButton()).toBeEnabled();
+    fireEvent.change(title, { target: { value: '   ' } });
+    expect(sheetDoneButton()).toBeDisabled();
+    fireEvent.keyDown(title, { key: 'Enter' });
+    fireEvent.click(sheetDoneButton());
+    expect(onChangeSubTitle).not.toHaveBeenCalled();
+    fireEvent.change(title, { target: { value: '듣기 연습' } });
+    expect(sheetDoneButton()).toBeEnabled();
+    fireEvent.keyDown(title, { key: 'Enter' });
+    expect(onChangeSubTitle).toHaveBeenCalledWith(0, '듣기 연습');
+  });
+
+  it("입력 시트: 빈 칸을 눌러 처음 적을 때도 글을 적기 전엔 '완료'가 꺼져 있어요", () => {
+    const { onChangeAction } = subScreen(0);
+    reveal('편집');
+    tap(cell('실천 4'));
+    expect(sheetDoneButton()).toBeDisabled();
+    fireEvent.change(screen.getByPlaceholderText('예: 아침 스트레칭 10분'), { target: { value: '단어장' } });
+    expect(sheetDoneButton()).toBeEnabled();
+    fireEvent.click(sheetDoneButton());
+    expect(onChangeAction).toHaveBeenCalledWith(0, 3, '단어장');
   });
 
   it('홈: 길게 누른 세부 목표 칸은 세부 목표 화면으로 가지 않고, 편집 모드에선 가운데(핵심 목표)를 눌러 고쳐요', () => {
