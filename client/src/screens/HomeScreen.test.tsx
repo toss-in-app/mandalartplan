@@ -114,13 +114,17 @@ describe('HomeScreen (홈 마무리)', () => {
     expect(onSelectSub).toHaveBeenCalledWith(0);
   });
 
-  it('목표가 있으면 가운데 칸은 전체 보기로 가고, 편집은 오른쪽 위 버튼으로만 가요', () => {
+  it('목표가 있으면 가운데 칸은 누를 수 없는 이름표(2.1), 전체 보기는 버튼으로, 편집은 오른쪽 위 버튼으로만 가요', () => {
     const onEditCore = vi.fn();
     const onOverview = vi.fn();
     renderHome(filledBoard(true), content, undefined, { onEditCore, onOverview });
-    fireEvent.click(screen.getByRole('button', { name: '건강한 한 해' }));
-    expect(onOverview).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: '건강한 한 해' })).not.toBeInTheDocument();
+    const centers = screen.getAllByText('건강한 한 해');
+    fireEvent.click(centers[centers.length - 1]); // 가운데 칸 글을 눌러도
+    expect(onOverview).not.toHaveBeenCalled();
     expect(onEditCore).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '전체 보기' }));
+    expect(onOverview).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText('편집'));
     expect(onEditCore).toHaveBeenCalledTimes(1);
   });
