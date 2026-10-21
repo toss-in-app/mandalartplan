@@ -701,7 +701,6 @@ function App() {
             onRestore: () => void restoreBackup(),
             onDisable: () => void disableBackup(),
           }}
-          onPickTemplate={openTemplatePicker}
           onReset={() => void resetAll()}
         />
       );

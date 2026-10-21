@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
+import { getBundledContent } from './content';
 import type { RewardedOutcome } from './ads/useRewardedAd';
 import { logEvent } from './lib/analytics';
 import { dateKey } from './lib/state';
@@ -291,6 +292,18 @@ describe('App (AI 초안)', () => {
     renderAt('#/sub/0');
     await screen.findByText('핵심 목표는 홈 가운데 칸에서 적어요');
     expect(screen.queryByRole('button', { name: '광고 보고 빈 실천 AI로 채우기' })).not.toBeInTheDocument();
+  });
+
+  it('핵심 목표만 있는 홈에서 예시로 시작하려 하면 먼저 물어보고, 닫기를 누르면 그대로예요(설정의 예시 템플릿은 2.1 에서 없어짐)', async () => {
+    saveBoard('내 목표');
+    renderAt();
+    await screen.findByRole('heading', { level: 1, name: '내 목표' });
+    fireEvent.click(screen.getByRole('button', { name: '예시로 시작하기' }));
+    fireEvent.click(await screen.findByText(getBundledContent().templates[1].title));
+    await screen.findByText('예시로 바꿀까요?');
+    fireEvent.click(screen.getByText('닫기'));
+    await waitFor(() => expect(screen.queryByText('예시로 바꿀까요?')).not.toBeInTheDocument());
+    expect(savedBoard().goal).toBe('내 목표');
   });
 
   it('칸이 다 찬 판으로 초안 화면에 들어오면(딥링크 등) 광고 버튼이 잠겨요 — 광고만 보고 채울 게 없으니까', async () => {

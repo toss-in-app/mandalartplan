@@ -249,7 +249,6 @@ describe('SettingsScreen (설정 행 상태)', () => {
         hasAnyText={false}
         extraBoard={extraLocked}
         backup={{ ...backupOff, configured: false }}
-        onPickTemplate={vi.fn()}
         onReset={vi.fn()}
       />,
     );
@@ -272,7 +271,6 @@ describe('SettingsScreen (설정 행 상태)', () => {
         hasAnyText
         extraBoard={extraLocked}
         backup={backupOn}
-        onPickTemplate={vi.fn()}
         onReset={onReset}
       />,
     );
