@@ -540,6 +540,15 @@ function App() {
     };
   };
 
+  /**
+   * 제자리 편집 모드의 자리 바꾸기(3.0, 홈·세부 목표 화면): 꾹 눌러 끈 칸을 다른 칸 위에 놓으면 둘을 바꿔요.
+   * 홈에선 세부 목표 둘이 통째로(그 실천·체크 기록까지), 세부 목표 화면에선 실천 둘(체크 기록까지). 되돌리기는 다시 끌어다 놓는 걸로 충분해요.
+   */
+  const swapCells = (block: number, a: number, b: number) => {
+    if (!app.swapCells(block, a, b)) return;
+    logEvent('cells_swap', { area: block === CENTER ? 'goals' : 'actions' });
+  };
+
   /** 세부 목표 화면 '빈 실천 AI로 채우기'·홈 'AI로 빈 칸 채우기' 결과 안내 */
   const afterFill = async (result: AiResult<number>) => {
     if (result.kind === 'ok') {
@@ -622,6 +631,7 @@ function App() {
       aiFill={aiFillHome()}
       aiFilling={ai.boardFilling}
       onDeleteCells={(cells) => deleteCells(CENTER, cells)}
+      onSwapCells={(a, b) => swapCells(CENTER, a, b)}
       trialCard={
         showTrialCard
           ? {
@@ -650,6 +660,7 @@ function App() {
       onChangeSubTitle={app.setSubTitle}
       aiFill={aiFillFor(subIndex)}
       onDeleteCells={(cells) => deleteCells(cellOfRing(subIndex), cells)}
+      onSwapCells={(a, b) => swapCells(cellOfRing(subIndex), a, b)}
       editLink={editLink}
     />
   );

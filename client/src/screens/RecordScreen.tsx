@@ -166,10 +166,12 @@ export function RecordScreen({ widget, board, record, content, onClose, onShareR
         </div>
       )}
       {body}
-      {hasHistory && (
+      {hasHistory ? (
         <div key="banner" style={{ padding: '24px 0 40px' }}>
           <AdBanner adGroupId={AD_GROUPS.bannerToday} />
         </div>
+      ) : (
+        <div style={{ height: 40 }} />
       )}
     </>
   );

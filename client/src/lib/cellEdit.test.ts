@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cascadeOf, clearBlockCells } from './cellEdit';
+import { cascadeOf, clearBlockCells, swapBlockCells, swapPairs, swappable } from './cellEdit';
 import { AI_CELL, CENTER, actionIndex, cellOfRing, createEmptyBoard, type Board } from './mandalart';
 
 const NOW = 1759000000000;
@@ -73,5 +73,54 @@ describe('여러 칸 지우기 (2.1)', () => {
     const result = clearBlockCells(b, cellOfRing(2), [cellOfRing(3), 9, -1]);
     expect(result.cleared).toBe(0);
     expect(result.board).toBe(b);
+  });
+});
+
+describe('자리 바꾸기 (3.0)', () => {
+  it('홈: 세부 목표 둘을 통째로 바꿔요 — 이름과 그 아래 실천 8칸이 함께 가고, 핵심 목표는 그대로', () => {
+    const next = swapBlockCells(board(), CENTER, cellOfRing(0), cellOfRing(2));
+    expect(next.goal).toBe('토익 900점');
+    expect(next.subs[2]).toEqual({ title: '듣기', actions: ['받아쓰기', '쉐도잉', '', '', '', '', '', ''] });
+    expect(next.subs[0]).toEqual({ title: '읽기', actions: Array(8).fill('') });
+    expect(swapPairs(CENTER, cellOfRing(0), cellOfRing(2))).toHaveLength(16);
+    expect(swapPairs(CENTER, cellOfRing(0), cellOfRing(2))).toContainEqual([actionIndex(0, 1), actionIndex(2, 1)]);
+    expect(swapPairs(CENTER, cellOfRing(0), cellOfRing(2))).toContainEqual([actionIndex(2, 1), actionIndex(0, 1)]);
+  });
+
+  it('홈: 빈 세부 목표 자리와 바꾸면 그 자리로 옮겨 가고 있던 자리는 비어요', () => {
+    const next = swapBlockCells(board(), CENTER, cellOfRing(0), cellOfRing(7));
+    expect(next.subs[7].title).toBe('듣기');
+    expect(next.subs[7].actions[0]).toBe('받아쓰기');
+    expect(next.subs[0]).toEqual({ title: '', actions: Array(8).fill('') });
+  });
+
+  it('세부 목표 화면: 실천 둘만 바꾸고 이름·다른 세부 목표는 그대로', () => {
+    const next = swapBlockCells(board(), cellOfRing(0), cellOfRing(0), cellOfRing(5));
+    expect(next.subs[0].title).toBe('듣기');
+    expect(next.subs[0].actions).toEqual(['', '쉐도잉', '', '', '', '받아쓰기', '', '']);
+    expect(next.subs[2].title).toBe('읽기');
+    expect(swapPairs(cellOfRing(0), cellOfRing(0), cellOfRing(5))).toEqual([
+      [actionIndex(0, 0), actionIndex(0, 5)],
+      [actionIndex(0, 5), actionIndex(0, 0)],
+    ]);
+  });
+
+  it("'AI 초안' 표시도 글을 따라가요", () => {
+    const ai = { at: NOW, model: 'claude-haiku-5-5', promptVersion: 3, cells: [AI_CELL.sub(0), AI_CELL.action(0, 1), AI_CELL.sub(2)] };
+    const home = swapBlockCells({ ...board(), aiDraft: ai }, CENTER, cellOfRing(0), cellOfRing(2));
+    expect(home.aiDraft?.cells).toEqual([AI_CELL.sub(0), AI_CELL.sub(2), AI_CELL.action(2, 1)]);
+    const sub = swapBlockCells({ ...board(), aiDraft: ai }, cellOfRing(0), cellOfRing(1), cellOfRing(6));
+    expect(sub.aiDraft?.cells).toEqual([AI_CELL.sub(0), AI_CELL.sub(2), AI_CELL.action(0, 6)]);
+  });
+
+  it('가운데·같은 칸·범위 밖은 바꿀 수 없어요(판 그대로, 짝 없음)', () => {
+    const b = board();
+    expect(swappable(CENTER, 0)).toBe(false);
+    expect(swappable(1, 1)).toBe(false);
+    expect(swappable(1, 9)).toBe(false);
+    expect(swappable(0, 8)).toBe(true);
+    expect(swapBlockCells(b, CENTER, CENTER, 0)).toBe(b);
+    expect(swapBlockCells(b, cellOfRing(0), 3, 3)).toBe(b);
+    expect(swapPairs(CENTER, CENTER, 0)).toEqual([]);
   });
 });

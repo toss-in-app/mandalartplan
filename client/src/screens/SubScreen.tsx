@@ -27,6 +27,8 @@ interface SubScreenProps {
   aiFill?: { label: string; caption: string; disabled: boolean; onPress: () => void };
   /** 편집 모드에서 고른 칸(0~8)을 지우고 되돌리기 함수를 돌려줘요(2.1) */
   onDeleteCells?: (cells: number[]) => () => void;
+  /** 편집 모드에서 꾹 눌러 끈 실천 칸 두 개(0~8, 가운데 제외)의 자리를 바꿔요(3.0) — 체크 기록도 함께 가요 */
+  onSwapCells?: (a: number, b: number) => void;
   /** 예전 편집 화면 링크(`block/:n`)로 들어왔을 때: 편집 모드로 시작, cell 이 있으면 그 칸 입력창, '완료'는 편집 모드를 끝내고 onDone */
   editLink?: { cell: number | null; onDone: () => void };
   /** 편집 모드의 화면 이름(분석 이벤트). 1분 체험판은 'trial' — 화면을 떠나면 '되돌리기' 토스트도 닫아요 */
@@ -38,8 +40,21 @@ interface SubScreenProps {
  * 가운데(세부 목표 이름)는 누를 수 없는 이름표. 실천을 오늘 다 하면 가운데가 진해지고 '오늘 다 했어요'가 붙어요.
  * 오늘 한 실천 칸에는 '완료' 도장이 찍히고 글씨가 흐려져요(✓ 는 편집 모드의 '고른 칸'만).
  * 고치기·지우기는 편집 버튼 없이 칸을 길게 눌러 그 자리에서(2.1 제자리 편집 모드, `useGridEdit`) — 오른쪽 위 '완료'로 끝내요.
+ * 편집 모드에서 실천 칸을 꾹 눌러 끌어 다른 칸 위에 놓으면 자리가 바뀌고 체크 기록도 따라가요(3.0, 가운데 이름표는 제외).
  */
-export function SubScreen({ board, subIndex, checkin, onToggle, onChangeAction, onChangeSubTitle, aiFill, onDeleteCells, editLink, editScreen = 'sub' }: SubScreenProps) {
+export function SubScreen({
+  board,
+  subIndex,
+  checkin,
+  onToggle,
+  onChangeAction,
+  onChangeSubTitle,
+  aiFill,
+  onDeleteCells,
+  onSwapCells,
+  editLink,
+  editScreen = 'sub',
+}: SubScreenProps) {
   const block = cellOfRing(subIndex);
   const editor = useCellEditor({ onChangeAction, onChangeSubTitle });
   const edit = useGridEdit({
@@ -48,6 +63,7 @@ export function SubScreen({ board, subIndex, checkin, onToggle, onChangeAction, 
     screen: editScreen,
     onEditCell: (cell) => editor.openFromTap(editTarget(board, block, cell)),
     onDeleteCells,
+    onSwapCells,
     startEditing: Boolean(editLink),
   });
   // 링크로 들어왔으면 편집 모드를 끝내고 이전 화면으로(이전 화면이 없어도 편집 모드는 끝나요)

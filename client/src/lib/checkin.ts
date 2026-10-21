@@ -69,6 +69,30 @@ export function applyCheckin(checkins: CheckinsState, boardId: string, date: str
   };
 }
 
+/** 실천 번호 목록을 옮겨 간 짝(`lib/cellEdit` swapPairs)대로 바꿔요(중복 없이, 오름차순). 짝에 없는 번호는 그대로 */
+export function swapIndices(indices: readonly number[], pairs: ReadonlyArray<readonly [number, number]>): number[] {
+  const map = new Map(pairs);
+  return Array.from(new Set(indices.map((index) => map.get(index) ?? index))).sort((a, b) => a - b);
+}
+
+/**
+ * 자리 바꾸기(3.0): 그 판의 체크 기록을 날짜마다 실천 번호가 옮겨 간 짝대로 따라 옮겨요 — 도장은 글을 따라가요(세부 목표를 옮기면 그 실천 8칸의 기록도).
+ * 옮길 기록이 없으면 그대로 돌려줘요. 날짜·lastCompletedAt 은 그대로예요.
+ */
+export function swapCheckins(checkins: CheckinsState, boardId: string, pairs: ReadonlyArray<readonly [number, number]>): CheckinsState {
+  const record = checkins.byBoard[boardId];
+  if (!record || pairs.length === 0) return checkins;
+  let changed = false;
+  const days: Record<string, number[]> = {};
+  for (const [date, list] of Object.entries(record.days)) {
+    const next = swapIndices(list, pairs);
+    if (next.length !== list.length || next.some((index, i) => index !== list[i])) changed = true;
+    days[date] = next;
+  }
+  if (!changed) return checkins;
+  return { version: 1, byBoard: { ...checkins.byBoard, [boardId]: { ...record, days } } };
+}
+
 /** 실천 하나를 오늘 체크/해제해요. */
 export function toggleCheck(checkins: CheckinsState, boardId: string, date: string, index: number, now: number): CheckinsState {
   const current = new Set(todayChecked(checkins.byBoard[boardId], date));

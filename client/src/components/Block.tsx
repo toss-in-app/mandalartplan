@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 
 import { cellView, type CellView } from '../lib/cells';
 import { CENTER, ringIndex, type Board } from '../lib/mandalart';
-import { brandColor, stampInk, subProgressFill, withAlpha } from '../theme';
+import { brandColor, opaqueTint, stampInk, subProgressFill, withAlpha } from '../theme';
 import './grid.css';
 
 export type BlockSize = 'small' | 'large' | 'main';
@@ -123,6 +123,22 @@ interface BlockProps {
    * 글이 있는 칸 버튼의 `data-filled` 로 편집 모드에서 그 칸만 흔들어요.
    */
   selected?: ReadonlySet<number>;
+  /**
+   * 자리 바꾸기(3.0, `useGridEdit`): 꾹 눌러 든 칸은 흔들림을 멈추고 조금 커진 채 손가락을 따라 움직이고(dx·dy, grid.css .mg-cell-lifted),
+   * 놓을 칸(over)은 브랜드 테두리로 보여요. 키보드 '자리 바꾸기'의 첫 칸은 제자리에서 든 모양(dx·dy = 0)
+   */
+  lift?: { cell: number; dx: number; dy: number; over: number | null } | null;
+}
+
+/** 꾹 눌러 든 칸: 손가락을 따라 움직인 만큼 옮기고 조금 키워요. 편집 모드의 세부 목표 칸은 반투명 보라라 다른 칸 위를 지날 때 밑이 비치지 않게 불투명으로 */
+function liftedStyle(view: CellView, dx: number, dy: number): CSSProperties {
+  return { ...(view.kind === 'sub' ? { background: opaqueTint(brandColor, 0.14) } : {}), transform: `translate(${dx}px, ${dy}px) scale(1.06)` };
+}
+
+/** 든 칸을 놓을 자리: 브랜드 테두리 + 조금 진한 틴트(빈 칸의 점선은 실선으로) */
+function targetStyle(view: CellView, invite: boolean): CSSProperties {
+  if (invite) return { border: `2px solid ${brandColor}`, background: withAlpha(brandColor, 0.12) };
+  return { boxShadow: `inset 0 0 0 2px ${brandColor}`, background: withAlpha(brandColor, view.kind === 'sub' ? 0.3 : 0.16), color: colors.grey900 };
 }
 
 interface CellContentProps {
@@ -172,7 +188,7 @@ function CellContent({ view, caption, size, invite = false, next = false, select
 /** 만드는 중인 빈 칸: 회색 자리 + 깜빡임(grid.css .mg-cell-loading) */
 const LOADING_STYLE: CSSProperties = { background: colors.grey100 };
 
-export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null, loading = false, selected }: BlockProps) {
+export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null, loading = false, selected, lift = null }: BlockProps) {
   const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
   const selectMode = selected !== undefined;
   // 오늘 체크를 넘긴 화면(홈·세부 목표·전체 보기)만 오늘 진행을 칸 색으로 보여요. 편집 모드·AI 초안 미리보기는 칸 글만
@@ -209,14 +225,21 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
         // 누를 수 있는 빈 세부 목표·실천 칸은 '+' 로 초대하고, 다음에 채울 칸은 은은하게 깜빡여요(동작 줄이기면 멈춤)
         const invite = pressable && size === 'main' && view.kind !== 'goal' && !view.text.trim();
         const next = pressable && size === 'main' && nextCell === cell;
+        const lifted = lift?.cell === cell;
+        const target = lift?.over === cell;
         return onSelectCell && pressable ? (
           <button
             key={cell}
             type="button"
             data-cell={cell}
             data-filled={view.text.trim() ? '' : undefined}
-            className={cellClass(view, next ? ' mg-cell-next' : '')}
-            style={{ ...(invite ? inviteStyle(view) : styleOf(view, cell)), ['--mg-invite' as string]: withAlpha(brandColor, 0.4) }}
+            className={cellClass(view, `${next ? ' mg-cell-next' : ''}${lifted ? ' mg-cell-lifted' : ''}${target ? ' mg-cell-target' : ''}`)}
+            style={{
+              ...(invite ? inviteStyle(view) : styleOf(view, cell)),
+              ...(target ? targetStyle(view, invite) : {}),
+              ...(lifted && lift ? liftedStyle(view, lift.dx, lift.dy) : {}),
+              ['--mg-invite' as string]: withAlpha(brandColor, 0.4),
+            }}
             onClick={() => onSelectCell(cell, view)}
             aria-label={
               selectMode

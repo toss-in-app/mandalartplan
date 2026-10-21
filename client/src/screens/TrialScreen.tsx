@@ -6,14 +6,15 @@ import { AiDraftBadge } from '../components/AiDraftBadge';
 import { Block } from '../components/Block';
 import type { Content } from '../content';
 import { haptic } from '../lib/bridge';
-import { clearBlockCells } from '../lib/cellEdit';
+import { clearBlockCells, swapBlockCells, swapPairs } from '../lib/cellEdit';
+import { swapIndices } from '../lib/checkin';
 import { CENTER, cellOfRing, createEmptyBoard, type Board } from '../lib/mandalart';
 import { dateKey, type CheckinRecord } from '../lib/state';
 import { boardFromTemplate } from '../lib/template';
 import { brandColor, withAlpha } from '../theme';
 import { SubScreen } from './SubScreen';
 
-type Step = 'stamp' | 'edit' | 'ai';
+type Step = 'stamp' | 'move' | 'edit' | 'ai';
 
 interface TrialScreenProps {
   content: Content;
@@ -32,8 +33,9 @@ const TRIAL_SUB = 0;
  * 1분 체험판(2.1, 사용자 결정 2026-10-21 — 첫 사용자 가이드 시안 E). 예시로 채운 판에서 실제 화면 그대로 연습하고 내 판으로 돌아가요.
  * 판·체크는 이 화면 안에서만 쓰고 저장하지 않아요(나가면 사라져요).
  *  1. 도장: 실천 칸을 눌러 '완료' 도장 찍기
- *  2. 편집: 칸을 길게 눌러 편집 모드 → 쭉 끌어 고르고 삭제 → 토스트 '되돌리기'
- *  3. AI(AI 를 쓸 수 있는 기기만): AI 초안이 채워진 모습 미리보기 — 광고·서버 없음
+ *  2. 옮기기(3.0): 칸을 꾹 누른 채 끌어 다른 칸 위에 놓아 자리 바꾸기(가운데 제외) — 도장도 글을 따라가요
+ *  3. 편집: 편집 모드에서 쭉 끌어 고르고 삭제 → 토스트 '되돌리기'
+ *  4. AI(AI 를 쓸 수 있는 기기만): AI 초안이 채워진 모습 미리보기 — 광고·서버 없음
  * 홈·설정의 '1분 체험해 보기'로만 열려요(들어오자마자 띄우지 않아요 — 앱인토스 다크패턴 정책).
  */
 export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScreenProps) {
@@ -47,13 +49,14 @@ export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScre
     return boardFromTemplate(createEmptyBoard(now), content.templates[1] ?? content.templates[0], now);
   });
   const [checked, setChecked] = useState<number[]>([]);
+  const [swapped, setSwapped] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [step, setStep] = useState<Step>('stamp');
 
-  const steps: Step[] = aiAvailable ? ['stamp', 'edit', 'ai'] : ['stamp', 'edit'];
+  const steps: Step[] = aiAvailable ? ['stamp', 'move', 'edit', 'ai'] : ['stamp', 'move', 'edit'];
   const position = steps.indexOf(step) + 1;
   const last = position === steps.length;
-  const ready = step === 'stamp' ? checked.length > 0 : step === 'edit' ? deleted : true;
+  const ready = step === 'stamp' ? checked.length > 0 : step === 'move' ? swapped : step === 'edit' ? deleted : true;
   const finishLabel = fresh ? '내 만다라트 시작하기' : '내 만다라트로 돌아가기';
   const next = () => (last ? onFinish(steps.length) : setStep(steps[position]));
 
@@ -66,6 +69,13 @@ export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScre
   const changeAction = (s: number, a: number, text: string) =>
     setBoard((b) => ({ ...b, subs: b.subs.map((sub, i) => (i === s ? { ...sub, actions: sub.actions.map((t, j) => (j === a ? text : t)) } : sub)) }));
   const changeSubTitle = (s: number, title: string) => setBoard((b) => ({ ...b, subs: b.subs.map((sub, i) => (i === s ? { ...sub, title } : sub)) }));
+  /** 실제 앱과 같은 자리 바꾸기(3.0): 두 실천의 글을 바꾸고 도장(체크)도 글을 따라가요 */
+  const swapCells = (a: number, b: number) => {
+    const block = cellOfRing(TRIAL_SUB);
+    setBoard((prev) => swapBlockCells(prev, block, a, b));
+    setChecked((prev) => swapIndices(prev, swapPairs(block, a, b)));
+    setSwapped(true);
+  };
   /**
    * 실제 앱과 같은 지우기(지운 실천은 체크에서도 빠져요). 되돌리면 지우기 전으로.
    * 판의 updatedAt 은 그대로라 편집 모드가 board_edit 를 보내지 않고, cells_delete 도 보내지 않아요(내 판이 아니에요).
@@ -88,11 +98,15 @@ export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScre
       ? ready
         ? '잘했어요! 다시 누르면 도장이 들려요'
         : "오늘 한 실천을 눌러 '완료' 도장을 찍어 보세요"
-      : step === 'edit'
+      : step === 'move'
         ? ready
-          ? "지운 칸은 아래 토스트의 '되돌리기'로 살릴 수 있어요"
-          : '칸을 길게 눌러 편집 모드로 들어가, 쭉 끌어 지울 칸을 골라 삭제해 보세요'
-        : 'AI로 초안을 만들면 이렇게 채워져요';
+          ? '잘했어요! 홈에서 세부 목표를 옮기면 그 아래 실천도 함께 가요'
+          : '칸을 꾹 누른 채 끌어 다른 칸 위에 놓아 보세요. 두 칸의 자리가 바뀌어요'
+        : step === 'edit'
+          ? ready
+            ? "지운 칸은 아래 토스트의 '되돌리기'로 살릴 수 있어요"
+            : '편집 모드에서 칸을 쭉 끌어 지울 칸을 골라 삭제해 보세요. 편집 모드는 칸을 길게 누르면 돼요'
+          : 'AI로 초안을 만들면 이렇게 채워져요';
 
   const banner = (
     <div style={{ margin: '12px 20px 0', padding: '12px 14px', borderRadius: 14, background: withAlpha(brandColor, 0.1), display: 'grid', gap: 6 }}>
@@ -147,6 +161,7 @@ export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScre
         onChangeAction={changeAction}
         onChangeSubTitle={changeSubTitle}
         onDeleteCells={deleteCells}
+        onSwapCells={swapCells}
         editScreen="trial"
       />
     </>

@@ -110,19 +110,25 @@ describe('App (1분 체험판, 2.1)', () => {
     const action = getBundledContent().templates[0].subs[0].actions[0];
     fireEvent.click(await screen.findByRole('button', { name: `${action}, 오늘 아직` }));
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
-    // 2단계: 키보드 입구로 실천 하나 지우기(길게 누르기·끌기와 같은 일)
+    // 2단계(3.0): 키보드 입구로 실천 둘의 자리 바꾸기(꾹 눌러 끌기와 같은 일)
+    const second = getBundledContent().templates[0].subs[0].actions[1];
     fireEvent.click(screen.getByRole('button', { name: '편집' }));
+    fireEvent.click(screen.getByRole('button', { name: '자리 바꾸기' }));
+    fireEvent.click(screen.getByRole('button', { name: action }));
+    fireEvent.click(screen.getByRole('button', { name: second }));
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    // 3단계: 키보드 입구로 실천 하나 지우기(길게 누르기·끌기와 같은 일)
     fireEvent.click(screen.getByRole('button', { name: '지울 칸 고르기' }));
     fireEvent.click(screen.getByRole('button', { name: action }));
     fireEvent.click(screen.getByRole('button', { name: '1칸 삭제' }));
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '삭제' }));
-    // AI 를 쓸 수 있으면 3단계(AI 미리보기)가 하나 더 있어요
+    // AI 를 쓸 수 있으면 4단계(AI 미리보기)가 하나 더 있어요
     const stepButton = () => screen.getByRole('button', { name: /^(다음|내 만다라트 시작하기)$/ });
     await waitFor(() => expect(stepButton()).toBeEnabled());
     const hasAiStep = stepButton().textContent === '다음';
     fireEvent.click(stepButton());
     if (hasAiStep) fireEvent.click(await screen.findByRole('button', { name: '내 만다라트 시작하기' }));
-    expect(logEvent).toHaveBeenCalledWith('trial_finish', { steps: hasAiStep ? 3 : 2 });
+    expect(logEvent).toHaveBeenCalledWith('trial_finish', { steps: hasAiStep ? 4 : 3 });
     await screen.findByText('가운데 칸을 눌러 핵심 목표부터 정해 보세요');
     expect(screen.queryByRole('region', { name: '1분 체험 안내' })).not.toBeInTheDocument();
   });

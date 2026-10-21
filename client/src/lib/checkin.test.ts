@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyCheckin, checkedInSub, checkinGroups, formatDateLabel, todayChecked, todaySet, toggleCheck } from './checkin';
+import { applyCheckin, checkedInSub, checkinGroups, formatDateLabel, swapCheckins, swapIndices, todayChecked, todaySet, toggleCheck } from './checkin';
 import { actionIndex, createEmptyBoard } from './mandalart';
 import { MAX_CHECKIN_DAYS, createEmptyCheckins, dateKey, streak } from './state';
 
@@ -81,6 +81,43 @@ describe('toggleCheck / applyCheckin', () => {
     const keys = Object.keys(c.byBoard.b1.days).sort();
     expect(keys).toHaveLength(MAX_CHECKIN_DAYS);
     expect(keys[0]).toBe(dateKey(new Date(2025, 0, 6)));
+  });
+});
+
+describe('swapIndices / swapCheckins (3.0 자리 바꾸기 — 도장은 글을 따라가요)', () => {
+  it('짝대로 번호를 바꾸고 중복 없이 오름차순으로', () => {
+    const pairs: Array<[number, number]> = [
+      [0, 5],
+      [5, 0],
+    ];
+    expect(swapIndices([0, 3], pairs)).toEqual([3, 5]);
+    expect(swapIndices([0, 5], pairs)).toEqual([0, 5]);
+    expect(swapIndices([], pairs)).toEqual([]);
+  });
+
+  it('그 판의 모든 날짜 기록을 따라 옮기고, 다른 판·날짜·lastCompletedAt 은 그대로', () => {
+    let c = applyCheckin(createEmptyCheckins(), 'b1', '2026-09-28', [actionIndex(0, 0), actionIndex(0, 1)], NOW);
+    c = applyCheckin(c, 'b1', '2026-09-29', [actionIndex(0, 1)], NOW + 1);
+    c = applyCheckin(c, 'b2', '2026-09-29', [actionIndex(0, 1)], NOW + 2);
+    // 홈에서 세부 목표 1 ↔ 3 을 바꾸면 그 실천 8칸의 기록이 함께 가요
+    const pairs: Array<[number, number]> = [];
+    for (let j = 0; j < 8; j += 1) pairs.push([actionIndex(0, j), actionIndex(2, j)], [actionIndex(2, j), actionIndex(0, j)]);
+    const next = swapCheckins(c, 'b1', pairs);
+    expect(next.byBoard.b1.days).toEqual({ '2026-09-28': [actionIndex(2, 0), actionIndex(2, 1)], '2026-09-29': [actionIndex(2, 1)] });
+    expect(next.byBoard.b1.lastCompletedAt).toBe(NOW + 1);
+    expect(next.byBoard.b2).toBe(c.byBoard.b2);
+  });
+
+  it('옮길 기록이 없으면(판 기록 없음·짝 없음·해당 번호 없음) 그대로 돌려줘요', () => {
+    const c = applyCheckin(createEmptyCheckins(), 'b1', '2026-09-29', [actionIndex(1, 0)], NOW);
+    expect(swapCheckins(c, 'b9', [[0, 1]])).toBe(c);
+    expect(swapCheckins(c, 'b1', [])).toBe(c);
+    expect(
+      swapCheckins(c, 'b1', [
+        [0, 1],
+        [1, 0],
+      ]),
+    ).toBe(c);
   });
 });
 
