@@ -138,7 +138,7 @@ describe('HomeScreen (홈 마무리)', () => {
     expect(screen.queryByText(notice)).not.toBeInTheDocument();
   });
 
-  it('세부 목표의 실천을 오늘 전부 체크하면 그 칸에 체크 표시가 붙고 안내도 바뀌어요', () => {
+  it("세부 목표의 실천을 오늘 전부 체크하면 그 칸이 진해지고 '오늘 다 했어요'로 바뀌어요(✓ 는 편집 모드의 고른 칸만)", () => {
     const board = filledBoard(true);
     board.subs[0].actions[1] = '저녁 산책';
     const today = dateKey();
@@ -150,8 +150,9 @@ describe('HomeScreen (홈 마무리)', () => {
     unmount();
     const all: CheckinRecord = { days: { [today]: [actionIndex(0, 0), actionIndex(0, 1)] }, lastCompletedAt: 1 };
     renderHome(board, content, all);
-    const done = screen.getByRole('button', { name: '운동, 오늘 2개 중 2개' });
-    expect(done.querySelector('.mg-cell-check')).not.toBeNull();
+    const done = screen.getByRole('button', { name: '운동, 오늘 다 했어요' });
+    expect(done.querySelector('.mg-cell-check')).toBeNull();
+    expect(within(done).getByText('오늘 다 했어요')).toBeInTheDocument();
     expect(screen.getByText(/오늘 실천을 다 했어요/)).toBeInTheDocument();
   });
 

@@ -77,6 +77,20 @@ button.mg-cell {
   cursor: pointer;
 }
 
+/* 체크·해제(오늘 한 실천은 브랜드 색으로 채워져요), 편집 모드에서 고르기 때 칸 색이 툭 바뀌지 않게 */
+.mg-cell {
+  transition:
+    background-color 0.18s ease-out,
+    color 0.18s ease-out,
+    box-shadow 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-cell {
+    transition: none;
+  }
+}
+
 button.mg-cell:active {
   filter: brightness(0.92);
 }

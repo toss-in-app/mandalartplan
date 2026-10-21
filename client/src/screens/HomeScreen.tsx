@@ -54,7 +54,7 @@ interface HomeScreenProps {
  * 가운데(핵심 목표)는 글이 있으면 누를 수 없는 이름표 — 세부 목표 화면·전체 보기의 가운데와 같아요(2.1, 사용자 결정). 전체 보기는 '전체 보기' 버튼으로.
  * 비어 있는 칸(핵심 목표·세부 목표)은 누르면 그 자리에서 바텀시트로 정해요.
  * 고치기·지우기는 편집 버튼 없이 칸을 길게 눌러 그 자리에서(2.1 제자리 편집 모드, `useGridEdit`) — 오른쪽 위 '완료'로 끝내요.
- * 글이 있는 실천을 오늘 전부 체크한 세부 목표 칸은 진해지고 체크 표시가 붙어요.
+ * 글이 있는 실천을 오늘 전부 체크한 세부 목표 칸은 진해지고 칸 아래 글이 '오늘 다 했어요'로 바뀌어요(✓ 는 편집 모드의 '고른 칸'만).
  */
 export function HomeScreen({
   board,
@@ -169,7 +169,8 @@ export function HomeScreen({
                 if (view.kind !== 'sub' || view.index === null || !view.text) return null;
                 const total = board.subs[view.index].actions.filter((a) => a.trim()).length;
                 if (total === 0) return '실천을 적어요';
-                return `오늘 ${checkedInSub(checked, view.index)}/${total}`;
+                // 다 했으면 숫자 대신 말로 — 진해진 칸 색과 함께, 색만으로 알리지 않게
+                return view.checked ? '오늘 다 했어요' : `오늘 ${checkedInSub(checked, view.index)}/${total}`;
               },
               // 글이 있는 가운데(핵심 목표)는 누름 없음 — 어느 화면이든 가운데는 이름표(2.1). 편집 모드에선 눌러서 고쳐요
               interactive: (_cell, view) => !(view.kind === 'goal' && view.text.trim()),

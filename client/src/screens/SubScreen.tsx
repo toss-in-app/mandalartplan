@@ -33,7 +33,8 @@ interface SubScreenProps {
 
 /**
  * 세부 목표 화면 = 그 목표의 3×3. 실천 칸을 누르면 오늘 했어요 체크/해제, 빈 칸을 누르면 그 자리에서 바텀시트로 적어요.
- * 가운데(세부 목표 이름)는 누를 수 없는 이름표. 실천을 오늘 다 하면 가운데가 진해져요.
+ * 가운데(세부 목표 이름)는 누를 수 없는 이름표. 실천을 오늘 다 하면 가운데가 진해지고 '오늘 다 했어요'가 붙어요.
+ * 오늘 한 실천 칸은 브랜드 색으로 채워져요(✓ 는 편집 모드의 '고른 칸'만).
  * 고치기·지우기는 편집 버튼 없이 칸을 길게 눌러 그 자리에서(2.1 제자리 편집 모드, `useGridEdit`) — 오른쪽 위 '완료'로 끝내요.
  */
 export function SubScreen({ board, subIndex, checkin, onToggle, onChangeAction, onChangeSubTitle, aiFill, onDeleteCells, editLink }: SubScreenProps) {
@@ -84,7 +85,13 @@ export function SubScreen({ board, subIndex, checkin, onToggle, onChangeAction, 
             board={board}
             block={block}
             size="main"
-            {...edit.blockProps({ checked, nextCell: nextEmptyCell(board, block), interactive: (_cell, view) => view.kind === 'action' })}
+            {...edit.blockProps({
+              checked,
+              nextCell: nextEmptyCell(board, block),
+              // 실천을 오늘 다 하면 가운데 이름표에 말로도 알려요(진해진 색과 함께)
+              caption: (view) => (view.kind === 'sub' && view.checked ? '오늘 다 했어요' : null),
+              interactive: (_cell, view) => view.kind === 'action',
+            })}
             onSelectCell={(cell, view) => {
               // 편집 모드(고치기·고르기)와 길게 누른 뒤의 click 은 편집 쪽이 받아요
               if (edit.handleTap(cell)) return;

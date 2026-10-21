@@ -10,25 +10,21 @@ export type BlockSize = 'small' | 'large' | 'main';
 
 /**
  * 칸 색. 빈 자리 글까지 글자 대비 4.5:1 이상으로 맞춰요.
- * 오늘 체크는 틴트에 브랜드 테두리를 더해요 — 틴트만으로는 세부 목표 칸(14%)과 1.1:1 이라 전체 보기에서 구분되지 않아요.
+ * 오늘 한 표시와 편집 모드의 '고른 칸'은 모양을 나눠요(2.1, 사용자 결정 — 둘 다 ✓ 라 헷갈렸어요):
+ *  - 오늘 한 실천: 브랜드 색으로 꽉 채우고 흰 글씨(대비 4.6:1) — 습관 기록의 '색칠'. 회색 칸과 밝기부터 달라서
+ *    색을 못 봐도 구분되고, 9×9·공유 이미지에서도 한눈에 세어져요. 취소선은 한글 가로획과 겹쳐 읽기 어렵고
+ *    '취소·지난 값'으로 읽혀 쓰지 않아요(1차 안, 2026-10-21 사용자 반려)
+ *  - 실천을 오늘 다 한 세부 목표: 더 진한 틴트 + 칸 아래 '오늘 다 했어요'(화면이 caption 으로 넣어요)
+ *  - 테두리와 ✓ 는 편집 모드에서 지울 칸으로 고른 것만(selectedStyle). 편집 모드에선 오늘 한 표시를 빼서 둘이 같이 보이지 않아요
  */
-function cellStyle(view: CellView, size: BlockSize): CSSProperties {
+function cellStyle(view: CellView): CSSProperties {
   switch (view.kind) {
     case 'goal':
-      if (view.checked) {
-        // 핵심 목표는 체크가 없어서 checked = 편집 모드에서 지울 칸으로 고른 것(2.1). 브랜드 바탕 위에 흰 안쪽 테두리
-        return { background: brandColor, color: colors.white, fontWeight: 700, boxShadow: `inset 0 0 0 ${size === 'main' ? 3 : 2}px ${colors.white}` };
-      }
       return { background: brandColor, color: colors.white, fontWeight: view.text ? 700 : 600 };
     case 'sub':
       if (view.checked) {
-        // 글이 있는 실천을 오늘 전부 체크한 세부 목표: 진한 틴트 + 브랜드 테두리 (grey900 글자 대비 10:1)
-        return {
-          background: withAlpha(brandColor, 0.36),
-          color: colors.grey900,
-          fontWeight: 700,
-          boxShadow: `inset 0 0 0 ${size === 'main' ? 2 : 1.5}px ${brandColor}`,
-        };
+        // 글이 있는 실천을 오늘 전부 체크한 세부 목표: 진한 틴트 (grey900 글자 대비 10:1)
+        return { background: withAlpha(brandColor, 0.36), color: colors.grey900, fontWeight: 700 };
       }
       return {
         background: withAlpha(brandColor, 0.14),
@@ -37,12 +33,8 @@ function cellStyle(view: CellView, size: BlockSize): CSSProperties {
       };
     default:
       if (view.checked) {
-        return {
-          background: withAlpha(brandColor, 0.22),
-          color: colors.grey900,
-          fontWeight: 600,
-          boxShadow: `inset 0 0 0 ${size === 'main' ? 2 : 1.5}px ${brandColor}`,
-        };
+        // 오늘 한 실천: 꽉 채운 브랜드 색 + 흰 글씨. 옅은 세부 목표 칸(14%)·회색 실천 칸과 밝기가 크게 달라요
+        return { background: brandColor, color: colors.white, fontWeight: 600 };
       }
       if (!view.text) {
         // 빈 실천 칸은 흰 바탕에 옅은 테두리로 '비어 있음'을 보여줘요
@@ -50,6 +42,24 @@ function cellStyle(view: CellView, size: BlockSize): CSSProperties {
       }
       return { background: colors.grey100, color: colors.grey800 };
   }
+}
+
+/** 편집 모드에서 지울 칸으로 고른 칸: 진한 틴트 + 브랜드 테두리 + ✓. 가운데 핵심 목표는 브랜드 바탕 위에 흰 안쪽 테두리 */
+function selectedStyle(view: CellView, size: BlockSize): CSSProperties {
+  if (view.kind === 'goal') {
+    return { background: brandColor, color: colors.white, fontWeight: 700, boxShadow: `inset 0 0 0 ${size === 'main' ? 3 : 2}px ${colors.white}` };
+  }
+  return {
+    background: withAlpha(brandColor, view.kind === 'sub' ? 0.36 : 0.22),
+    color: colors.grey900,
+    fontWeight: view.kind === 'sub' ? 700 : 600,
+    boxShadow: `inset 0 0 0 ${size === 'main' ? 2 : 1.5}px ${brandColor}`,
+  };
+}
+
+/** 오늘 한 실천 칸 표시(.mg-cell-done — 모양은 cellStyle, 클래스는 상태를 찾는 데 써요) */
+function cellClass(view: CellView, extra = ''): string {
+  return `mg-cell${view.kind === 'action' && view.checked ? ' mg-cell-done' : ''}${extra}`;
 }
 
 /**
@@ -103,7 +113,7 @@ interface BlockProps {
   /** AI 초안을 만드는 중: 아직 빈 칸이 은은하게 깜빡여요(동작 줄이기면 멈춤) */
   loading?: boolean;
   /**
-   * 여러 칸 지우기의 선택 모드(제자리 편집 모드, 2.1 `useGridEdit`). 있으면 고른 칸을 '오늘 다 했어요'와 같은 모양(진한 틴트·테두리·✓)으로 그리고,
+   * 여러 칸 지우기의 선택 모드(제자리 편집 모드, 2.1 `useGridEdit`). 있으면 고른 칸을 진한 틴트·테두리·✓ 로 그리고(오늘 한 실천의 취소선과 다른 모양),
    * 누를 수 있는 칸을 '선택됨/안 됨' 토글로 읽어요. 칸마다 `data-cell` 이 있어 끌어서 고르기가 손가락 아래 칸을 찾고,
    * 글이 있는 칸 버튼의 `data-filled` 로 편집 모드에서 그 칸만 흔들어요.
    */
@@ -118,9 +128,11 @@ interface CellContentProps {
   invite?: boolean;
   /** 다음에 채울 칸: '눌러서 적기' */
   next?: boolean;
+  /** 편집 모드에서 지울 칸으로 고름: ✓ */
+  selected?: boolean;
 }
 
-function CellContent({ view, caption, size, invite = false, next = false }: CellContentProps) {
+function CellContent({ view, caption, size, invite = false, next = false, selected = false }: CellContentProps) {
   if (invite) {
     return (
       <>
@@ -135,7 +147,7 @@ function CellContent({ view, caption, size, invite = false, next = false }: Cell
       <span className="mg-cell-text">{text}</span>
       {next && !view.text && <span className="mg-cell-hint">눌러서 적기</span>}
       {caption && <span className="mg-cell-caption">{caption}</span>}
-      {view.checked && size === 'main' && (
+      {selected && size === 'main' && (
         <span
           className="mg-cell-check"
           style={view.kind === 'goal' ? { background: colors.white, color: brandColor } : { background: brandColor, color: colors.white }}
@@ -152,12 +164,9 @@ function CellContent({ view, caption, size, invite = false, next = false }: Cell
 const LOADING_STYLE: CSSProperties = { background: colors.grey100 };
 
 export function Block({ board, block, size, checked, caption, onSelect, onSelectCell, interactive, nextCell = null, loading = false, selected }: BlockProps) {
-  // 선택 모드에서 고른 칸은 '다 했어요'와 같은 모양으로(checked 표시를 빌려 써요)
-  const views = Array.from({ length: 9 }, (_, cell) => {
-    const view = cellView(board, block, cell, checked);
-    return selected?.has(cell) ? { ...view, checked: true } : view;
-  });
+  const views = Array.from({ length: 9 }, (_, cell) => cellView(board, block, cell, checked));
   const selectMode = selected !== undefined;
+  const styleOf = (view: CellView, cell: number) => (selected?.has(cell) ? selectedStyle(view, size) : cellStyle(view));
   const className = `mg-block mg-block-${size}`;
   const label = block === CENTER ? '핵심 목표와 세부 목표' : `세부 목표 ${ringIndex(block) + 1}`;
   // 오늘 체크를 넘긴 화면(홈·세부 목표)만 실천 칸을 '오늘 했어요/아직' 토글로 읽어요. 편집 모드는 칸 글만
@@ -167,7 +176,7 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
     return (
       <button type="button" className={className} onClick={onSelect} aria-label={blockButtonLabel(views, label)}>
         {views.map((view, cell) => (
-          <span key={cell} className="mg-cell" style={cellStyle(view, size)}>
+          <span key={cell} className={cellClass(view)} style={styleOf(view, cell)}>
             <CellContent view={view} caption={caption?.(view, cell) ?? null} size={size} />
           </span>
         ))}
@@ -194,8 +203,8 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
             type="button"
             data-cell={cell}
             data-filled={view.text.trim() ? '' : undefined}
-            className={next ? 'mg-cell mg-cell-next' : 'mg-cell'}
-            style={{ ...(invite ? inviteStyle(view) : cellStyle(view, size)), ['--mg-invite' as string]: withAlpha(brandColor, 0.4) }}
+            className={cellClass(view, next ? ' mg-cell-next' : '')}
+            style={{ ...(invite ? inviteStyle(view) : styleOf(view, cell)), ['--mg-invite' as string]: withAlpha(brandColor, 0.4) }}
             onClick={() => onSelectCell(cell, view)}
             aria-label={
               selectMode
@@ -206,12 +215,12 @@ export function Block({ board, block, size, checked, caption, onSelect, onSelect
             }
             aria-pressed={selectMode ? selected.has(cell) : checkMode && view.kind === 'action' && view.text ? view.checked : undefined}
           >
-            <CellContent view={view} caption={cap} size={size} invite={invite} next={next} />
+            <CellContent view={view} caption={cap} size={size} invite={invite} next={next} selected={selected?.has(cell)} />
           </button>
         ) : loading && !view.text.trim() ? (
           <span key={cell} className="mg-cell mg-cell-loading" style={LOADING_STYLE} />
         ) : (
-          <span key={cell} data-cell={cell} className="mg-cell" style={cellStyle(view, size)}>
+          <span key={cell} data-cell={cell} className={cellClass(view)} style={styleOf(view, cell)}>
             <CellContent view={view} caption={cap} size={size} />
           </span>
         );

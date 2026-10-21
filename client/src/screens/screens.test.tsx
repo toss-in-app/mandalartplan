@@ -125,7 +125,7 @@ describe('편집 모드에서 칸 고치기 (바텀시트, 2.1 — 편집 화면
 });
 
 describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
-  it('글이 있는 실천 칸은 체크 토글, 가운데(세부 목표)는 누를 수 없는 이름표, 편집 버튼은 없어요. 오늘 체크한 칸은 aria-pressed', () => {
+  it('글이 있는 실천 칸은 체크 토글, 가운데(세부 목표)는 누를 수 없는 이름표, 편집 버튼은 없어요. 오늘 체크한 칸은 aria-pressed + 브랜드 색으로 채움(✓ 없음)', () => {
     const onToggle = vi.fn();
     wrap(<SubScreen board={fullBoard} subIndex={0} checkin={record} onToggle={onToggle} onChangeAction={vi.fn()} onChangeSubTitle={vi.fn()} onDeleteCells={vi.fn()} />);
     const sub = fullBoard.subs[0];
@@ -133,8 +133,13 @@ describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
     expect(screen.getByText(/오늘 2\/8/)).toBeInTheDocument();
     const checked = screen.getByRole('button', { name: `${sub.actions[0]}, 오늘 했어요` });
     expect(checked).toHaveAttribute('aria-pressed', 'true');
+    // 오늘 한 실천은 브랜드 색으로 채운 칸(.mg-cell-done)에 흰 글씨, ✓ 는 편집 모드에서 고른 칸에만
+    expect(checked).toHaveClass('mg-cell-done');
+    expect(checked).toHaveStyle({ backgroundColor: 'rgb(107, 92, 255)', color: 'rgb(255, 255, 255)' });
+    expect(checked.querySelector('.mg-cell-check')).toBeNull();
     const unchecked = screen.getByRole('button', { name: `${sub.actions[2]}, 오늘 아직` });
     expect(unchecked).toHaveAttribute('aria-pressed', 'false');
+    expect(unchecked).not.toHaveClass('mg-cell-done');
     fireEvent.click(unchecked);
     expect(onToggle).toHaveBeenCalledWith(actionIndex(0, 2));
     expect(screen.queryByRole('button', { name: sub.title })).not.toBeInTheDocument();
@@ -144,15 +149,17 @@ describe('SubScreen (세부 목표 3×3, 탭 = 오늘 체크)', () => {
     expect(screen.getByText('칸을 길게 누르면 고치거나 지울 수 있어요')).toBeInTheDocument();
   });
 
-  it('실천 8개를 오늘 다 체크하면 안내가 바뀌고 가운데 이름표에 체크 표시가 붙어요', () => {
+  it("실천 8개를 오늘 다 체크하면 안내가 바뀌고 가운데 이름표가 진해지며 '오늘 다 했어요'가 붙어요", () => {
     const all: CheckinRecord = { days: { [today]: Array.from({ length: 8 }, (_, a) => actionIndex(0, a)) }, lastCompletedAt: NOW };
     const { container } = wrap(<SubScreen board={fullBoard} subIndex={0} checkin={all} onToggle={vi.fn()} onChangeAction={vi.fn()} onChangeSubTitle={vi.fn()} />);
     expect(screen.getByText(/오늘 8\/8 · 오늘 실천을 다 했어요/)).toBeInTheDocument();
-    // 가운데(5번째 칸)는 버튼이 아닌 span 이고 체크 표시를 품어요
+    // 가운데(5번째 칸)는 버튼이 아닌 span 이고 '오늘 다 했어요'를 품어요(✓ 는 편집 모드의 고른 칸만)
     const cells = container.querySelectorAll('.mg-block-main > .mg-cell');
     expect(cells).toHaveLength(9);
     expect(cells[4].tagName).toBe('SPAN');
-    expect(cells[4].querySelector('.mg-cell-check')).not.toBeNull();
+    expect(cells[4]).toHaveTextContent('오늘 다 했어요');
+    expect(cells[4].querySelector('.mg-cell-check')).toBeNull();
+    expect(container.querySelectorAll('.mg-cell-done')).toHaveLength(8);
   });
 
   it('빈 실천 칸을 누르면 그 자리에서 시트로 적어요 (체크할 글이 없으니까)', () => {

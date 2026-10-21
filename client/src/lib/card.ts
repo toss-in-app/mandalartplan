@@ -1,6 +1,6 @@
 /**
  * 공유 이미지 카드 (계약 events.md '공유' 절).
- * 기본: 1080×1350 PNG, 9×9 만다라트 + 오늘 체크 표시 + 워터마크 "만다라트".
+ * 기본: 1080×1350 PNG, 9×9 만다라트 + 오늘 한 실천(앱 화면과 같은 '색칠' — 브랜드 색 칸) + 워터마크 "만다라트".
  * 고화질(기능 5 리워드): 같은 레이아웃을 2배로 그리고 워터마크를 빼요.
  *
  * 캔버스 없이도 검증할 수 있게 레이아웃 계산(layoutCard)·줄바꿈(wrapText)을 그리기(drawCard)와 분리했어요.
@@ -178,35 +178,19 @@ interface CellStyle {
   background: string;
   color: string;
   weight: 500 | 600 | 700;
-  border: string | null;
 }
 
+/** 앱 화면(components/Block.tsx)과 같은 모양: 오늘 한 실천 = 브랜드 색으로 채우고 흰 글씨, 다 한 세부 목표 = 더 진한 틴트. ✓ 는 쓰지 않아요 */
 function cellStyle(view: CellView): CellStyle {
   switch (view.kind) {
     case 'goal':
-      return { background: brandColor, color: colors.white, weight: 700, border: null };
+      return { background: brandColor, color: colors.white, weight: 700 };
     case 'sub':
-      return { background: withAlpha(brandColor, 0.14), color: view.text ? colors.grey900 : colors.grey500, weight: 600, border: null };
+      return { background: withAlpha(brandColor, view.checked ? 0.36 : 0.14), color: view.text ? colors.grey900 : colors.grey500, weight: view.checked ? 700 : 600 };
     default:
-      if (view.checked) return { background: withAlpha(brandColor, 0.22), color: colors.grey900, weight: 600, border: brandColor };
-      return { background: view.text ? colors.grey100 : colors.grey50, color: colors.grey800, weight: 500, border: null };
+      if (view.checked) return { background: brandColor, color: colors.white, weight: 600 };
+      return { background: view.text ? colors.grey100 : colors.grey50, color: colors.grey800, weight: 500 };
   }
-}
-
-function drawCheck(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
-  ctx.beginPath();
-  ctx.arc(cx, cy, 11, 0, Math.PI * 2);
-  ctx.fillStyle = brandColor;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(cx - 5, cy);
-  ctx.lineTo(cx - 1.5, cy + 3.5);
-  ctx.lineTo(cx + 5.5, cy - 4);
-  ctx.strokeStyle = colors.white;
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.stroke();
 }
 
 /** 레이아웃을 캔버스에 그려요. ctx 는 (CARD_WIDTH × scale) × (CARD_HEIGHT × scale) 크기여야 해요. */
@@ -239,12 +223,6 @@ export function drawCard(ctx: CanvasRenderingContext2D, layout: CardLayout, opti
     roundedRect(ctx, c, 8);
     ctx.fillStyle = style.background;
     ctx.fill();
-    if (style.border) {
-      roundedRect(ctx, { x: c.x + 1.5, y: c.y + 1.5, w: c.w - 3, h: c.h - 3 }, 7);
-      ctx.strokeStyle = style.border;
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
     const text = c.view.text.trim();
     if (text) {
       const size = c.view.kind === 'action' ? 19 : 20;
@@ -255,7 +233,6 @@ export function drawCard(ctx: CanvasRenderingContext2D, layout: CardLayout, opti
       ctx.fillStyle = style.color;
       lines.forEach((line, i) => ctx.fillText(line, c.x + c.w / 2, startY + i * lineHeight));
     }
-    if (c.view.checked) drawCheck(ctx, c.x + c.w - 15, c.y + 15);
   }
 
   // 바닥글(워터마크)
