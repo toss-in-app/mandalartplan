@@ -1,4 +1,4 @@
-import { AI_CELL, CENTER, actionIndex, releaseAiCell, ringIndex, type Board } from './mandalart';
+import { ACTION_COUNT, AI_CELL, CENTER, actionIndex, releaseAiCell, ringIndex, type Board } from './mandalart';
 
 /**
  * 칸 하나를 적는 바텀시트의 내용(편집 화면·홈·세부 목표 화면 공용). 화면은 `hooks/useCellEditor`.
@@ -131,4 +131,67 @@ export function cascadeOf(board: Board, block: number, cells: readonly number[])
   const own = new Set(cells.filter((cell) => Number.isInteger(cell) && cell >= 0 && cell <= 8).map((cell) => fieldKey(editTarget(board, block, cell).field)));
   const extra = clearBlockCells(board, block, cells).fields.filter((field) => !own.has(fieldKey(field)));
   return { subs: extra.filter((field) => field.kind === 'sub').length, actions: extra.filter((field) => field.kind === 'action').length };
+}
+
+/** 자리 바꾸기가 되는 두 칸인지: 3×3 안(0~8)의 서로 다른 칸이고 둘 다 가운데가 아니어야 해요 */
+export function swappable(a: number, b: number): boolean {
+  const ok = (cell: number) => Number.isInteger(cell) && cell >= 0 && cell <= 8 && cell !== CENTER;
+  return ok(a) && ok(b) && a !== b;
+}
+
+/**
+ * 자리 바꾸기(3.0, 사용자 2026-10-21 '꾹 누른 채 끌면 가운데를 제외하고 네모칸을 서로 스왑, 세부 목표를 옮기면 하위도 따라가야'):
+ * 3×3 안의 두 칸(가운데 제외)을 서로 바꿔요. 홈(가운데 블록)은 세부 목표 둘을 **통째로** — 이름과 그 아래 실천 8칸, 'AI 초안' 표시까지 —
+ * 세부 목표 화면은 실천 둘을. 빈 칸과 바꾸면 그 자리로 옮겨 가고 있던 자리는 비어요. 바꿀 수 없는 칸이면 판을 그대로 돌려줘요.
+ * 체크 기록은 실천 번호로 남아 있어 함께 옮겨야 해요(도장은 글을 따라가요) → `swapPairs` + lib/checkin `swapCheckins`.
+ */
+export function swapBlockCells(board: Board, block: number, a: number, b: number): Board {
+  if (!swappable(a, b)) return board;
+  /** AI 칸 번호: 있던 번호 → 새 번호 */
+  const moved = new Map<number, number>();
+  const both = (x: number, y: number) => {
+    moved.set(x, y);
+    moved.set(y, x);
+  };
+  let subs = board.subs;
+  if (block === CENTER) {
+    const s1 = ringIndex(a);
+    const s2 = ringIndex(b);
+    subs = board.subs.map((sub, i) => (i === s1 ? board.subs[s2] : i === s2 ? board.subs[s1] : sub));
+    both(AI_CELL.sub(s1), AI_CELL.sub(s2));
+    for (let j = 0; j < ACTION_COUNT; j++) both(AI_CELL.action(s1, j), AI_CELL.action(s2, j));
+  } else {
+    const s = ringIndex(block);
+    const a1 = ringIndex(a);
+    const a2 = ringIndex(b);
+    subs = board.subs.map((sub, i) =>
+      i === s ? { ...sub, actions: sub.actions.map((text, j) => (j === a1 ? sub.actions[a2] : j === a2 ? sub.actions[a1] : text)) } : sub,
+    );
+    both(AI_CELL.action(s, a1), AI_CELL.action(s, a2));
+  }
+  const ai = board.aiDraft;
+  const aiDraft = ai ? { ...ai, cells: Array.from(new Set(ai.cells.map((cell) => moved.get(cell) ?? cell))).sort((x, y) => x - y) } : null;
+  return { ...board, subs, aiDraft };
+}
+
+/**
+ * 자리 바꾸기로 실천 번호(0~63)가 옮겨 가는 짝 [있던 번호, 새 번호] — 양쪽 다 적어요.
+ * 홈은 세부 목표 둘의 실천 8칸씩(16쌍), 세부 목표 화면은 실천 둘(2쌍). 바꿀 수 없는 칸이면 비어 있어요. 체크 기록을 따라 옮길 때 써요(lib/checkin `swapCheckins`)
+ */
+export function swapPairs(block: number, a: number, b: number): Array<[number, number]> {
+  if (!swappable(a, b)) return [];
+  const pairs: Array<[number, number]> = [];
+  if (block === CENTER) {
+    const s1 = ringIndex(a);
+    const s2 = ringIndex(b);
+    for (let j = 0; j < ACTION_COUNT; j++) pairs.push([actionIndex(s1, j), actionIndex(s2, j)], [actionIndex(s2, j), actionIndex(s1, j)]);
+    return pairs;
+  }
+  const s = ringIndex(block);
+  const x = actionIndex(s, ringIndex(a));
+  const y = actionIndex(s, ringIndex(b));
+  return [
+    [x, y],
+    [y, x],
+  ];
 }

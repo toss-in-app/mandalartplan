@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BackupPayload } from '../backup/payload';
-import { clearBlockCells } from '../lib/cellEdit';
+import { clearBlockCells, swapBlockCells, swapPairs } from '../lib/cellEdit';
+import { swapCheckins } from '../lib/checkin';
 import { AI_CELL, clampText, createEmptyBoard, releaseAiCell, type Board } from '../lib/mandalart';
 import {
   addBoard as addBoardTo,
@@ -142,6 +143,28 @@ export function useAppState() {
     [updateBoard],
   );
 
+  /**
+   * 편집 모드 자리 바꾸기(3.0): 보고 있는 판의 두 칸(블록 안 0~8, 가운데 제외)을 서로 바꾸고, 그 판의 체크 기록도 실천 번호를 따라 옮겨요
+   * (홈에서 세부 목표를 바꾸면 그 실천 8칸과 기록이 함께 가요). 바꿀 수 없는 칸이면 false.
+   */
+  const swapCells = useCallback(
+    (block: number, a: number, b: number): boolean => {
+      const prev = stateRef.current;
+      if (!prev) return false;
+      const current = prev.boards.boards[prev.boards.active];
+      const next = swapBlockCells(current, block, a, b);
+      if (next === current) return false;
+      updateBoard(() => next);
+      const after = stateRef.current;
+      if (after) {
+        const checkins = swapCheckins(after.checkins, current.id, swapPairs(block, a, b));
+        if (checkins !== after.checkins) patch('checkins', checkins);
+      }
+      return true;
+    },
+    [patch, updateBoard],
+  );
+
   /** 빈 판을 하나 더 만들고 그 판을 보여줘요(두 번째 판 잠금 해제 뒤). 이미 2개면 false. */
   const addBoard = useCallback((): boolean => {
     const prev = stateRef.current;
@@ -223,6 +246,7 @@ export function useAppState() {
     setSubTitle,
     setAction,
     clearCells,
+    swapCells,
     importBackup,
     updateSettings,
     updateCheckins,

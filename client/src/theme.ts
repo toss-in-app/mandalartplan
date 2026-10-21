@@ -33,6 +33,11 @@ function mix(from: string, to: string, t: number): string {
   return `#${a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('')}`;
 }
 
+/** `withAlpha(hex, alpha)` 를 흰 바탕 위에 올린 것과 같은 불투명 색. 들어 올린 칸처럼 다른 칸 위를 지나가도 밑이 비치지 않아야 할 때 */
+export function opaqueTint(hex: string, alpha: number): string {
+  return /^#([0-9a-f]{6})$/i.test(hex.trim()) ? mix('#ffffff', hex.trim(), alpha) : hex;
+}
+
 /** 실천을 오늘 다 한 세부 목표 칸: 흰 바탕에 브랜드 색 48% — 꽉 찬 핵심 목표 칸보다는 확실히 연하고, grey900 글자 대비 8:1 이상 */
 const SUB_DONE_FILL = mix('#ffffff', brandColor, 0.48);
 

@@ -31,6 +31,7 @@
 | `edit_mode_enter` | 홈·세부 목표 화면(1분 체험판 포함)·기록 위젯 판(3.0)이 편집 모드로 바뀔 때 | `screen`(home/sub/trial/records), `via`(longpress = 칸 길게 누르기 / button = 키보드·스크린리더 입구 '편집' / link = 예전 편집 화면 링크 `block/:n`. 평소 옆으로 쓸기로 들어가던 swipe 는 출시 전에 없앰) |
 | `cells_delete` | 편집 모드에서 고른 칸을 '삭제' 확인 뒤 지웠을 때 | `count`(지운 칸 수 — 상위 목표를 따라 함께 지운 하위 칸 포함: 세부 목표 → 그 실천, 핵심 목표 → 전부), `area`(goals = 홈: 핵심 목표·세부 목표 / actions = 세부 목표 화면: 세부 목표 이름·실천) |
 | `cells_delete_undo` | 토스트의 '되돌리기' | `count`(`cells_delete` 와 같은 수) |
+| `cells_swap` | 편집 모드에서 칸을 꾹 눌러 끌어 다른 칸 위에 놓아 자리를 바꿨을 때(3.0, 키보드 입구 '자리 바꾸기' 포함). 가운데는 제외 | `area`(goals = 홈: 세부 목표끼리 — 그 아래 실천·체크 기록도 함께 / actions = 세부 목표 화면: 실천끼리 — 체크 기록도 함께) |
 
 ### 기록 위젯 판 (3.0 — `client/src/screens/RecordsScreen.tsx`·`RecordScreen.tsx`, 설계 `plans/3.0-records-widgets-design.md`)
 
@@ -50,7 +51,7 @@
 | `trial_finish` | 마지막 버튼('내 만다라트 시작하기'·'내 만다라트로 돌아가기')을 눌렀을 때. 홈 안내 카드도 이때 거둬요 | `steps`(2 = 도장·편집 / 3 = AI 미리보기까지, AI 를 쓸 수 있는 기기만 3) |
 | `trial_card_close` | 홈 맨 위 안내 카드의 ✕ | |
 
-- 체험판의 판·체크는 저장하지 않는 예시라 `action_check`·`board_edit`·`cells_delete`·`cells_delete_undo` 를 보내지 않는다. 편집 모드에 들어가면 `edit_mode_enter`(`screen` = trial)만 보낸다.
+- 체험판의 판·체크는 저장하지 않는 예시라 `action_check`·`board_edit`·`cells_delete`·`cells_delete_undo`·`cells_swap` 을 보내지 않는다. 편집 모드에 들어가면 `edit_mode_enter`(`screen` = trial)만 보낸다.
 
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 | 이름 | 유형 | 지점 | 규칙 |

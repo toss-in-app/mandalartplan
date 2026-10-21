@@ -177,7 +177,8 @@ export function RecordsScreen({ board, record, widgets, onChangeWidgets, onOpen,
           <AdBanner adGroupId={AD_GROUPS.bannerToday} />
         </div>
       )}
-      {edit.editing && <div style={{ height: 40 }} />}
+      {/* 배너가 안 보일 때(기록 없음·편집 모드)도 맨 아래 40px — 홈·설정과 같게 */}
+      {(!hasHistory || edit.editing) && <div style={{ height: 40 }} />}
     </>
   );
 }

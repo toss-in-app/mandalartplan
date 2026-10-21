@@ -24,6 +24,8 @@ function board(): Board {
 interface SubOptions {
   board?: Board;
   onDeleteCells?: (cells: number[]) => () => void;
+  /** 자리 바꾸기(3.0). 넘기지 않으면 꾹 눌러 끌기·'자리 바꾸기' 입구가 없어요 */
+  onSwapCells?: (a: number, b: number) => void;
   editLink?: { cell: number | null; onDone: () => void };
 }
 
@@ -31,15 +33,15 @@ function subScreen(subIndex: number, options: SubOptions = {}) {
   const handlers = { onToggle: vi.fn(), onChangeAction: vi.fn(), onChangeSubTitle: vi.fn(), onDeleteCells: options.onDeleteCells ?? vi.fn(() => vi.fn()) };
   const ui = (b: Board) => (
     <TDSMobileAITProvider brandPrimaryColor="#6B5CFF">
-      <SubScreen board={b} subIndex={subIndex} checkin={undefined} {...handlers} editLink={options.editLink} />
+      <SubScreen board={b} subIndex={subIndex} checkin={undefined} {...handlers} onSwapCells={options.onSwapCells} editLink={options.editLink} />
     </TDSMobileAITProvider>
   );
   const utils = render(ui(options.board ?? board()));
   return { ...utils, ...handlers, rerenderWith: (b: Board) => utils.rerender(ui(b)) };
 }
 
-function homeScreen() {
-  const handlers = { onSelectSub: vi.fn(), onChangeGoal: vi.fn(), onChangeSubTitle: vi.fn(), onDeleteCells: vi.fn(() => vi.fn()) };
+function homeScreen(options: { onSwapCells?: (a: number, b: number) => void } = {}) {
+  const handlers = { onSelectSub: vi.fn(), onChangeGoal: vi.fn(), onChangeSubTitle: vi.fn(), onDeleteCells: vi.fn(() => vi.fn()), onSwapCells: options.onSwapCells };
   const noop = vi.fn();
   const utils = render(
     <TDSMobileAITProvider brandPrimaryColor="#6B5CFF">
@@ -188,9 +190,9 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(screen.getByText('지울 칸을 누르거나 쭉 끌어서 골라요')).toBeInTheDocument();
   });
 
-  it('길게 눌러 편집 모드가 된 손가락을 떼지 않고 끌어도 골라요', () => {
+  it('길게 눌러 편집 모드가 된 손가락을 떼지 않고 끌면 고르기가 아니라 옮기기예요(3.0 — 옮길 수 없으면 아무 일도 없어요)', () => {
     vi.useFakeTimers();
-    subScreen(0);
+    subScreen(0); // onSwapCells 없음 → 옮기기 없음
     const a = cell('받아쓰기');
     fingerOver(a, cell('쉐도잉'));
     fireEvent.pointerDown(a, { clientX: 10, clientY: 10 });
@@ -200,7 +202,8 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(editingNow()).toBe(true);
     fireEvent.pointerMove(a, { clientX: 70, clientY: 12 });
     fireEvent.pointerUp(a);
-    expect(screen.getByRole('button', { name: '2칸 삭제' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '2칸 삭제' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '선택 해제' })).not.toBeInTheDocument();
     expect(logEvent).toHaveBeenCalledWith('edit_mode_enter', { screen: 'sub', via: 'longpress' });
   });
 
@@ -408,5 +411,205 @@ describe('제자리 편집 모드 (2.1, 편집 버튼·편집 화면 없이 아�
     expect(screen.queryByRole('button', { name: '듣기' })).not.toBeInTheDocument();
     reveal('편집');
     expect(cell('듣기')).toBeInTheDocument();
+  });
+});
+
+/** 꾹 누르기: a 를 누르고 LONG_PRESS 만큼 기다려요(가짜 타이머). 그 뒤 rest 칸 위로 끌어요 */
+function holdAndDrag(a: HTMLElement, ...rest: HTMLElement[]) {
+  fingerOver(a, ...rest);
+  fireEvent.pointerDown(a, { clientX: 10, clientY: 10 });
+  act(() => {
+    vi.advanceTimersByTime(500);
+  });
+  rest.forEach((_, i) => fireEvent.pointerMove(a, { clientX: 10 + 60 * (i + 1), clientY: 12 }));
+}
+
+describe('자리 바꾸기 (3.0, 사용자 2026-10-21 — 아이폰 홈 화면처럼 꾹 누른 채 끌어 가운데를 제외하고 서로 스왑)', () => {
+  it("편집 모드 안내에 꾹 눌러 끌기가 들어가고, 키보드 입구 '자리 바꾸기'가 생겨요", () => {
+    subScreen(0, { onSwapCells: vi.fn() });
+    reveal('편집');
+    expect(screen.getByText('칸을 누르면 고치고, 쭉 끌면 지울 칸을 골라요. 꾹 눌러 끌면 자리를 바꿔요')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '자리 바꾸기' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '지울 칸 고르기' })).toBeInTheDocument();
+  });
+
+  it('편집 모드에서 칸을 꾹 누르면 들리고(흔들림 대신 손가락을 따라오고), 다른 칸 위에 놓으면 둘의 자리가 바뀌어요', () => {
+    vi.useFakeTimers();
+    const onSwapCells = vi.fn();
+    const { container, onToggle, onChangeAction } = subScreen(0, { onSwapCells });
+    reveal('편집');
+    const a = cell('받아쓰기');
+    const b = cell('쉐도잉');
+    fingerOver(a, b);
+    fireEvent.pointerDown(a, { clientX: 10, clientY: 10 });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(a).not.toHaveClass('mg-cell-lifted'); // 아직 짧은 누르기
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(a).toHaveClass('mg-cell-lifted');
+    expect(screen.getByText('다른 칸 위에 놓으면 자리를 바꿔요')).toBeInTheDocument();
+    fireEvent.pointerMove(a, { clientX: 70, clientY: 22 });
+    expect(a.style.transform).toBe('translate(60px, 12px) scale(1.06)');
+    expect(b).toHaveClass('mg-cell-target');
+    expect(container.querySelectorAll('.mg-cell-target')).toHaveLength(1);
+    fireEvent.pointerUp(a);
+    expect(onSwapCells).toHaveBeenCalledWith(cellOfRing(0), cellOfRing(1));
+    expect(container.querySelector('.mg-cell-lifted')).toBeNull();
+    expect(container.querySelector('.mg-cell-target')).toBeNull();
+    // 놓은 손가락의 click 은 고치기·체크가 아니에요. 편집 모드는 이어져요
+    fireEvent.click(a);
+    expect(onChangeAction).not.toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(sheetOpen()).toBe(false);
+    expect(editingNow()).toBe(true);
+  });
+
+  it('꾹 눌렀다가 그 자리에서 떼면 바뀌지 않고, 빈 칸 위에 놓으면 그 자리로 옮겨 가요', () => {
+    vi.useFakeTimers();
+    const onSwapCells = vi.fn();
+    subScreen(0, { onSwapCells });
+    reveal('편집');
+    const a = cell('받아쓰기');
+    holdAndDrag(a);
+    fireEvent.pointerUp(a);
+    expect(onSwapCells).not.toHaveBeenCalled();
+    expect(editingNow()).toBe(true);
+    holdAndDrag(cell('받아쓰기'), cell('실천 6'));
+    fireEvent.pointerUp(cell('받아쓰기'));
+    expect(onSwapCells).toHaveBeenCalledWith(cellOfRing(0), cellOfRing(5));
+  });
+
+  it('가운데는 들 수도 없고 놓을 자리도 못 돼요. 빈 칸도 들리지 않아요', () => {
+    vi.useFakeTimers();
+    const onSwapCells = vi.fn();
+    const { container } = subScreen(0, { onSwapCells });
+    reveal('편집');
+    const center = cell('듣기');
+    holdAndDrag(center, cell('받아쓰기'));
+    expect(container.querySelector('.mg-cell-lifted')).toBeNull();
+    fireEvent.pointerUp(center);
+    expect(onSwapCells).not.toHaveBeenCalled();
+    const a = cell('받아쓰기');
+    holdAndDrag(a, center);
+    expect(a).toHaveClass('mg-cell-lifted');
+    expect(center).not.toHaveClass('mg-cell-target');
+    fireEvent.pointerUp(a);
+    expect(onSwapCells).not.toHaveBeenCalled();
+    const empty = cell('실천 6');
+    holdAndDrag(empty, cell('받아쓰기'));
+    expect(container.querySelector('.mg-cell-lifted')).toBeNull();
+    fireEvent.pointerUp(empty);
+    expect(onSwapCells).not.toHaveBeenCalled();
+  });
+
+  it('꾹 누르기 전에 바로 끌면 그대로 지울 칸 고르기(스르륵 ✓)예요', () => {
+    const onSwapCells = vi.fn();
+    subScreen(0, { onSwapCells });
+    reveal('편집');
+    swipe(cell('받아쓰기'), cell('쉐도잉'), cell('팟캐스트'));
+    expect(screen.getByRole('button', { name: '3칸 삭제' })).toBeInTheDocument();
+    expect(onSwapCells).not.toHaveBeenCalled();
+    expect(cell('받아쓰기')).not.toHaveClass('mg-cell-lifted');
+  });
+
+  it('지울 칸을 고르는 중엔 꾹 눌러도 들리지 않아요(고르기·빼기만)', () => {
+    vi.useFakeTimers();
+    const onSwapCells = vi.fn();
+    const { container } = subScreen(0, { onSwapCells });
+    reveal('편집');
+    swipe(cell('받아쓰기'), cell('쉐도잉'));
+    const c = cell('팟캐스트');
+    holdAndDrag(c, cell('받아쓰기'));
+    expect(container.querySelector('.mg-cell-lifted')).toBeNull();
+    fireEvent.pointerUp(c);
+    fireEvent.click(c); // 꾹 눌렀다 뗀 click 은 평소처럼 고르기
+    expect(onSwapCells).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '3칸 삭제' })).toBeInTheDocument();
+  });
+
+  it('평소에 길게 누르면 편집 모드가 되면서 그 칸이 바로 들려요 — 떼지 않고 끌어 놓으면 자리가 바뀌어요(아이폰처럼)', () => {
+    vi.useFakeTimers();
+    const onSwapCells = vi.fn();
+    const { onToggle } = subScreen(0, { onSwapCells });
+    const a = cell('받아쓰기');
+    holdAndDrag(a, cell('팟캐스트'));
+    expect(editingNow()).toBe(true);
+    expect(a).toHaveClass('mg-cell-lifted');
+    expect(logEvent).toHaveBeenCalledWith('edit_mode_enter', { screen: 'sub', via: 'longpress' });
+    fireEvent.pointerUp(a);
+    fireEvent.click(a);
+    expect(onSwapCells).toHaveBeenCalledWith(cellOfRing(0), cellOfRing(2));
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('브라우저가 끌기를 가로채면(pointercancel) 바꾸지 않고 제자리로', () => {
+    vi.useFakeTimers();
+    const onSwapCells = vi.fn();
+    const { container } = subScreen(0, { onSwapCells });
+    reveal('편집');
+    const a = cell('받아쓰기');
+    holdAndDrag(a, cell('쉐도잉'));
+    expect(cell('쉐도잉')).toHaveClass('mg-cell-target');
+    fireEvent.pointerCancel(a);
+    expect(onSwapCells).not.toHaveBeenCalled();
+    expect(container.querySelector('.mg-cell-lifted')).toBeNull();
+  });
+
+  it("키보드·스크린리더: '자리 바꾸기' → 첫 칸 → 바꿀 칸을 차례로 눌러요. 첫 칸을 다시 누르면 취소", () => {
+    const onSwapCells = vi.fn();
+    subScreen(0, { onSwapCells });
+    reveal('편집');
+    reveal('자리 바꾸기');
+    expect(screen.getByText('자리를 바꿀 첫 칸을 누르세요')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '지울 칸 고르기' })).not.toBeInTheDocument();
+    fireEvent.click(cell('듣기')); // 가운데는 첫 칸이 못 돼요
+    expect(screen.getByText('자리를 바꿀 첫 칸을 누르세요')).toBeInTheDocument();
+    fireEvent.click(cell('받아쓰기'));
+    expect(cell('받아쓰기')).toHaveClass('mg-cell-lifted');
+    expect(screen.getByText('바꿀 칸을 누르세요. 첫 칸을 다시 누르면 취소예요')).toBeInTheDocument();
+    fireEvent.click(cell('받아쓰기'));
+    expect(cell('받아쓰기')).not.toHaveClass('mg-cell-lifted');
+    fireEvent.click(cell('쉐도잉'));
+    fireEvent.click(cell('듣기')); // 가운데는 놓을 자리가 못 돼요
+    expect(onSwapCells).not.toHaveBeenCalled();
+    fireEvent.click(cell('팟캐스트'));
+    expect(onSwapCells).toHaveBeenCalledWith(cellOfRing(1), cellOfRing(2));
+    expect(sheetOpen()).toBe(false);
+    expect(screen.getByRole('button', { name: '자리 바꾸기' })).toBeInTheDocument(); // 끝나면 입구가 돌아와요
+    expect(editingNow()).toBe(true);
+  });
+
+  it('홈: 세부 목표를 들면 실천도 함께 간다고 알려 주고, 핵심 목표(가운데)는 제외예요', () => {
+    vi.useFakeTimers();
+    const onSwapCells = vi.fn();
+    const { container } = homeScreen({ onSwapCells });
+    reveal('편집');
+    expect(screen.getByText('칸을 누르면 고치고, 쭉 끌면 지울 칸을 골라요. 꾹 눌러 끌면 자리를 바꿔요')).toBeInTheDocument();
+    const goal = cell('토익 900점');
+    holdAndDrag(goal, cell('듣기'));
+    expect(container.querySelector('.mg-cell-lifted')).toBeNull();
+    fireEvent.pointerUp(goal);
+    const a = cell('듣기');
+    holdAndDrag(a, cell('세부 목표 3'));
+    expect(a).toHaveClass('mg-cell-lifted');
+    expect(screen.getByText('다른 세부 목표 위에 놓으면 자리를 바꿔요. 실천도 함께 가요')).toBeInTheDocument();
+    fireEvent.pointerUp(a);
+    expect(onSwapCells).toHaveBeenCalledWith(cellOfRing(0), cellOfRing(2));
+  });
+
+  it("'완료'로 편집 모드를 끝내면 든 칸·자리 바꾸기 모드도 풀려요", () => {
+    const onSwapCells = vi.fn();
+    const { container } = subScreen(0, { onSwapCells });
+    reveal('편집');
+    reveal('자리 바꾸기');
+    fireEvent.click(cell('받아쓰기'));
+    expect(container.querySelector('.mg-cell-lifted')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '완료' }));
+    expect(container.querySelector('.mg-cell-lifted')).toBeNull();
+    expect(editingNow()).toBe(false);
+    expect(onSwapCells).not.toHaveBeenCalled();
   });
 });

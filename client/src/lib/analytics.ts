@@ -31,10 +31,11 @@ export type EventName =
   | 'trial_start'
   | 'trial_finish'
   | 'trial_card_close'
-  /** 제자리 편집 모드(2.1): 들어가기, 여러 칸 지우기·되돌리기 */
+  /** 제자리 편집 모드(2.1): 들어가기, 여러 칸 지우기·되돌리기, 자리 바꾸기(3.0) */
   | 'edit_mode_enter'
   | 'cells_delete'
   | 'cells_delete_undo'
+  | 'cells_swap'
   /** 기록 위젯 판(3.0): 위젯을 눌러 대시보드 열기, 판 고치기(숨기기·넣기·옮기기), 지난주 리포트 글 공유 */
   | 'record_open'
   | 'record_widget_edit'

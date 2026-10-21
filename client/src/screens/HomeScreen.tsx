@@ -51,6 +51,8 @@ interface HomeScreenProps {
   aiFilling?: boolean;
   /** 편집 모드에서 고른 칸(0~8)을 지우고 되돌리기 함수를 돌려줘요(2.1) */
   onDeleteCells?: (cells: number[]) => () => void;
+  /** 편집 모드에서 꾹 눌러 끈 세부 목표 칸 두 개(0~8, 가운데 제외)의 자리를 바꿔요(3.0) — 그 아래 실천과 체크 기록도 함께 가요 */
+  onSwapCells?: (a: number, b: number) => void;
   /** 맨 위 '1분 체험' 안내 카드(2.1). 처음 온 사람에게만 넘겨요(실천을 적기 전, 닫거나 체험판을 끝까지 하기 전). 없으면 숨겨요 */
   trialCard?: { ai: boolean; onOpen: () => void; onClose: () => void };
   /** 예전 편집 화면 링크(`block/4`, 콘솔 앱 내 기능 '만다라트 작성')로 들어왔을 때: 편집 모드로 시작, cell 이 있으면 그 칸 입력창, '완료'는 편집 모드를 끝내고 onDone */
@@ -62,6 +64,7 @@ interface HomeScreenProps {
  * 가운데(핵심 목표)는 글이 있으면 누를 수 없는 이름표 — 세부 목표 화면·전체 보기의 가운데와 같아요(2.1, 사용자 결정). 전체 보기는 '전체 보기' 버튼으로.
  * 비어 있는 칸(핵심 목표·세부 목표)은 누르면 그 자리에서 바텀시트로 정해요.
  * 고치기·지우기는 편집 버튼 없이 칸을 길게 눌러 그 자리에서(2.1 제자리 편집 모드, `useGridEdit`) — 오른쪽 위 '완료'로 끝내요.
+ * 편집 모드에서 세부 목표 칸을 꾹 눌러 끌어 다른 칸 위에 놓으면 자리가 바뀌고 그 아래 실천·체크 기록도 따라가요(3.0, 가운데 핵심 목표는 제외).
  * 글이 있는 실천을 오늘 전부 체크한 세부 목표 칸은 진해지고 칸 아래 글이 '오늘 다 했어요'로 바뀌어요(✓ 는 편집 모드의 '고른 칸'만).
  */
 export function HomeScreen({
@@ -85,6 +88,7 @@ export function HomeScreen({
   aiFill,
   aiFilling = false,
   onDeleteCells,
+  onSwapCells,
   trialCard,
   editLink,
 }: HomeScreenProps) {
@@ -95,6 +99,7 @@ export function HomeScreen({
     screen: 'home',
     onEditCell: (cell) => editor.openFromTap(editTarget(board, CENTER, cell)),
     onDeleteCells,
+    onSwapCells,
     startEditing: Boolean(editLink),
   });
   // 링크로 들어왔으면 편집 모드를 끝내고 이전 화면으로(이전 화면이 없어도 편집 모드는 끝나요)
