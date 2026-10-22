@@ -96,13 +96,12 @@ Supabase RPC: `backup_get(p_key)` · `backup_upsert(p_key, p_payload, p_payload_
 |--------|------|----------|
 | `ai_notice_agree` | 생성형 AI 사전 고지 시트에서 '확인' | |
 | `ai_draft_start` | AD 버튼을 누르고 사전 검사(고지·하루 20회(2.0 은 10회)·입력)를 통과해 광고를 띄우기 직전 | `mode`(draft/actions, 2.0 은 subs 도), `from`(2.1: draft 는 new = 빈 판·핵심 목표만 / partial = 칸을 일부 채운 판, actions 는 sub = 세부 목표 화면) |
-| `ai_draft_reward` | 리워드 광고 결과 | `mode`, `result`(rewarded/dismissed/unavailable), `cause`(3.0.1, unavailable 일 때만: unsupported = 토스앱이 광고 브릿지 미지원 / load_timeout = 60초 안에 loaded 없음 / load_error / show_timeout = 띄웠는데 이벤트 없음 / failed_to_show / show_error / busy = 이미 보여주는 중 / unknown) |
+| `ai_draft_reward` | 리워드 광고 결과 | `mode`, `result`(rewarded/dismissed/unavailable) |
 | `ai_draft_result` | 서버 응답(보상을 받은 뒤에만 부름) | `mode`, `result`(ok/refused/limited/invalid_output/busy/network/invalid), `ms` |
 | `ai_draft_apply` | 결과를 판에 넣음(미리보기 '이대로 시작하기' 또는 세부 목표 화면 채우기) | `mode`, `filled`(새로 채운 칸 수) |
 
 - `mode`: `draft` = 목표 입력 화면에서 판 전체(세부 목표 → 실천 순서로 서버 2번), `actions` = 한 세부 목표의 빈 실천만(2.1 세부 목표 화면, 2.0 은 편집 화면). `subs` = 2.0 편집 화면의 빈 세부 목표만 — 2.1 에서 편집 화면과 함께 없어짐(빈 세부 목표는 홈 'AI로 빈 칸 채우기' = `draft`). 서버 API 의 `subs` 모드는 `draft` 가 안에서 그대로 씀.
 - 2.1: 홈 'AI로 빈 칸 채우기'는 초안 화면 없이 바로 광고 → 그 자리에서 빈 칸만 채워요 — 이벤트는 초안과 같은 `mode: draft`·`from: partial`, 미리보기가 없어 `ai_draft_apply` 가 바로 따라와요.
-- 3.0.1 (2026-10-22, 안드로이드 토스앱 광고 이벤트 지연 대응): 광고 판정이 끝난 뒤 늦게 온 `userEarnedReward` 는 크레딧으로 남아 다음 번 AD 버튼은 광고 없이 바로 이어가요(토스트 '방금 본 광고가 뒤늦게 인정됐어요…'). 그때는 `ai_draft_start` → `ai_draft_reward`{result: rewarded} 가 광고 없이 바로 이어져요. `cause` 로 안드로이드 이벤트 누락이 얼마나 되는지 봐요.
 - 자해·자살 표현 감지(앱 사전 검사·서버 `self_harm`)는 **이벤트를 남기지 않는다** — 민감한 정보라서. 목표 문구·칸 글도 어떤 이벤트에도 싣지 않는다.
 
 | 광고 그룹 | 유형 | 지점 | 규칙 |

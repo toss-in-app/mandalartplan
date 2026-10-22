@@ -20,7 +20,7 @@ export const AI_MESSAGES = {
   serverLimited: '오늘은 AI 초안을 더 만들 수 없어요. 내일 다시 해 주세요',
   retryLater: '잠시 뒤에 다시 해 주세요',
   noAdTitle: '지금은 광고를 불러올 수 없어요',
-  noAdBody: 'AI 초안은 광고를 끝까지 본 뒤에 만들어요. 광고가 늦게 오는 때가 있으니 다시 시도해 보세요.',
+  noAdBody: 'AI 초안은 광고를 끝까지 본 뒤에 만들어요. 잠시 뒤에 다시 해 주세요.',
   failTitle: '지금은 초안을 만들 수 없어요',
   failBody: '잠시 뒤에 다시 해 주세요. 방금 본 광고는 오늘 횟수에서 빼지 않았어요.',
   careTitle: '지금 마음이 힘들다면',

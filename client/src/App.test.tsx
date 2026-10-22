@@ -328,7 +328,7 @@ describe('App (두 번째 판)', () => {
   const titleSelector = () => within(screen.getByRole('heading', { level: 1 })).getByRole('button');
 
   it('설정 행 → 안내 → 리워드 보상(userEarnedReward)이면 잠금 해제 + 빈 두 번째 판 → 홈 제목이 셀렉터, 판을 바꾸면 체크 기록도 판별', async () => {
-    rewarded.impl = () => ({ watch: async () => 'rewarded' as const, supported: true, failCause: () => null });
+    rewarded.impl = () => ({ watch: async () => 'rewarded' as const, supported: true });
     window.localStorage.setItem('__ait_storage:mandalart.boards.v1', boards);
     window.localStorage.setItem('__ait_storage:mandalart.checkins.v1', JSON.stringify({ version: 1, byBoard: { b1759000000000: { days: { [dateKey()]: [0] }, lastCompletedAt: 1 } } }));
     renderApp();

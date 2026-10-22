@@ -12,6 +12,3 @@ dist/
 
 # Supabase CLI 가 만드는 로컬 상태(링크·버전 캐시) — 커밋하지 않음
 supabase/.temp/
-
-# 콘솔 미리보기 이미지 작업 폴더(캡처 원본·글꼴) — 완성본 PNG 만 커밋
-console/screenshots/.work/

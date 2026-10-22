@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 
-import type { RewardedFailCause, RewardedOutcome } from '../ads/useRewardedAd';
+import type { RewardedOutcome } from '../ads/useRewardedAd';
 import { AiNoticeSheet } from '../components/AiNoticeSheet';
 import { PRIVACY_URL } from '../content';
 import type { useAppState } from '../hooks/useAppState';
@@ -17,8 +17,6 @@ type AppState = ReturnType<typeof useAppState>;
 
 interface Reward {
   watch: () => Promise<RewardedOutcome>;
-  /** 마지막 watch 가 unavailable 이었던 까닭(분석 이벤트 cause) */
-  failCause?: () => RewardedFailCause | null;
 }
 
 /**
@@ -124,8 +122,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
     // 개발 서버 전용: AIT Devtools 의 모의 광고는 보상(userEarnedReward)을 주지 않아서, localStorage 'mandalart.dev.aiReward' = '1' 이면
     // 끝까지 본 것으로 쳐요(만드는 중·미리보기 화면 확인용). 출시 빌드에서는 import.meta.env.DEV 가 false 라 이 줄이 빠져요.
     if (import.meta.env.DEV && outcome === 'dismissed' && window.localStorage.getItem('mandalart.dev.aiReward') === '1') outcome = 'rewarded';
-    // unavailable 이면 까닭(불러오기 시간 초과·에러, 표시 시간 초과…)도 남겨요 — 안드로이드 이벤트 누락이 얼마나 되는지 보려고(2026-10-22)
-    logEvent('ai_draft_reward', outcome === 'unavailable' ? { mode, result: outcome, cause: reward.failCause?.() ?? 'unknown' } : { mode, result: outcome });
+    logEvent('ai_draft_reward', { mode, result: outcome });
     if (outcome === 'unavailable') return { ok: false, reason: 'no_ad' };
     if (outcome === 'dismissed') return { ok: false, reason: 'dismissed' };
     return { ok: true, key };
