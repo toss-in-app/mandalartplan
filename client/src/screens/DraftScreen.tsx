@@ -63,7 +63,9 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
   const alive = useRef(true);
   /** 만들기 진행 중(고지·광고·서버·안내 다이얼로그까지). 두 번 눌러도 한 번만 */
   const running = useRef(false);
-  const { openAlert, openConfirm } = useDialog();
+  /** AD 버튼을 누른 뒤 광고가 뜨기 전까지 — 버튼이 돌고 아래 안내가 '광고를 불러오고 있어요'로 바뀌어요(광고 노출 전에 알리는 UI) */
+  const [adWaiting, setAdWaiting] = useState(false);
+  const { openAlert } = useDialog();
   const toast = useToast();
 
   useEffect(() => {
@@ -93,16 +95,23 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
   const runGenerate = async () => {
     const from = phase;
     setIssue(null);
-    const result = await onGenerate(goal, {
-      onStarted: () => {
-        if (!alive.current) return;
-        setProgress(null);
-        setPhase('making');
-      },
-      onProgress: (next) => {
-        if (alive.current) setProgress(next);
-      },
-    });
+    setAdWaiting(true);
+    let result: Awaited<ReturnType<typeof onGenerate>>;
+    try {
+      result = await onGenerate(goal, {
+        onStarted: () => {
+          if (!alive.current) return;
+          setAdWaiting(false);
+          setProgress(null);
+          setPhase('making');
+        },
+        onProgress: (next) => {
+          if (alive.current) setProgress(next);
+        },
+      });
+    } finally {
+      if (alive.current) setAdWaiting(false);
+    }
     if (!alive.current || (result.kind === 'stopped' && result.reason === 'busy')) return;
     if (result.kind === 'ok') {
       setDraft(result.value);
@@ -116,11 +125,7 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
       else if (result.reason === 'limit') toast.openToast(AI_MESSAGES.limit);
       else if (result.reason === 'dismissed') toast.openToast(AI_MESSAGES.dismissed);
       else if (result.reason === 'key') toast.openToast(AI_MESSAGES.retryLater);
-      else if (result.reason === 'no_ad') {
-        // 광고 이벤트가 늦어 못 띄운 것일 수 있어요(안드로이드) — 바로 다시 불러올 수 있게 '다시 시도'
-        const again = await openConfirm({ title: AI_MESSAGES.noAdTitle, description: AI_MESSAGES.noAdBody, confirmButton: '다시 시도', cancelButton: '닫기' });
-        if (again && alive.current) await runGenerate();
-      }
+      else if (result.reason === 'no_ad') await notify(AI_MESSAGES.noAdTitle, AI_MESSAGES.noAdBody); // AD 버튼이 바로 아래 있어 그걸 다시 눌러요(심사: 광고로 가는 버튼엔 AD 표시)
       return;
     }
     if (result.code === 'limited') {
@@ -191,7 +196,7 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
             />
           }
           leftButton={
-            <CTAButton color="dark" variant="weak" disabled={runsLeft === 0} onClick={() => void generate()} aria-label="광고 보고 다시 만들기">
+            <CTAButton color="dark" variant="weak" disabled={runsLeft === 0} loading={adWaiting} onClick={() => void generate()} aria-label="광고 보고 다시 만들기">
               <AdLabel onBrand={false}>다시 만들기</AdLabel>
             </CTAButton>
           }
@@ -299,18 +304,21 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
         topAccessory={
           <CtaCaption
             text={
-              runsLeft === 0
-                ? AI_MESSAGES.limit
-                : notCounted
-                  ? AI_MESSAGES.notCounted(runsLeft)
-                  : partial
-                    ? AI_MESSAGES.fillDraftCaption(runsLeft)
-                    : AI_MESSAGES.draftCaption(runsLeft)
+              adWaiting
+                ? AI_MESSAGES.adWaiting
+                : runsLeft === 0
+                  ? AI_MESSAGES.limit
+                  : notCounted
+                    ? AI_MESSAGES.notCounted(runsLeft)
+                    : partial
+                      ? AI_MESSAGES.fillDraftCaption(runsLeft)
+                      : AI_MESSAGES.draftCaption(runsLeft)
             }
             strong={runsLeft === 0}
           />
         }
         disabled={!canMake}
+        loading={adWaiting}
         aria-label={partial ? '광고 보고 AI로 빈 칸 채우기' : '광고 보고 AI 초안 만들기'}
         onClick={() => void generate()}
       >

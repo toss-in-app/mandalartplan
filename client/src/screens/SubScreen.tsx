@@ -12,6 +12,7 @@ import { nextEmptyCell } from '../lib/cells';
 import { checkedInSub, todaySet } from '../lib/checkin';
 import { cellOfRing, type Board } from '../lib/mandalart';
 import { dateKey, type CheckinRecord } from '../lib/state';
+import { AI_MESSAGES } from '../ai/messages';
 
 interface SubScreenProps {
   board: Board;
@@ -24,7 +25,7 @@ interface SubScreenProps {
   /** 편집 모드에서 가운데(세부 목표 이름)를 고쳤을 때 */
   onChangeSubTitle: (subIndex: number, title: string) => void;
   /** '빈 실천 AI로 채우기'(2.1) — 핵심 목표·이 세부 목표가 있고 빈 실천이 있을 때만. 없으면 숨겨요 */
-  aiFill?: { label: string; caption: string; disabled: boolean; onPress: () => void };
+  aiFill?: { label: string; caption: string; disabled: boolean; busy?: boolean; onPress: () => void };
   /** 편집 모드에서 고른 칸(0~8)을 지우고 되돌리기 함수를 돌려줘요(2.1) */
   onDeleteCells?: (cells: number[]) => () => void;
   /** 편집 모드에서 꾹 눌러 끈 실천 칸 두 개(0~8, 가운데 제외)의 자리를 바꿔요(3.0) — 체크 기록도 함께 가요 */
@@ -151,7 +152,7 @@ export function SubScreen({
       {aiFill && (
         <>
           <div style={{ padding: '16px 20px 0' }}>
-            <Button display="block" size="large" color="dark" variant="weak" disabled={aiFill.disabled} onClick={aiFill.onPress} aria-label={`광고 보고 ${aiFill.label}`}>
+            <Button display="block" size="large" color="dark" variant="weak" disabled={aiFill.disabled} loading={aiFill.busy} onClick={aiFill.onPress} aria-label={`광고 보고 ${aiFill.label}`}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <AdMark onBrand={false} />
                 <span>{aiFill.label}</span>
@@ -160,7 +161,7 @@ export function SubScreen({
           </div>
           <div className="text-balance" style={{ padding: '8px 24px 0' }}>
             <Text typography="t7" color={colors.grey600} display="block">
-              {aiFill.caption}
+              {aiFill.busy ? AI_MESSAGES.adWaiting : aiFill.caption}
             </Text>
           </div>
         </>

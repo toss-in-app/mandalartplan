@@ -15,6 +15,7 @@ import { checkedInSub, formatDateLabel, todaySet } from '../lib/checkin';
 import { CENTER, getProgress, hasAiText, type Board } from '../lib/mandalart';
 import { boardLabel, dateKey, streak, type CheckinRecord } from '../lib/state';
 import { brandColor } from '../theme';
+import { AI_MESSAGES } from '../ai/messages';
 
 interface HomeScreenProps {
   board: Board;
@@ -46,7 +47,7 @@ interface HomeScreenProps {
    * 'AI로 빈 칸 채우기'(2.1): 칸을 일부 채운 판에서 초안 화면 없이 바로 광고 → 빈 칸만 채워요(사용자 2026-10-21 '뎁스가 깊어지는 게 싫어').
    * 세부 목표 화면 '빈 실천 AI로 채우기'와 같은 모양(AD 표시 + 아래 안내). 없으면 숨겨요
    */
-  aiFill?: { label: string; caption: string; disabled: boolean; onPress: () => void };
+  aiFill?: { label: string; caption: string; disabled: boolean; busy?: boolean; onPress: () => void };
   /** 광고를 다 보고 AI 가 빈 칸을 채우는 중 — 버튼이 돌고, 빈 칸은 깜빡이며 누를 수 없어요 */
   aiFilling?: boolean;
   /** 편집 모드에서 고른 칸(0~8)을 지우고 되돌리기 함수를 돌려줘요(2.1) */
@@ -297,7 +298,7 @@ export function HomeScreen({
               color="dark"
               variant="weak"
               disabled={aiFill.disabled}
-              loading={aiFilling}
+              loading={aiFilling || aiFill.busy}
               onClick={aiFill.onPress}
               aria-label={`광고 보고 ${aiFill.label}`}
             >
@@ -309,7 +310,7 @@ export function HomeScreen({
           </div>
           <div className="text-balance" aria-live="polite" style={{ padding: '8px 24px 8px' }}>
             <Text typography="t7" color={colors.grey600} display="block">
-              {aiFilling ? 'AI가 빈 칸을 채우고 있어요. 잠시만 기다려 주세요' : aiFill.caption}
+              {aiFilling ? 'AI가 빈 칸을 채우고 있어요. 잠시만 기다려 주세요' : aiFill.busy ? AI_MESSAGES.adWaiting : aiFill.caption}
             </Text>
           </div>
         </>

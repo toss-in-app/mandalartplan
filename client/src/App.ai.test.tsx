@@ -170,18 +170,18 @@ describe('App (AI 초안)', () => {
     await waitFor(() => expect(savedBoard().subs[3].actions[7]).toBe('실천 4-8'));
   });
 
-  it('광고를 못 불러오면 AI 를 쓰지 않고 까닭을 남기며, 창의 "다시 시도"로 바로 다시 불러와요(예시 시작은 2.1 에서 없어짐)', async () => {
+  it('광고를 못 불러오면 AI 를 쓰지 않고 까닭을 남겨요. 창은 확인뿐(광고로 가는 버튼은 AD 표시가 있는 아래 버튼만, 예시 시작은 2.1 에서 없어짐)', async () => {
     ad.outcome = 'unavailable';
     saveAi({ noticeAt: 1, runs: { date: null, count: 0 } });
     saveBoard('8구단 드래프트 1순위');
     renderAt('#/draft');
     fireEvent.click(await screen.findByRole('button', { name: '광고 보고 AI 초안 만들기' }));
     await screen.findByText('지금은 광고를 불러올 수 없어요');
-    expect(screen.getByText('닫기')).toBeInTheDocument();
+    expect(screen.getByText('확인')).toBeInTheDocument();
+    expect(screen.queryByText('다시 시도')).not.toBeInTheDocument();
     expect(screen.queryByText('예시로 시작하기')).not.toBeInTheDocument();
     expect(logEvent).toHaveBeenCalledWith('ai_draft_reward', { mode: 'draft', result: 'unavailable', cause: 'load_timeout' });
-    fireEvent.click(screen.getByText('다시 시도')); // 안드로이드에서 이벤트가 늦어 못 띄운 것일 수 있어요
-    await waitFor(() => expect(ad.watched).toBe(2));
+    expect(ad.watched).toBe(1);
     expect(server.calls).toHaveLength(0);
     expect(savedAi().runs.count).toBe(0);
   });

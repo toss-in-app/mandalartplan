@@ -3,13 +3,17 @@
  * 두 유형은 같은 API 를 쓰고 광고 그룹 ID 로 유형이 정해져요. 순서는 반드시 load → (loaded 이벤트) → show → (다음 load).
  * 실패·미지원·시간 초과는 모두 "광고 없음" 으로 돌려주고 던지지 않아요 — 호출한 쪽은 광고 없이 흐름을 이어가요.
  *
- * 안드로이드 토스앱은 광고 이벤트가 늦거나 안 오는 일이 있어요(앱인토스 공지 '[공지] Android 광고 로드 관련 이슈 및 개선 사항 안내',
- * '[공지] Android 광고 로드 실패 시 에러 콜백이 호출되지 않는 현상', 공식 FAQ 5.255.0 dismissed 미발생 — 2026-10-22 사용자 실기기 재현).
+ * 안드로이드 토스앱은 광고 이벤트가 늦거나 안 와요(앱인토스 공지 '[공지] Android 광고 로드 관련 이슈 및 개선 사항 안내',
+ * '[공지] Android 광고 로드 실패 시 에러 콜백이 호출되지 않는 현상', 공식 FAQ 5.255.0 dismissed 미발생).
+ * 사용자 2026-10-22 실기기 영상(라이브 2.0.0): 누르자마자 광고가 뜨고 50초를 다 봐 광고 쪽은 '리워드 지급됨'까지 띄웠는데,
+ * 앱에는 show·userEarnedReward 가 8초 안에 안 와 "못 띄웠다"로 판정하고 '지금은 광고를 불러올 수 없어요'를 띄웠어요.
  * 그래서 이벤트만 믿지 않아요:
  * - 불러오기는 공식 상한인 60초까지 기다려요(토스 측 권고).
- * - 광고가 화면을 덮어 문서가 hidden 이 되면 show 이벤트가 없어도 '떴다'로 봐요. 네이티브가 요청을 받았다(requested)고 하면 뜰 때까지 더 기다려요.
+ * - 광고가 화면을 덮으면 문서가 hidden 이 되거나 창이 blur 돼요 → show 이벤트가 없어도 '떴다'로 봐요.
+ * - 8초 동안 아무 신호가 없어도 실패로 단정하지 않아요. 광고가 덮고 있으면 화면을 누를 수 없으니, 그 뒤 화면을 누르면 '안 떴다',
+ *   누르지 않으면 이벤트·가림이 풀릴 때까지(최대 120초) 기다려요 — 이벤트가 광고가 닫힐 때 한꺼번에 와도 보상을 받아요.
  * - 닫히거나(dismissed) 다시 보이면 1.5초 동안 늦은 userEarnedReward 를 기다린 뒤 판정해요.
- * - 판정한 뒤 10초 안에 온 보상은 onLateReward 로 알려요(호출한 쪽이 다음 번엔 광고 없이 이어가게).
+ * - 판정한 뒤 120초 안에 온 보상은 onLateReward 로 알려요(호출한 쪽이 다음 번엔 광고 없이 이어가게).
  * - 실패하면 까닭(cause)을 돌려줘 분석 이벤트에 남겨요.
  */
 import { loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/web-framework';
@@ -19,14 +23,14 @@ export type AdFailCause = 'unsupported' | 'load_timeout' | 'load_error' | 'show_
 
 /** 토스 애즈는 1~2초, 애드몹은 5~20초(최대 60초)까지 걸릴 수 있어요(공식 FAQ). 공식 상한까지 기다려요 */
 const LOAD_TIMEOUT_MS = 60_000;
-/** show 를 불렀는데 아무 이벤트도 없이 이만큼 지나면 실패로 봐요 */
-const SHOW_START_TIMEOUT_MS = 8_000;
-/** 네이티브가 요청을 받았다(requested)고 한 뒤에는 뜰 때까지 이만큼 기다려요 */
-const SHOW_REQUESTED_TIMEOUT_MS = 20_000;
+/** show 를 부른 뒤 아무 신호도 없이 이만큼 지나면 '떴는지 모르는' 상태 — 그때부터 화면 터치를 "안 떴다"의 신호로 봐요 */
+const SHOW_SIGNAL_MS = 8_000;
+/** 아무 신호도 없이 이만큼 지나면 못 띄운 것으로 봐요(리워드 광고 최대 길이보다 길게) */
+const SHOW_HARD_CAP_MS = 120_000;
 /** 닫힘·다시 보임 뒤 늦은 userEarnedReward 를 기다리는 시간 */
 const REWARD_GRACE_MS = 1_500;
-/** 판정한 뒤에도 늦은 보상을 듣는 시간 */
-const LATE_REWARD_MS = 10_000;
+/** 판정한 뒤에도 늦은 보상을 듣는 시간 — 광고를 다 보는 동안 이벤트가 밀릴 수 있어 광고 길이만큼 */
+const LATE_REWARD_MS = 120_000;
 /** 떠 있는 광고가 닫힘 이벤트 없이 이만큼 지나면 닫힌 것으로 봐요(안전장치) */
 const DISMISS_FALLBACK_MS = 120_000;
 
@@ -91,7 +95,7 @@ export interface ShowAdResult {
 }
 
 export interface ShowAdOptions {
-  /** 판정이 끝난 뒤 10초 안에 늦게 온 userEarnedReward(리워드 광고만). 한 번만 불러요 */
+  /** 판정이 끝난 뒤 120초 안에 늦게 온 userEarnedReward(리워드 광고만). 한 번만 불러요 */
   onLateReward?: () => void;
 }
 
@@ -102,9 +106,13 @@ export function showAd(adGroupId: string, { onLateReward }: ShowAdOptions = {}):
     let listening = true;
     let shown = false;
     let rewarded = false;
-    let wasHidden = false;
+    /** 광고(또는 다른 화면)가 덮어 문서가 가려졌거나 창이 blur 됐는지 */
+    let covered = false;
+    /** 8초 동안 아무 신호가 없어 떴는지 모르는 상태 */
+    let uncertain = false;
     let cause: AdFailCause | undefined;
-    let startTimer: ReturnType<typeof setTimeout> | null = null;
+    let signalTimer: ReturnType<typeof setTimeout> | null = null;
+    let capTimer: ReturnType<typeof setTimeout> | null = null;
     let fallback: ReturnType<typeof setTimeout> | null = null;
     let grace: ReturnType<typeof setTimeout> | null = null;
     let lateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -125,12 +133,18 @@ export function showAd(adGroupId: string, { onLateReward }: ShowAdOptions = {}):
         /* 무시 */
       }
     };
+    const removeListeners = () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onCover);
+      window.removeEventListener('focus', onUncover);
+      document.removeEventListener('pointerdown', onPointer, true);
+    };
     const finish = () => {
       if (settled) return;
       settled = true;
-      for (const timer of [startTimer, fallback, grace]) if (timer) clearTimeout(timer);
-      document.removeEventListener('visibilitychange', onVisibility);
-      // 보상 없이 판정했으면 잠깐 더 듣고 있다가 늦게 온 보상을 알려요(안드로이드 이벤트 지연)
+      for (const timer of [signalTimer, capTimer, fallback, grace]) if (timer) clearTimeout(timer);
+      removeListeners();
+      // 보상 없이 판정했으면 광고 길이만큼 더 듣고 있다가 늦게 온 보상을 알려요(안드로이드 이벤트 지연)
       if (!rewarded && onLateReward) lateTimer = setTimeout(release, LATE_REWARD_MS);
       else release();
       resolve({ shown, rewarded, cause: shown ? undefined : (cause ?? 'show_timeout') });
@@ -144,34 +158,43 @@ export function showAd(adGroupId: string, { onLateReward }: ShowAdOptions = {}):
       }
       if (!grace) grace = setTimeout(finish, REWARD_GRACE_MS);
     };
-    const armStart = (ms: number) => {
-      if (startTimer) clearTimeout(startTimer);
-      startTimer = setTimeout(() => {
-        if (shown) return;
-        cause = 'show_timeout';
-        finish();
-      }, ms);
-    };
     const markShown = () => {
       if (shown || settled) return;
       shown = true;
-      if (startTimer) {
-        clearTimeout(startTimer);
-        startTimer = null;
-      }
+      for (const timer of [signalTimer, capTimer]) if (timer) clearTimeout(timer);
+      signalTimer = capTimer = null;
       fallback = setTimeout(finish, DISMISS_FALLBACK_MS);
     };
-    /** 광고가 화면을 덮으면 hidden, 닫히면 visible — show·dismissed 이벤트가 안 오는 기기(Android 토스앱 5.255.0 등, 공식 FAQ)의 대비 */
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        wasHidden = true;
-        markShown();
-        return;
-      }
-      if (shown && wasHidden) settleSoon();
+    /** 광고가 화면을 덮으면 hidden/blur, 닫히면 visible/focus — show·dismissed 이벤트가 안 오는 기기의 대비 */
+    const onCover = () => {
+      covered = true;
+      markShown();
     };
-    armStart(SHOW_START_TIMEOUT_MS);
+    const onUncover = () => {
+      if (shown && covered) settleSoon();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onCover();
+      else onUncover();
+    };
+    /** 신호 없이 8초가 지난 뒤 화면을 누르면 광고가 덮고 있지 않은 것 → 못 띄운 것으로 */
+    const onPointer = () => {
+      if (!uncertain || shown || settled) return;
+      cause = 'show_timeout';
+      finish();
+    };
+    signalTimer = setTimeout(() => {
+      if (!shown) uncertain = true;
+    }, SHOW_SIGNAL_MS);
+    capTimer = setTimeout(() => {
+      if (shown) return;
+      cause = 'show_timeout';
+      finish();
+    }, SHOW_HARD_CAP_MS);
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onCover);
+    window.addEventListener('focus', onUncover);
+    document.addEventListener('pointerdown', onPointer, true);
 
     try {
       unregister = showFullScreenAd({
@@ -187,9 +210,6 @@ export function showAd(adGroupId: string, { onLateReward }: ShowAdOptions = {}):
             return;
           }
           switch (event.type) {
-            case 'requested': // 요청은 받았으니 뜰 때까지 더 기다려요
-              if (!shown) armStart(SHOW_REQUESTED_TIMEOUT_MS);
-              break;
             case 'show':
             case 'impression':
             case 'clicked':
@@ -201,6 +221,7 @@ export function showAd(adGroupId: string, { onLateReward }: ShowAdOptions = {}):
               if (grace) finish(); // 닫힌 뒤 늦게 온 보상 → 바로 판정
               break;
             case 'dismissed':
+              markShown(); // 닫힘이 왔다면 떴던 거예요(이벤트가 닫힐 때 몰려오는 기기)
               settleSoon();
               break;
             case 'failedToShow':
@@ -208,7 +229,7 @@ export function showAd(adGroupId: string, { onLateReward }: ShowAdOptions = {}):
               finish();
               break;
             default:
-              break;
+              break; // requested: 요청만 성공, 아직 안 뜸
           }
         },
         onError: () => {

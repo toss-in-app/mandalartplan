@@ -113,6 +113,32 @@ describe('useRewardedAd (보상은 userEarnedReward 일 때만)', () => {
     expect(ad.show).not.toHaveBeenCalled();
   });
 
+  it('누른 뒤 10초 안에 준비되지 않으면 not_ready 로 멈추고(한참 뒤에 광고가 갑자기 뜨지 않게), 불러오기는 계속돼 다음 번엔 바로 떠요', async () => {
+    vi.useFakeTimers();
+    let resolveLoad: (result: LoadResult) => void = () => {};
+    ad.load.mockImplementation(() => new Promise<LoadResult>((r) => (resolveLoad = r)));
+    ad.show.mockResolvedValue(shown(true));
+    const { result } = renderHook(() => useRewardedAd('r', true));
+    await act(async () => {});
+    let outcome: string | null = null;
+    const watching = result.current.watch().then((o) => (outcome = o));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(9_999);
+    });
+    expect(outcome).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2);
+    });
+    await watching;
+    expect(outcome).toBe('unavailable');
+    expect(result.current.failCause()).toBe('not_ready');
+    expect(ad.show).not.toHaveBeenCalled();
+    await act(async () => resolveLoad({ ok: true })); // 뒤늦게 준비됨 → 보여주지 않고 다음 번을 위해 둬요
+    expect(ad.show).not.toHaveBeenCalled();
+    expect(await result.current.watch()).toBe('rewarded');
+    expect(ad.show).toHaveBeenCalledTimes(1);
+  });
+
   it('판정한 뒤 늦게 온 보상은 알려 주고 크레딧으로 남겨, 다음 watch 는 광고 없이 rewarded', async () => {
     ad.load.mockResolvedValue({ ok: true });
     let lateReward: (() => void) | undefined;

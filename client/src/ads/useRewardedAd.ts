@@ -3,11 +3,16 @@ import { useCallback, useEffect, useRef } from 'react';
 import { type AdFailCause, fullScreenAdSupported, loadAd, showAd } from './fullScreen';
 
 export type RewardedOutcome = 'rewarded' | 'dismissed' | 'unavailable';
-/** unavailable 의 까닭(분석 이벤트 cause). busy = 이미 광고를 보여주는 중에 또 부름 */
-export type RewardedFailCause = AdFailCause | 'busy';
+/** unavailable 의 까닭(분석 이벤트 cause). busy = 이미 광고를 보여주는 중에 또 부름, not_ready = 누른 뒤 10초 안에 준비되지 않음 */
+export type RewardedFailCause = AdFailCause | 'busy' | 'not_ready';
 
 /** 불러오기에 실패하면 이만큼 뒤에 한 번 더 */
 const RETRY_DELAY_MS = 5_000;
+/**
+ * 누른 뒤 광고가 준비되길 기다리는 상한. 더 늦게 뜨면 사용자가 예상하기 어려운 시점에 광고가 나오는 셈이라(심사 반려 2026-10-22
+ * '광고 노출 전에 유저가 인지할 수 있도록') 멈추고, 미리 불러오기는 뒤에서 계속해 다음 번엔 바로 떠요
+ */
+const ON_DEMAND_WAIT_MS = 10_000;
 
 export interface RewardedAd {
   /** 광고를 보여주고 결과를 돌려줘요. 보상은 'rewarded'(userEarnedReward) 일 때만 주세요 */
@@ -25,6 +30,7 @@ export interface RewardedAd {
  *
  * 안드로이드 토스앱의 이벤트 지연(2026-10-22, ads/fullScreen.ts 주석)에 대비해
  * - 불러오기에 실패하면 5초 뒤 한 번 자동으로 다시 불러와요(watch 를 부를 때마다 다시 1회).
+ * - 누른 뒤 10초 안에 준비되지 않으면 'unavailable'(not_ready)로 멈춰요 — 한참 뒤에 광고가 갑자기 뜨지 않게.
  * - 판정이 끝난 뒤 늦게 온 보상은 크레딧으로 남겨 다음 watch 는 광고 없이 바로 'rewarded' — onLateReward 로 알려 주니 토스트로 안내하세요.
  */
 export function useRewardedAd(adGroupId: string, active: boolean, onLateReward?: () => void): RewardedAd {
@@ -104,8 +110,17 @@ export function useRewardedAd(adGroupId: string, active: boolean, onLateReward?:
       return 'rewarded';
     }
     retried.current = false;
-    const ok = await load();
-    if (!ok) {
+    let waitTimer: ReturnType<typeof setTimeout> | null = null;
+    const wait = new Promise<'timeout'>((resolve) => {
+      waitTimer = setTimeout(() => resolve('timeout'), ON_DEMAND_WAIT_MS);
+    });
+    const loaded = await Promise.race([load(), wait]);
+    if (waitTimer) clearTimeout(waitTimer);
+    if (loaded === 'timeout') {
+      watchCause.current = 'not_ready';
+      return 'unavailable';
+    }
+    if (!loaded) {
       watchCause.current = loadCause.current ?? 'load_error';
       return 'unavailable';
     }

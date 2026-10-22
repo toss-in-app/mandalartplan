@@ -590,6 +590,7 @@ function App() {
           ? AI_MESSAGES.limit
           : AI_MESSAGES.fillCaption(`'${board.subs[subIndex].title.trim()}'의 빈 실천 ${emptyActionCount(board, subIndex)}칸을 채워요.`, left),
       disabled: left === 0 || ai.busy,
+      busy: ai.busy,
       onPress: () => void ai.fillActions(subIndex).then(afterFill),
     };
   };
@@ -605,6 +606,7 @@ function App() {
       label: 'AI로 빈 칸 채우기',
       caption: left === 0 ? AI_MESSAGES.limit : AI_MESSAGES.fillCaption(`빈 칸 ${emptyCellCount(board)}개만 채우고, 적어 둔 칸은 그대로예요.`, left),
       disabled: left === 0 || ai.busy,
+      busy: ai.busy,
       onPress: () => void ai.fillBoard().then(afterFill),
     };
   };
