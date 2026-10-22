@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const ad = vi.hoisted(() => ({
   supported: true,
-  load: vi.fn<(id: string) => Promise<boolean>>(),
+  load: vi.fn<(id: string) => Promise<{ ok: boolean }>>(),
   show: vi.fn<(id: string) => Promise<{ shown: boolean; rewarded: boolean }>>(),
 }));
 vi.mock('./fullScreen', () => ({
@@ -22,7 +22,7 @@ describe('useInterstitial (전면: 미리 불러오고, 준비된 것만 보여�
   });
 
   it('조건이 맞으면 미리 불러오고, 준비됐을 때만 보여줘요. 보여준 뒤엔 다시 불러오지 않아요', async () => {
-    ad.load.mockResolvedValue(true);
+    ad.load.mockResolvedValue({ ok: true });
     ad.show.mockResolvedValue({ shown: true, rewarded: false });
     const { result, rerender } = renderHook(({ eligible }) => useInterstitial('g', eligible), { initialProps: { eligible: false } });
     expect(ad.load).not.toHaveBeenCalled();
@@ -37,7 +37,7 @@ describe('useInterstitial (전면: 미리 불러오고, 준비된 것만 보여�
   });
 
   it('불러오기 실패는 2번까지만 다시 시도하고, 띄우다 실패하면 failed', async () => {
-    ad.load.mockResolvedValueOnce(false).mockResolvedValueOnce(true).mockResolvedValue(true);
+    ad.load.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({ ok: true }).mockResolvedValue({ ok: true });
     ad.show.mockResolvedValue({ shown: false, rewarded: false });
     const { result, rerender } = renderHook(({ eligible }) => useInterstitial('g', eligible), { initialProps: { eligible: true } });
     await act(async () => {});
@@ -54,14 +54,14 @@ describe('useInterstitial (전면: 미리 불러오고, 준비된 것만 보여�
   });
 
   it('upcoming: 광고가 나올 차례면 불러오는 중에도 true, 한 번 보여준 뒤에는 false (사전 안내용)', async () => {
-    let finishLoad: (ok: boolean) => void = () => {};
-    ad.load.mockImplementation(() => new Promise<boolean>((resolve) => (finishLoad = resolve)));
+    let finishLoad: (result: { ok: boolean }) => void = () => {};
+    ad.load.mockImplementation(() => new Promise<{ ok: boolean }>((resolve) => (finishLoad = resolve)));
     ad.show.mockResolvedValue({ shown: true, rewarded: false });
     const { result, rerender } = renderHook(({ eligible }) => useInterstitial('g', eligible), { initialProps: { eligible: false } });
     expect(result.current.upcoming).toBe(false);
     rerender({ eligible: true });
     expect(result.current.upcoming).toBe(true); // 불러오는 중에도 미리 알려요
-    await act(async () => finishLoad(true));
+    await act(async () => finishLoad({ ok: true }));
     expect(result.current.upcoming).toBe(true);
     await act(async () => {
       expect(await result.current.show()).toBe('shown');
@@ -70,7 +70,7 @@ describe('useInterstitial (전면: 미리 불러오고, 준비된 것만 보여�
   });
 
   it('upcoming: 불러오기에 실패하면 false, 다시 조건이 맞아 재시도하면 true, 미지원이면 처음부터 false', async () => {
-    ad.load.mockResolvedValueOnce(false).mockResolvedValue(true);
+    ad.load.mockResolvedValueOnce({ ok: false }).mockResolvedValue({ ok: true });
     const { result, rerender } = renderHook(({ eligible }) => useInterstitial('g', eligible), { initialProps: { eligible: true } });
     expect(result.current.upcoming).toBe(true);
     await act(async () => {});

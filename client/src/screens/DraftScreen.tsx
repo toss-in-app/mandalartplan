@@ -63,7 +63,7 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
   const alive = useRef(true);
   /** 만들기 진행 중(고지·광고·서버·안내 다이얼로그까지). 두 번 눌러도 한 번만 */
   const running = useRef(false);
-  const { openAlert } = useDialog();
+  const { openAlert, openConfirm } = useDialog();
   const toast = useToast();
 
   useEffect(() => {
@@ -116,7 +116,11 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
       else if (result.reason === 'limit') toast.openToast(AI_MESSAGES.limit);
       else if (result.reason === 'dismissed') toast.openToast(AI_MESSAGES.dismissed);
       else if (result.reason === 'key') toast.openToast(AI_MESSAGES.retryLater);
-      else if (result.reason === 'no_ad') await notify(AI_MESSAGES.noAdTitle, AI_MESSAGES.noAdBody);
+      else if (result.reason === 'no_ad') {
+        // 광고 이벤트가 늦어 못 띄운 것일 수 있어요(안드로이드) — 바로 다시 불러올 수 있게 '다시 시도'
+        const again = await openConfirm({ title: AI_MESSAGES.noAdTitle, description: AI_MESSAGES.noAdBody, confirmButton: '다시 시도', cancelButton: '닫기' });
+        if (again && alive.current) await runGenerate();
+      }
       return;
     }
     if (result.code === 'limited') {
