@@ -41,3 +41,15 @@ export const AD_GROUPS = {
 export const USING_TEST_AD_GROUPS = Object.values(AD_GROUPS).some(
   (id) => id.length === 0 || (TEST_AD_GROUPS !== null && (Object.values(TEST_AD_GROUPS) as string[]).includes(id)),
 );
+
+/**
+ * 전면·리워드 광고를 띄울지 (3.0.1, 사용자 2026-10-22 결정 '토스 쪽 광고 문제가 해결될 때까지 리워드 광고를 띄우지 말자, 배너만 남기자').
+ * `.env` 의 `VITE_FULL_SCREEN_ADS` 가 'on' 일 때만 띄워요 — 지금은 off: 전면(홈 '기록 보기')·리워드(고화질 저장·두 번째 판·AI 초안)를 부르지 않고
+ * 그 기능은 광고 없이 바로 열어 줘요(AD 표시·'광고 보고' 문구도 빠져요). 배너(기록 화면)는 그대로예요.
+ * 배경: 안드로이드 토스앱이 광고 이벤트를 늦게/안 보내 광고를 다 보고도 보상이 인정되지 않던 것(2026-10-22 실기기 영상, 앱인토스 공지 'Android 광고 로드 관련 이슈').
+ * 다시 켤 때: `.env` 를 on 으로 바꾸고 빌드만 하면 돼요 — 코드·광고 그룹 ID·콘솔 지면은 그대로 남아 있어요.
+ * 테스트는 vite.config 의 test.env 로 on 이라 광고 흐름을 계속 검사하고, off 는 `vi.stubEnv` 로 따로 검사해요(App.adsOff.test.tsx).
+ */
+export function fullScreenAdsEnabled(): boolean {
+  return import.meta.env.VITE_FULL_SCREEN_ADS === 'on';
+}

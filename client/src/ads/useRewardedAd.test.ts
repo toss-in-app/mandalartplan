@@ -19,6 +19,19 @@ describe('useRewardedAd (보상은 userEarnedReward 일 때만)', () => {
     ad.supported = true;
     ad.load.mockReset();
     ad.show.mockReset();
+    vi.unstubAllEnvs();
+  });
+
+  it('3.0.1 광고를 띄우지 않는 동안(VITE_FULL_SCREEN_ADS off): 불러오지 않고 watch 는 바로 rewarded, supported 는 토스앱 버전과 무관하게 true', async () => {
+    vi.stubEnv('VITE_FULL_SCREEN_ADS', 'off');
+    ad.supported = false;
+    const { result } = renderHook(() => useRewardedAd('r', true));
+    await act(async () => {});
+    expect(ad.load).not.toHaveBeenCalled();
+    expect(result.current.supported).toBe(true);
+    expect(result.current.free).toBe(true);
+    expect(await result.current.watch()).toBe('rewarded');
+    expect(ad.show).not.toHaveBeenCalled();
   });
 
   it('끝까지 보면 rewarded, 중간에 닫으면 dismissed, 못 띄우면 unavailable. 보여준 뒤 다음 광고를 미리 불러와요', async () => {

@@ -13,6 +13,7 @@ import { dateKey, type CheckinRecord } from '../lib/state';
 import { boardFromTemplate } from '../lib/template';
 import { brandColor, withAlpha } from '../theme';
 import { SubScreen } from './SubScreen';
+import { fullScreenAdsEnabled } from '../ads/config';
 
 type Step = 'stamp' | 'move' | 'edit' | 'ai';
 
@@ -146,7 +147,7 @@ export function TrialScreen({ content, aiAvailable, fresh, onFinish }: TrialScre
         </div>
         <div className="text-balance" style={{ padding: '16px 24px 120px' }}>
           <Text typography="t7" color={colors.grey600} display="block">
-            목표를 적고 광고를 한 번 보면 AI가 빈 칸을 채워요. 적어 둔 칸은 그대로 두고, AI가 쓴 칸에는 'AI 초안' 표시가 붙어요. 내 말로 고치면 표시가 사라져요.
+            {fullScreenAdsEnabled() ? '목표를 적고 광고를 한 번 보면 AI가 빈 칸을 채워요.' : '목표를 적으면 AI가 빈 칸을 채워요.'} 적어 둔 칸은 그대로 두고, AI가 쓴 칸에는 'AI 초안' 표시가 붙어요. 내 말로 고치면 표시가 사라져요.
           </Text>
         </div>
         <FixedBottomCTA onClick={next}>{finishLabel}</FixedBottomCTA>

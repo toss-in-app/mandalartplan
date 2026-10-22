@@ -12,6 +12,7 @@ import { nextEmptyCell } from '../lib/cells';
 import { checkedInSub, todaySet } from '../lib/checkin';
 import { cellOfRing, type Board } from '../lib/mandalart';
 import { dateKey, type CheckinRecord } from '../lib/state';
+import { fullScreenAdsEnabled } from '../ads/config';
 
 interface SubScreenProps {
   board: Board;
@@ -62,6 +63,8 @@ export function SubScreen({
   onEditingChange,
   onHome,
 }: SubScreenProps) {
+  /** 3.0.1: 광고를 띄울 때만 AD 표시·'광고 보고' 문구(ads/config.ts) */
+  const ads = fullScreenAdsEnabled();
   const block = cellOfRing(subIndex);
   const editor = useCellEditor({ onChangeAction, onChangeSubTitle });
   const edit = useGridEdit({
@@ -151,9 +154,9 @@ export function SubScreen({
       {aiFill && (
         <>
           <div style={{ padding: '16px 20px 0' }}>
-            <Button display="block" size="large" color="dark" variant="weak" disabled={aiFill.disabled} onClick={aiFill.onPress} aria-label={`광고 보고 ${aiFill.label}`}>
+            <Button display="block" size="large" color="dark" variant="weak" disabled={aiFill.disabled} onClick={aiFill.onPress} aria-label={ads ? `광고 보고 ${aiFill.label}` : aiFill.label}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <AdMark onBrand={false} />
+                {ads && <AdMark onBrand={false} />}
                 <span>{aiFill.label}</span>
               </span>
             </Button>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { fullScreenAdsEnabled } from './config';
 import { fullScreenAdSupported, loadAd, showAd } from './fullScreen';
 
 type Phase = 'idle' | 'loading' | 'ready' | 'showing';
@@ -13,6 +14,7 @@ type Phase = 'idle' | 'loading' | 'ready' | 'showing';
  * (노출 정책 UX 원칙 2 "전면광고가 나오기 전에 문구나 광고 아이콘으로 미리 알려주세요").
  * 불러오는 중이어도 true 로 미리 알려요 — 탭할 때 준비가 덜 됐으면 광고 없이 넘어가니 안내가 광고보다 앞서는 쪽으로만 틀려요.
  * 불러오기에 실패했거나 한 번 띄운 뒤에는 다음 탭에 광고가 없으니 false.
+ * 3.0.1: 전면 광고를 띄우지 않는 동안(`fullScreenAdsEnabled()` false)은 불러오지도 않고 upcoming 도 false — '기록 보기'에 AD 표시·사전 안내가 없어요.
  */
 export function useInterstitial(adGroupId: string, eligible: boolean) {
   const phase = useRef<Phase>('idle');
@@ -20,7 +22,7 @@ export function useInterstitial(adGroupId: string, eligible: boolean) {
   const [exhausted, setExhausted] = useState(false);
 
   const preload = useCallback(() => {
-    if (!fullScreenAdSupported() || phase.current !== 'idle' || attempts.current >= 2) return;
+    if (!fullScreenAdsEnabled() || !fullScreenAdSupported() || phase.current !== 'idle' || attempts.current >= 2) return;
     phase.current = 'loading';
     attempts.current += 1;
     setExhausted(false);
@@ -45,7 +47,7 @@ export function useInterstitial(adGroupId: string, eligible: boolean) {
     return result.shown ? 'shown' : 'failed';
   }, [adGroupId]);
 
-  const upcoming = eligible && !exhausted && fullScreenAdSupported();
+  const upcoming = eligible && !exhausted && fullScreenAdsEnabled() && fullScreenAdSupported();
 
   return { show, upcoming };
 }

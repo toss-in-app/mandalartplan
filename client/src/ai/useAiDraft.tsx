@@ -17,6 +17,8 @@ type AppState = ReturnType<typeof useAppState>;
 
 interface Reward {
   watch: () => Promise<RewardedOutcome>;
+  /** 3.0.1: 리워드 광고를 띄우지 않는 동안 true — watch 가 광고 없이 'rewarded' 를 돌려주고, `ai_draft_reward` 는 보내지 않아요 */
+  free?: boolean;
 }
 
 /**
@@ -78,6 +80,7 @@ function boardTexts(board: Board): string[] {
 /**
  * AI 한 번 = 사전 검사(하루 20회·자해 표현) → 처음이면 생성형 AI 고지 → 키 → 리워드 광고 → 서버.
  * 광고를 못 불러오면 AI 를 쓰지 않고(2026-10-20 결정), 서버가 결과를 돌려줬을 때만 하루 횟수에 넣어요.
+ * 3.0.1: 리워드 광고를 띄우지 않는 동안(reward.free)은 광고 단계를 건너뛰어요(하루 횟수는 그대로).
  */
 export function useAiDraft(app: AppState, reward: Reward) {
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -122,7 +125,7 @@ export function useAiDraft(app: AppState, reward: Reward) {
     // 개발 서버 전용: AIT Devtools 의 모의 광고는 보상(userEarnedReward)을 주지 않아서, localStorage 'mandalart.dev.aiReward' = '1' 이면
     // 끝까지 본 것으로 쳐요(만드는 중·미리보기 화면 확인용). 출시 빌드에서는 import.meta.env.DEV 가 false 라 이 줄이 빠져요.
     if (import.meta.env.DEV && outcome === 'dismissed' && window.localStorage.getItem('mandalart.dev.aiReward') === '1') outcome = 'rewarded';
-    logEvent('ai_draft_reward', { mode, result: outcome });
+    if (!reward.free) logEvent('ai_draft_reward', { mode, result: outcome });
     if (outcome === 'unavailable') return { ok: false, reason: 'no_ad' };
     if (outcome === 'dismissed') return { ok: false, reason: 'dismissed' };
     return { ok: true, key };

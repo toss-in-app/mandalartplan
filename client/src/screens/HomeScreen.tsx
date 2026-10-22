@@ -15,6 +15,7 @@ import { checkedInSub, formatDateLabel, todaySet } from '../lib/checkin';
 import { CENTER, getProgress, hasAiText, type Board } from '../lib/mandalart';
 import { boardLabel, dateKey, streak, type CheckinRecord } from '../lib/state';
 import { brandColor } from '../theme';
+import { fullScreenAdsEnabled } from '../ads/config';
 
 interface HomeScreenProps {
   board: Board;
@@ -92,6 +93,8 @@ export function HomeScreen({
   trialCard,
   editLink,
 }: HomeScreenProps) {
+  /** 3.0.1: 광고를 띄울 때만 AD 표시·'광고 보고' 문구(ads/config.ts). '기록 보기'의 AD 는 todayAdNotice(전면 광고 훅)가 따로 꺼요 */
+  const ads = fullScreenAdsEnabled();
   const editor = useCellEditor({ onChangeGoal, onChangeSubTitle });
   const edit = useGridEdit({
     board,
@@ -239,7 +242,7 @@ export function HomeScreen({
           </div>
           <div className="text-balance" style={{ padding: '0 24px 8px' }}>
             <Text typography="t7" color={colors.grey600} display="block">
-              목표를 적고 광고를 한 번 보면 AI가 세부 목표와 실천을 채워요.
+              {ads ? '목표를 적고 광고를 한 번 보면 AI가 세부 목표와 실천을 채워요.' : '목표를 적으면 AI가 세부 목표와 실천을 채워요.'}
             </Text>
           </div>
         </>
@@ -299,10 +302,10 @@ export function HomeScreen({
               disabled={aiFill.disabled}
               loading={aiFilling}
               onClick={aiFill.onPress}
-              aria-label={`광고 보고 ${aiFill.label}`}
+              aria-label={ads ? `광고 보고 ${aiFill.label}` : aiFill.label}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <AdMark onBrand={false} />
+                {ads && <AdMark onBrand={false} />}
                 <span>{aiFill.label}</span>
               </span>
             </Button>

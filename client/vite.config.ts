@@ -14,5 +14,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // 전면·리워드 광고는 3.0.1 부터 .env 에서 off(배너만) — 테스트는 광고 흐름도 계속 검사하려고 on. off 는 vi.stubEnv 로 따로 검사해요
+    env: { VITE_FULL_SCREEN_ADS: 'on' },
   },
 });

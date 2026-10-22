@@ -19,6 +19,17 @@ describe('useInterstitial (전면: 미리 불러오고, 준비된 것만 보여�
     ad.supported = true;
     ad.load.mockReset();
     ad.show.mockReset();
+    vi.unstubAllEnvs();
+  });
+
+  it('3.0.1 광고를 띄우지 않는 동안(VITE_FULL_SCREEN_ADS off): 불러오지 않고 upcoming 은 false, show 는 skipped', async () => {
+    vi.stubEnv('VITE_FULL_SCREEN_ADS', 'off');
+    const { result } = renderHook(() => useInterstitial('g', true));
+    await act(async () => {});
+    expect(ad.load).not.toHaveBeenCalled();
+    expect(result.current.upcoming).toBe(false);
+    expect(await result.current.show()).toBe('skipped');
+    expect(ad.show).not.toHaveBeenCalled();
   });
 
   it('조건이 맞으면 미리 불러오고, 준비됐을 때만 보여줘요. 보여준 뒤엔 다시 불러오지 않아요', async () => {

@@ -5,6 +5,7 @@ import { PRIVACY_URL, TERMS_URL, type Content } from '../content';
 import { openUrl } from '../lib/bridge';
 import { formatDateTime } from '../lib/format';
 import type { NotificationStatus } from '../lib/state';
+import { fullScreenAdsEnabled } from '../ads/config';
 
 export interface BackupPanelProps {
   configured: boolean;
@@ -88,8 +89,8 @@ export function SettingsScreen({
           <ListRow
             disabled={extraBoard.busy}
             onClick={extraBoard.onUnlock}
-            contents={<ListRow.Texts type="2RowTypeA" top="두 번째 만다라트 판" bottom="광고를 보면 판을 하나 더 만들 수 있어요" />}
-            right={rightText('광고 보기')}
+            contents={<ListRow.Texts type="2RowTypeA" top="두 번째 만다라트 판" bottom={fullScreenAdsEnabled() ? '광고를 보면 판을 하나 더 만들 수 있어요' : '판을 하나 더 만들 수 있어요'} />}
+            right={rightText(fullScreenAdsEnabled() ? '광고 보기' : '만들기')}
           />
         )}
         {extraBoard.unlocked && extraBoard.count < 2 && (

@@ -10,6 +10,7 @@ import { MandalartGrid } from '../components/MandalartGrid';
 import { openUrl } from '../lib/bridge';
 import { MAX_TEXT, type Board } from '../lib/mandalart';
 import { brandColor } from '../theme';
+import { fullScreenAdsEnabled } from '../ads/config';
 
 /** 목표 예시(시안 그대로). 누르면 입력칸에 들어가요 */
 const EXAMPLES = ['8구단 드래프트 1순위', '토익 900점', '올해 10kg 감량', '하프 마라톤 완주'];
@@ -50,6 +51,8 @@ function AdLabel({ children, onBrand }: { children: string; onBrand: boolean }) 
  * '이대로 시작하기' 를 눌러야 판에 들어가요. 화면을 나가면 만들던 초안은 버려요.
  */
 export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScreenProps) {
+  /** 3.0.1: 리워드 광고를 띄울 때만 AD 표시·'광고 보고' 문구(ads/config.ts) */
+  const ads = fullScreenAdsEnabled();
   const [goal, setGoal] = useState(board.goal);
   /** 칸을 일부 채운 판에서 왔어요(2.1) — 적어 둔 칸은 그대로 두고 빈 칸만 채운다는 문구로 */
   const partial = hasBoardText(board);
@@ -187,8 +190,8 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
             />
           }
           leftButton={
-            <CTAButton color="dark" variant="weak" disabled={runsLeft === 0} onClick={() => void generate()} aria-label="광고 보고 다시 만들기">
-              <AdLabel onBrand={false}>다시 만들기</AdLabel>
+            <CTAButton color="dark" variant="weak" disabled={runsLeft === 0} onClick={() => void generate()} aria-label={ads ? '광고 보고 다시 만들기' : '다시 만들기'}>
+              {ads ? <AdLabel onBrand={false}>다시 만들기</AdLabel> : '다시 만들기'}
             </CTAButton>
           }
           rightButton={<CTAButton onClick={() => onApply(goal, draft)}>{partial ? '빈 칸에 넣기' : '이대로 시작하기'}</CTAButton>}
@@ -307,10 +310,10 @@ export function DraftScreen({ board, runsLeft, onGenerate, onApply }: DraftScree
           />
         }
         disabled={!canMake}
-        aria-label={partial ? '광고 보고 AI로 빈 칸 채우기' : '광고 보고 AI 초안 만들기'}
+        aria-label={ads ? (partial ? '광고 보고 AI로 빈 칸 채우기' : '광고 보고 AI 초안 만들기') : partial ? 'AI로 빈 칸 채우기' : 'AI 초안 만들기'}
         onClick={() => void generate()}
       >
-        <AdLabel onBrand>{partial ? '광고 보고 채우기' : '광고 보고 만들기'}</AdLabel>
+        {ads ? <AdLabel onBrand>{partial ? '광고 보고 채우기' : '광고 보고 만들기'}</AdLabel> : partial ? 'AI로 빈 칸 채우기' : 'AI 초안 만들기'}
       </FixedBottomCTA>
     </>
   );

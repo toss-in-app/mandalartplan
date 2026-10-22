@@ -61,6 +61,7 @@ function App() {
   const backup = useBackup(app);
 
   // 광고: 전면은 오늘 체크가 생기면 미리 불러오고(하루 1회), 리워드는 공유 화면에 있는 동안만 미리 불러와요(동시 로딩 금지).
+  // 3.0.1: 전면·리워드는 .env VITE_FULL_SCREEN_ADS 가 on 일 때만(지금 off — 배너만). off 면 훅이 광고 없이 바로 열어 주고(free) AD 표시도 빠져요
   const today = dateKey();
   const activeBoard = app.board;
   const todayChecks = app.state && activeBoard ? todaySet(app.state.checkins.byBoard[activeBoard.id], today).size : 0;
@@ -383,11 +384,24 @@ function App() {
   /** 홈 행·기록 위젯 판 버튼은 첫 체크 뒤, 아직 묻지 않았을 때만. 거부했으면 설정에서만 */
   const notificationPrompt = notificationReady && state.settings.firstCheckinAt !== null && state.settings.notification === 'unknown';
 
+  /** 두 번째 판 잠금 해제(영구) + 빈 판 추가 → 홈. 리워드를 받았을 때, 또는 광고를 띄우지 않는 동안(3.0.1)은 바로 */
+  const grantExtraBoard = () => {
+    app.updateSettings((settings) => ({ ...settings, unlocks: { ...settings.unlocks, extraBoard: true } }));
+    if (app.addBoard()) logEvent('board_add', { boards: MAX_BOARDS });
+    void haptic('success');
+    toast.openToast('두 번째 판을 열었어요');
+    navigate({ name: 'home' });
+  };
+
   /**
    * 설정 '두 번째 만다라트 판'(잠김): 안내 → 리워드 광고 → userEarnedReward 일 때만 잠금 해제(영구) + 빈 판 추가 → 홈.
-   * 광고를 끝까지 안 봤거나 못 불러오면 잠금 그대로.
+   * 광고를 끝까지 안 봤거나 못 불러오면 잠금 그대로. 3.0.1 광고를 띄우지 않는 동안은 안내·광고 없이 바로 열어요.
    */
   const unlockExtraBoard = async () => {
+    if (extraBoardReward.free) {
+      grantExtraBoard();
+      return;
+    }
     if (!extraBoardReward.supported) {
       toast.openToast('광고는 토스앱을 업데이트하면 볼 수 있어요');
       return;
@@ -410,12 +424,8 @@ function App() {
         toast.openToast('광고를 끝까지 보면 두 번째 판을 열 수 있어요');
         return;
       }
-      app.updateSettings((settings) => ({ ...settings, unlocks: { ...settings.unlocks, extraBoard: true } }));
       logEvent('reward_unlock', { type: 'extraBoard' });
-      if (app.addBoard()) logEvent('board_add', { boards: MAX_BOARDS });
-      void haptic('success');
-      toast.openToast('두 번째 판을 열었어요');
-      navigate({ name: 'home' });
+      grantExtraBoard();
     } finally {
       setExtraBoardBusy(false);
     }
@@ -446,11 +456,14 @@ function App() {
     navigate({ name: 'today' });
   };
 
-  /** 공유 '고화질로 저장': 안내 → 리워드 광고 → userEarnedReward 일 때만 2160×2700(워터마크 없음) 저장. 저장이 실패하면 보상은 남겨 둬요. */
+  /**
+   * 공유 '고화질로 저장': 안내 → 리워드 광고 → userEarnedReward 일 때만 2160×2700(워터마크 없음) 저장. 저장이 실패하면 보상은 남겨 둬요.
+   * 3.0.1 광고를 띄우지 않는 동안은 안내·광고 없이 바로 저장해요.
+   */
   const saveHdImage = async () => {
     setShareBusy(true);
     try {
-      if (!hdCredit.current) {
+      if (!hdCredit.current && !hdReward.free) {
         const ok = await openConfirm({
           title: '광고를 보고 고화질로 저장할까요?',
           description: '광고를 끝까지 보면 워터마크 없는 2배 크기(2160×2700) 이미지를 사진에 저장해요.',
@@ -569,7 +582,7 @@ function App() {
       return;
     }
     if (result.code === 'self_harm') await showCare();
-    else if (result.code === 'refused') toast.openToast('이 내용으로는 AI가 채울 수 없어요. 방금 본 광고는 오늘 횟수에서 빼지 않았어요');
+    else if (result.code === 'refused') toast.openToast(AI_MESSAGES.refusedFill);
     else if (result.code === 'limited') toast.openToast(AI_MESSAGES.serverLimited);
     else toast.openToast(AI_MESSAGES.failBody);
   };

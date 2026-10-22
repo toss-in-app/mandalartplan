@@ -54,6 +54,8 @@
 - 체험판의 판·체크는 저장하지 않는 예시라 `action_check`·`board_edit`·`cells_delete`·`cells_delete_undo`·`cells_swap` 을 보내지 않는다. 편집 모드에 들어가면 `edit_mode_enter`(`screen` = trial)만 보낸다.
 
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
+
+> **3.0.1(2026-10-22~)**: 전면·리워드 광고를 띄우지 않아요(`client/.env` `VITE_FULL_SCREEN_ADS=off`, 배너만) — 안드로이드 토스앱 광고 이벤트 누락으로 광고를 다 봐도 보상이 안 되던 동안. 그동안 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 는 보내지 않고, 고화질 저장·두 번째 판·AI 초안은 광고 없이 바로 열려요(AI 하루 20회 그대로). 토스 쪽이 복구되면 on 으로 켜요(`releases/3.0.1.md`).
 | 이름 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
 | `interstitial-today` | 전면 | 홈 '기록 보기' → today 전환 | 하루 1회 · 오늘 체크 1개 이상일 때만 · 사전 로딩 · 실패 시 건너뜀 |
