@@ -24,10 +24,10 @@ export function useInterstitial(adGroupId: string, eligible: boolean) {
     phase.current = 'loading';
     attempts.current += 1;
     setExhausted(false);
-    void loadAd(adGroupId).then((ok) => {
+    void loadAd(adGroupId).then((result) => {
       if (phase.current !== 'loading') return;
-      phase.current = ok ? 'ready' : 'idle';
-      if (!ok) setExhausted(true);
+      phase.current = result.ok ? 'ready' : 'idle';
+      if (!result.ok) setExhausted(true);
     });
   }, [adGroupId]);
 

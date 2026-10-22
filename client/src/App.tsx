@@ -57,6 +57,8 @@ function App() {
   const hdCredit = useRef(false);
   const { openConfirm } = useDialog();
   const toast = useToast();
+  /** 광고 이벤트가 늦게 와(안드로이드) 판정이 끝난 뒤 보상이 오면: 다음 번엔 광고 없이 이어가요(useRewardedAd 크레딧) */
+  const lateRewardToast = useCallback(() => toast.openToast('방금 본 광고가 뒤늦게 인정됐어요. 다시 누르면 광고 없이 이어서 해요'), [toast]);
 
   const backup = useBackup(app);
 
@@ -66,7 +68,7 @@ function App() {
   const todayChecks = app.state && activeBoard ? todaySet(app.state.checkins.byBoard[activeBoard.id], today).size : 0;
   const interstitialReady = app.state ? interstitialEligible(app.state.settings, today, todayChecks) : false;
   const interstitial = useInterstitial(AD_GROUPS.interstitialToday, interstitialReady);
-  const hdReward = useRewardedAd(AD_GROUPS.rewardedHdImage, route.name === 'share');
+  const hdReward = useRewardedAd(AD_GROUPS.rewardedHdImage, route.name === 'share', lateRewardToast);
   // 두 번째 판: 리워드로 한 번 열면 영구. (백업 복원 등으로) 판이 이미 2개면 열린 것으로 봐요.
   const extraBoardOpen = app.state ? app.state.settings.unlocks.extraBoard || app.state.boards.boards.length >= MAX_BOARDS : false;
   // AI 초안(2.0): 광고 1회 = AI 1회. 서버 설정이 없거나 광고를 못 쓰는 토스앱 버전이면 AI 버튼을 숨겨요
@@ -82,8 +84,8 @@ function App() {
   const extraBoardAdActive = route.name === 'settings' && !extraBoardOpen;
   // AI 전용 지면을 만들 수 없는 동안(앱인토스 공지 54047) AI 는 '두 번째 판' 지면을 같이 써요 → 같은 그룹을 두 훅이 따로 불러오지 않게 하나로 묶어요
   const aiSharesExtraBoard = AD_GROUPS.rewardedAiDraft === AD_GROUPS.rewardedExtraBoard;
-  const extraBoardReward = useRewardedAd(AD_GROUPS.rewardedExtraBoard, extraBoardAdActive || (aiSharesExtraBoard && aiAdActive));
-  const aiOwnReward = useRewardedAd(AD_GROUPS.rewardedAiDraft, !aiSharesExtraBoard && aiAdActive);
+  const extraBoardReward = useRewardedAd(AD_GROUPS.rewardedExtraBoard, extraBoardAdActive || (aiSharesExtraBoard && aiAdActive), lateRewardToast);
+  const aiOwnReward = useRewardedAd(AD_GROUPS.rewardedAiDraft, !aiSharesExtraBoard && aiAdActive, lateRewardToast);
   const aiReward = aiSharesExtraBoard ? extraBoardReward : aiOwnReward;
   const aiEnabled = aiConfigured && aiReward.supported;
   const ai = useAiDraft(app, aiReward);

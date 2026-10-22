@@ -9,4 +9,5 @@
 | `features.md` | 주요 기능 3개(국문/영문/intoss 링크) |
 | `release-notes.md` | 검토 요청 모달 출시 노트(번들 20261019-3 에 MCP 로 등록해 둠) + 확약 5개 문구 |
 | `policies/terms.md`·`privacy.md` | 이용약관·개인정보처리방침 md 사본 — 서빙본은 `static/terms/`·`static/privacy/`(GitHub Pages) |
+| `screenshots/` | 사용 전 미리보기(스크린샷) 세로 636×1048 PNG 23장(2026-10-21 Claude 제작, 3.0.0 화면·예시 판 '올해는 몸과 마음이 건강한 한 해' + 140일치 예시 기록). 01~12 화면 전반, 13~23 기록 위젯 대시보드. 콘솔엔 3장 이상 고르면 됨. 다시 만들기: 개발 서버 켜고 `node console/screenshots/make.mjs`(캡처 원본·글꼴은 `.work/`, 커밋 안 함) |
 | OG 이미지 | `static/og.png` 하나만 둔다(listing 사본은 동일 파일이라 삭제) |
