@@ -166,7 +166,7 @@
 
 ## 2026-10-22 [client] 3.0.1 전면·리워드 광고를 잠시 끔 — 배너만 (사용자 결정 '3.0.0으로 돌아가고 리워드 광고를 띄우지 말자, 토스 쪽이 해결되면 다시 넣는다')
 - 계약 변경 없음(`state`·`content` 그대로). 분석: 광고가 없으니 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 를 보내지 않음(`events.md`).
-- 배경: 안드로이드 토스앱의 광고 이벤트 누락(2026-10-22 실기기 영상 — 라이브 광고 50초 시청·'리워드 지급됨' 뒤 '지금은 광고를 불러올 수 없어요'; 앱인토스 공지 'Android 광고 로드 관련 이슈'). 앱 쪽 우회(첫 3.0.1, `11a1440`)는 검토 반려 → main 에서 뺌(`8bc38c0`). 심사 대응판 `ce1a298` 은 브랜치 `claude/edit-swap-records-padding` 에 보관.
+- 배경: 안드로이드 토스앱의 광고 이벤트 누락(2026-10-22 실기기 영상 — 라이브 광고 50초 시청·'리워드 지급됨' 뒤 '지금은 광고를 불러올 수 없어요'; 앱인토스 공지 'Android 광고 로드 관련 이슈'). 앱 쪽 우회(첫 3.0.1, `7791f6b`)는 검토 반려 → main 에서 뺌(`4773785`). 심사 대응판 `47c019a` 은 브랜치 `claude/edit-swap-records-padding` 에 보관.
 - `ads/config.ts` `fullScreenAdsEnabled()`: `.env` 의 `VITE_FULL_SCREEN_ADS` 가 'on' 일 때만 전면·리워드를 띄움(지금 off). `useInterstitial` 은 off 면 불러오지 않고 upcoming false(홈 '기록 보기' AD 표시·사전 안내 없음). `useRewardedAd` 는 off 면(`free`) 불러오지 않고 watch 가 바로 'rewarded', supported true — 고화질 저장(안내·광고 없이 바로)·두 번째 판('만들기' 바로)·AI(광고 단계 없이, 하루 20회 그대로).
 - 문구: `ai/messages.ts` 가 스위치를 봐 '광고를 끝까지 보면…'을 빼고, 홈·세부 목표·초안·체험판·설정의 AD 표시와 '광고 보고'·'광고를 한 번 보면'·'광고 보기'를 광고를 띄울 때만 그림. 배너는 그대로. 테스트는 `vite.config` `test.env` 로 on(광고 흐름 계속 검사), off 는 `App.adsOff.test.tsx` + 훅 테스트 off 케이스.
 - 버전 3.0.1(`client/package.json`, 설정 화면). 기록 `releases/3.0.1.md`, 출시 노트 초안 `console/release-notes.md`. 테스트 301개(2026-10-22).
