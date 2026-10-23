@@ -11,6 +11,13 @@ vi.mock('./fullScreen', () => ({
   loadAd: (id: string) => ad.load(id),
   showAd: (id: string) => ad.show(id),
 }));
+// 3.0.2 'ios' 스위치가 보는 토스앱 플랫폼(Device.os)을 흉내 내요(getter 라 프로토타입 체인 위에 얹어요)
+const platform = vi.hoisted(() => ({ os: 'ios' as string }));
+vi.mock('@apps-in-toss/web-framework', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@apps-in-toss/web-framework')>();
+  const Device = Object.create(actual.Device, { os: { get: () => platform.os } }) as typeof actual.Device;
+  return { ...actual, Device };
+});
 
 import { useRewardedAd } from './useRewardedAd';
 
@@ -20,6 +27,7 @@ describe('useRewardedAd (보상은 userEarnedReward 일 때만)', () => {
     ad.load.mockReset();
     ad.show.mockReset();
     vi.unstubAllEnvs();
+    platform.os = 'ios';
   });
 
   it('3.0.1 광고를 띄우지 않는 동안(VITE_FULL_SCREEN_ADS off): 불러오지 않고 watch 는 바로 rewarded, supported 는 토스앱 버전과 무관하게 true', async () => {
@@ -32,6 +40,26 @@ describe('useRewardedAd (보상은 userEarnedReward 일 때만)', () => {
     expect(result.current.free).toBe(true);
     expect(await result.current.watch()).toBe('rewarded');
     expect(ad.show).not.toHaveBeenCalled();
+  });
+
+  it("3.0.2 iOS 에서만 띄우는 동안(VITE_FULL_SCREEN_ADS ios): 안드로이드는 off 와 같고, iOS 는 불러와서 광고를 띄워요", async () => {
+    vi.stubEnv('VITE_FULL_SCREEN_ADS', 'ios');
+    platform.os = 'android';
+    const android = renderHook(() => useRewardedAd('r', true));
+    await act(async () => {});
+    expect(ad.load).not.toHaveBeenCalled();
+    expect(android.result.current.free).toBe(true);
+    expect(await android.result.current.watch()).toBe('rewarded');
+
+    platform.os = 'ios';
+    ad.load.mockResolvedValue(true);
+    ad.show.mockResolvedValue({ shown: true, rewarded: true });
+    const ios = renderHook(() => useRewardedAd('r', true));
+    await act(async () => {});
+    expect(ad.load).toHaveBeenCalledTimes(1);
+    expect(ios.result.current.free).toBe(false);
+    expect(await ios.result.current.watch()).toBe('rewarded');
+    expect(ad.show).toHaveBeenCalledTimes(1);
   });
 
   it('끝까지 보면 rewarded, 중간에 닫으면 dismissed, 못 띄우면 unavailable. 보여준 뒤 다음 광고를 미리 불러와요', async () => {

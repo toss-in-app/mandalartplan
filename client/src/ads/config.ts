@@ -1,3 +1,5 @@
+import { Device } from '@apps-in-toss/web-framework';
+
 /**
  * 광고 그룹 ID (계약 contract/events.md '광고 그룹').
  * 라이브 ID 는 콘솔 인앱 광고에서 만든 광고 그룹의 groupId → `.env.production` 의 VITE_AD_GROUP_* (출시 빌드 `vite build` 가 읽어요).
@@ -43,13 +45,33 @@ export const USING_TEST_AD_GROUPS = Object.values(AD_GROUPS).some(
 );
 
 /**
- * 전면·리워드 광고를 띄울지 (3.0.1, 사용자 2026-10-22 결정 '토스 쪽 광고 문제가 해결될 때까지 리워드 광고를 띄우지 말자, 배너만 남기자').
- * `.env` 의 `VITE_FULL_SCREEN_ADS` 가 'on' 일 때만 띄워요 — 지금은 off: 전면(홈 '기록 보기')·리워드(고화질 저장·두 번째 판·AI 초안)를 부르지 않고
- * 그 기능은 광고 없이 바로 열어 줘요(AD 표시·'광고 보고' 문구도 빠져요). 배너(기록 화면)는 그대로예요.
- * 배경: 안드로이드 토스앱이 광고 이벤트를 늦게/안 보내 광고를 다 보고도 보상이 인정되지 않던 것(2026-10-22 실기기 영상, 앱인토스 공지 'Android 광고 로드 관련 이슈').
- * 다시 켤 때: `.env` 를 on 으로 바꾸고 빌드만 하면 돼요 — 코드·광고 그룹 ID·콘솔 지면은 그대로 남아 있어요.
- * 테스트는 vite.config 의 test.env 로 on 이라 광고 흐름을 계속 검사하고, off 는 `vi.stubEnv` 로 따로 검사해요(App.adsOff.test.tsx).
+ * 전면·리워드 광고를 띄울지. `.env` 의 `VITE_FULL_SCREEN_ADS`:
+ * - 'on': 모두 띄워요(3.0.0 까지의 동작)
+ * - 'ios': iOS 토스앱에서만 띄워요(3.0.2, 사용자 2026-10-23 결정 '지금 현재 배포된 것에서 iOS 만') — 안드로이드는 off 와 같아요
+ * - 그 밖(off): 띄우지 않아요(3.0.1, 사용자 2026-10-22 결정 '토스 쪽 광고 문제가 해결될 때까지 리워드 광고를 띄우지 말자, 배너만 남기자')
+ * 띄우지 않을 때는 전면(홈 '기록 보기')·리워드(고화질 저장·두 번째 판·AI 초안)를 부르지 않고 그 기능은 광고 없이 바로 열어 줘요(AD 표시·'광고 보고' 문구도 빠져요).
+ * 배너(기록 화면)는 스위치와 무관하게 그대로예요.
+ * 배경: 안드로이드 토스앱이 광고 이벤트를 늦게/안 보내 광고를 다 보고도 보상이 인정되지 않던 것(2026-10-22 실기기 영상, 개발자 커뮤니티 공지 4304·4529).
+ * iOS 는 이벤트가 정상이라 3.0.2 부터 iOS 만 켜요. 안드로이드가 고쳐지면 `.env` 를 on 으로 바꾸고 빌드만 하면 돼요 — 코드·광고 그룹 ID·콘솔 지면은 그대로예요.
+ * 테스트는 vite.config 의 test.env 로 on 이라 광고 흐름을 계속 검사하고, off·ios 는 `vi.stubEnv` 로 따로 검사해요(config.test.ts·App.adsOff.test.tsx).
  */
 export function fullScreenAdsEnabled(): boolean {
-  return import.meta.env.VITE_FULL_SCREEN_ADS === 'on';
+  const mode = import.meta.env.VITE_FULL_SCREEN_ADS;
+  if (mode === 'on') return true;
+  if (mode === 'ios') return platformIsIos();
+  return false;
+}
+
+/**
+ * 토스앱이 iOS 인지. `Device.os` 는 호스트가 주입한 상수를 읽는 가벼운 값이라 부를 때마다 읽어요(캐시 없음) — 예외나 'ios' 가 아닌 값이면 false(광고 없음).
+ * AIT Devtools 가 붙은 개발 서버·vitest 에서는 Devtools 모의 브릿지가 패널의 Environment > OS 값을 돌려줘요(기본 ios, 2026-10-23 확인) —
+ * 개발 서버에선 테스트 광고가 켜진 채로 보이고, 패널에서 android 로 바꾸면 다음 렌더부터 꺼져요(패널 값은 새로고침하면 ios 로 돌아가요).
+ * 호스트도 Devtools 도 없는 보통 브라우저에서는 SDK 가 예외를 던져 광고 없음.
+ */
+function platformIsIos(): boolean {
+  try {
+    return Device.os === 'ios';
+  } catch {
+    return false;
+  }
 }

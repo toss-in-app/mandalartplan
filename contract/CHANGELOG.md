@@ -170,3 +170,10 @@
 - `ads/config.ts` `fullScreenAdsEnabled()`: `.env` 의 `VITE_FULL_SCREEN_ADS` 가 'on' 일 때만 전면·리워드를 띄움(지금 off). `useInterstitial` 은 off 면 불러오지 않고 upcoming false(홈 '기록 보기' AD 표시·사전 안내 없음). `useRewardedAd` 는 off 면(`free`) 불러오지 않고 watch 가 바로 'rewarded', supported true — 고화질 저장(안내·광고 없이 바로)·두 번째 판('만들기' 바로)·AI(광고 단계 없이, 하루 20회 그대로).
 - 문구: `ai/messages.ts` 가 스위치를 봐 '광고를 끝까지 보면…'을 빼고, 홈·세부 목표·초안·체험판·설정의 AD 표시와 '광고 보고'·'광고를 한 번 보면'·'광고 보기'를 광고를 띄울 때만 그림. 배너는 그대로. 테스트는 `vite.config` `test.env` 로 on(광고 흐름 계속 검사), off 는 `App.adsOff.test.tsx` + 훅 테스트 off 케이스.
 - 버전 3.0.1(`client/package.json`, 설정 화면). 기록 `releases/3.0.1.md`, 출시 노트 초안 `console/release-notes.md`. 테스트 301개(2026-10-22).
+
+## 2026-10-23 [client] 3.0.2 전면·리워드 광고를 iOS 에서만 다시 켬 (사용자 결정 '지금 현재 배포된 것에서 iOS 만 하는 걸로')
+- 계약 변경 없음(`state`·`content` 그대로). 분석: iOS 에서는 3.0.0 처럼 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 를 다시 보내고, 안드로이드는 3.0.1 처럼 보내지 않음(`events.md` 그대로).
+- 배경: 안드로이드 광고 이벤트 누락은 그대로(개발자 커뮤니티 공지 4304·4529, 10-23 새 보고 5057, 복구 공지 없음). iOS 는 콜백이 정상이고 10/19~22 노출도 iOS 82 vs 안드로이드 32. 끈 채로 두면 노출 없는 리워드 지면이 23일 뒤 '삭제예정'(11/11·11/14쯤)이 되는데 공지 54047 동안엔 다시 못 만듦.
+- `ads/config.ts` `fullScreenAdsEnabled()`: `.env` `VITE_FULL_SCREEN_ADS` 가 'on' 이면 모두, **'ios' 면 `Device.os` 가 'ios' 일 때만**(부를 때마다 읽는 가벼운 상수값, 예외나 다른 값이면 false; AIT Devtools 모의 브릿지가 붙은 개발 서버·vitest 에선 패널 Environment > OS 값(기본 ios)을 돌려줘 켜진 채로 보이고 android 로 바꾸면 다음 렌더부터 꺼짐, Devtools 도 호스트도 없으면 SDK 예외 → 꺼짐 — 2026-10-23 확인. `getPlatformOS()` 는 deprecated 라 `Device.os`), 그 밖은 off. 같은 함수를 읽는 9곳(전면·리워드 훅, 홈·세부·초안·설정·체험판 문구, AI 안내문)은 바꾸지 않음. 보관해 둔 광고 기다림 수정(`47c019a`)은 iOS 엔 필요 없어 넣지 않음(안드로이드 켤 때 실기기 확인 뒤).
+- 테스트: `ads/config.test.ts`(on·ios·off, 예외·다른 값, 부를 때마다 읽음) + `useRewardedAd.test.ts` ios 케이스(안드로이드 off, iOS 띄움). 테스트 환경은 그대로 `test.env` on.
+- 버전 3.0.2(`client/package.json`, 설정 화면). 기록 `releases/3.0.2.md`, 출시 노트 초안 `console/release-notes.md`.
