@@ -41,4 +41,15 @@ if (liveIds.length < EXPECTED_LIVE) {
   console.error(`라이브 광고 그룹 ID 가 ${liveIds.length}개뿐이에요(기대 ${EXPECTED_LIVE}). client/.env.production 의 VITE_AD_GROUP_* 확인`);
   process.exit(1);
 }
-console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳)`);
+// 3.0.3 Microsoft Clarity: 화면 글자는 body 에서 전부 가리고(data-clarity-mask), CSS 는 페이지 안 <style> 로(녹화 재생 때 CSS 파일을 못 받아요 — vite.config.ts inlineCss)
+const html = readFileSync(fileURLToPath(new URL('../dist/index.html', import.meta.url)), 'utf8');
+const clarityId = readFileSync(fileURLToPath(new URL('../.env.production', import.meta.url)), 'utf8').match(/^VITE_CLARITY_PROJECT_ID=(\S+)/m)?.[1];
+if (clarityId && !js.includes(clarityId)) {
+  console.error(`Clarity 프로젝트 ID(${clarityId})가 번들에 없어요 — client/src/lib/clarity.ts·main.tsx 확인`);
+  process.exit(1);
+}
+if (!html.includes('<body data-clarity-mask="True">') || /<link rel="stylesheet"/.test(html)) {
+  console.error('dist/index.html 에 body 가림(data-clarity-mask)이 없거나 CSS 가 <link> 로 남아 있어요 — index.html·vite.config.ts inlineCss 확인');
+  process.exit(1);
+}
+console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳), Clarity ${clarityId ? `켬(${clarityId}, 글자 가림·CSS 페이지 안)` : '없음'}`);

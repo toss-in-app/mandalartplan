@@ -53,6 +53,8 @@
 
 - 체험판의 판·체크는 저장하지 않는 예시라 `action_check`·`board_edit`·`cells_delete`·`cells_delete_undo`·`cells_swap` 을 보내지 않는다. 편집 모드에 들어가면 `edit_mode_enter`(`screen` = trial)만 보낸다.
 
+> **분석 도구(3.0.3~)**: 위 이벤트(`Analytics.log`)와 별도로 Microsoft Clarity(화면 녹화·히트맵, 프로젝트 `z58r4u0qo8`)가 출시 빌드에서 돈다 — 화면 글자는 `<body data-clarity-mask="True">` 로 전부 가려 보내지 않고, 토스 식별값(identify)·이벤트 이름은 보내지 않는다(`client/src/lib/clarity.ts`, 태그는 `app_version` 하나).
+
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 
 > **3.0.1(2026-10-22~)**: 전면·리워드 광고를 띄우지 않아요(`client/.env` `VITE_FULL_SCREEN_ADS=off`, 배너만) — 안드로이드 토스앱 광고 이벤트 누락으로 광고를 다 봐도 보상이 안 되던 동안. 그동안 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 는 보내지 않고, 고화질 저장·두 번째 판·AI 초안은 광고 없이 바로 열려요(AI 하루 20회 그대로). 토스 쪽이 복구되면 on 으로 켜요(`releases/3.0.1.md`). **3.0.2(2026-10-23~)**: iOS 토스앱에서만 다시 켜요(`VITE_FULL_SCREEN_ADS=ios`) — 안드로이드는 위와 같고, iOS 는 3.0.0 처럼 광고를 띄우고 이벤트를 보내요(`releases/3.0.2.md`). **3.0.3(2026-10-29~)**: 다시 on — 안드로이드도 3.0.0 처럼 광고를 띄우고 이벤트를 보내요(`releases/3.0.3.md`).

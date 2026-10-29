@@ -21,6 +21,8 @@ interface ImportMetaEnv {
   readonly VITE_FULL_SCREEN_ADS?: string;
   /** 콘솔 스마트 발송 기능성 템플릿의 발송 코드(알림 동의문). 비어 있으면 알림 기능 숨김(개발 빌드는 설계 코드) */
   readonly VITE_NOTIFICATION_TEMPLATE_CODE?: string;
+  /** Microsoft Clarity 프로젝트 ID(3.0.3). .env.production 에만 — 출시 빌드에서만 켜요(lib/clarity.ts) */
+  readonly VITE_CLARITY_PROJECT_ID?: string;
 }
 
 interface ImportMeta {
