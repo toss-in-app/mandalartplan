@@ -35,7 +35,7 @@ export const AD_GROUPS = {
   rewardedExtraBoard: pick(import.meta.env.VITE_AD_GROUP_REWARDED_EXTRA_BOARD, TEST_AD_GROUPS?.rewarded),
   /** `banner-today`: 기록 화면 맨 아래, 모든 탭 (배너 1개) */
   bannerToday: pick(import.meta.env.VITE_AD_GROUP_BANNER_TODAY, TEST_AD_GROUPS?.banner),
-  /** `rewarded-ai-draft`: AI 초안 만들기·다시 만들기·빈 칸 채우기·실천 추천 (리워드, 2.0 — 광고 1회 = AI 1회). 전용 지면은 3.0.3 부터(2.0.0~3.0.2 는 '두 번째 판' 지면을 같이 씀) */
+  /** `rewarded-ai-draft`: AI 초안 만들기·다시 만들기·빈 칸 채우기·실천 추천 (리워드, 2.0 — 광고 1회 = AI 1회). 3.0.3 까지 '두 번째 판' 지면을 같이 쓰고 전용 지면은 3.0.4 부터(예정) */
   rewardedAiDraft: pick(import.meta.env.VITE_AD_GROUP_REWARDED_AI_DRAFT, TEST_AD_GROUPS?.rewarded),
 } as const;
 

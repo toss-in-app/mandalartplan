@@ -18,6 +18,7 @@ import { useBackup } from './backup/useBackup';
 import { useAppState } from './hooks/useAppState';
 import { useBoardPicker } from './hooks/useBoardPicker';
 import { logEvent } from './lib/analytics';
+import { startClarity, stopClarity } from './lib/clarity';
 import { canSaveImage, createShareLink, haptic, openUrl, saveImageToPhotos, shareText } from './lib/bridge';
 import { HD_CARD, cardFileName, renderCard, type RenderedCard } from './lib/card';
 import { notificationAvailable, requestNotificationAgreement } from './notification/agreement';
@@ -81,8 +82,8 @@ function App() {
       (onHome && activeBoard ? canFillBoard(activeBoard) : false) ||
       (aiSubIndex !== null && activeBoard ? canFillActions(activeBoard, aiSubIndex) : false));
   const extraBoardAdActive = route.name === 'settings' && !extraBoardOpen;
-  // 두 설정의 ID 가 같으면(테스트 ID, 또는 2.0.0~3.0.2 처럼 AI 가 '두 번째 판' 지면을 같이 쓸 때 — 공지 54047) 같은 그룹을 두 훅이 따로 불러오지 않게 하나로 묶어요.
-  // 3.0.3 부터 출시 빌드는 AI 전용 지면이라 따로 불러와요(App.adGroups.test.tsx)
+  // 두 설정의 ID 가 같으면(테스트 ID, 또는 2.0.0~3.0.3 처럼 AI 가 '두 번째 판' 지면을 같이 쓸 때 — 공지 54047) 같은 그룹을 두 훅이 따로 불러오지 않게 하나로 묶어요.
+  // AI 전용 지면(3.0.4 예정)으로 바꾸면 따로 불러와요(App.adGroups.test.tsx)
   const aiSharesExtraBoard = AD_GROUPS.rewardedAiDraft === AD_GROUPS.rewardedExtraBoard;
   const extraBoardReward = useRewardedAd(AD_GROUPS.rewardedExtraBoard, extraBoardAdActive || (aiSharesExtraBoard && aiAdActive));
   const aiOwnReward = useRewardedAd(AD_GROUPS.rewardedAiDraft, !aiSharesExtraBoard && aiAdActive);
@@ -233,6 +234,13 @@ function App() {
     if (!stateLoaded) return;
     updateSettings((settings) => (settings.seenContentVersion >= contentVersion ? settings : { ...settings, seenContentVersion: contentVersion }));
   }, [stateLoaded, contentVersion, updateSettings]);
+
+  // Microsoft Clarity(3.0.3): 설정 '사용 기록 분석'이 켜져 있으면 출시 빌드에서 불러오고(lib/clarity.ts), 끄면 쿠키를 지워요(다음에 열 때부터 안 불러옴)
+  const replay = app.state ? app.state.settings.analytics.replay : null;
+  useEffect(() => {
+    if (replay === true) startClarity({ mode: import.meta.env.MODE, projectId: import.meta.env.VITE_CLARITY_PROJECT_ID, version: __APP_VERSION__ });
+    else if (replay === false) stopClarity();
+  }, [replay]);
 
   // 분석(contract/events.md): 화면 진입은 라우트가 바뀔 때 1회(home_view·today_view = 기록 위젯 판), board_filled 는 보고 있는 판이 73칸이 되는 순간(판마다 사실상 1회).
   // 값은 ref 로 읽어 상태가 바뀔 때마다 다시 보내지 않아요. 편집(board_edit·edit_mode_enter)은 화면의 제자리 편집 모드가 보내요(hooks/useGridEdit).
@@ -773,6 +781,11 @@ function App() {
             onBackupNow: () => void backupNow(),
             onRestore: () => void restoreBackup(),
             onDisable: () => void disableBackup(),
+          }}
+          replay={state.settings.analytics.replay}
+          onReplay={(on) => {
+            updateSettings((settings) => ({ ...settings, analytics: { replay: on } }));
+            toast.openToast(on ? '사용 기록 분석을 켰어요' : '사용 기록 분석을 껐어요. 다음에 열 때부터 기록하지 않아요');
           }}
           onTrial={() => openTrial('settings')}
           onReset={() => void resetAll()}

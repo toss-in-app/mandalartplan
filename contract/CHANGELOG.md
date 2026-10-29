@@ -178,10 +178,12 @@
 - 테스트: `ads/config.test.ts`(on·ios·off, 예외·다른 값, 부를 때마다 읽음) + `useRewardedAd.test.ts` ios 케이스(안드로이드 off, iOS 띄움). 테스트 환경은 그대로 `test.env` on.
 - 버전 3.0.2(`client/package.json`, 설정 화면). 기록 `releases/3.0.2.md`, 출시 노트 초안 `console/release-notes.md`.
 
-## 2026-10-29 [client] 3.0.3 AI 초안 리워드를 전용 지면으로 + 안드로이드 전면·리워드 다시 켬 (사용자 '전용 지면 만들고 다음 버전에 교체' · '안드로이드도 다시 켜')
+## 2026-10-29 [client] 3.0.3 안드로이드 전면·리워드 다시 켬 + Microsoft Clarity (AI 초안 전용 지면은 3.0.4 로)
 - 계약 변경 없음(`state`·`content`·분석 이벤트 그대로). 광고 그룹 `rewarded-ai-draft` 가 전용 라이브 ID `ait.v2.live.d29d6a0146a9451a`(2026-10-29 콘솔 MCP 생성, 보상 이름 'AI 초안' 1)를 씀 — `client/.env.production` 한 줄. 2.0.0~3.0.2 는 공지 54047 동안 `rewarded-extra-board` 지면을 같이 썼다.
 - 앱 코드는 그대로: `App.tsx` 가 두 설정의 ID 를 비교해 같을 때만 '두 번째 판' 훅 하나로 묶으니(`aiSharesExtraBoard`), ID 가 달라지면 AI 화면은 AI 지면 훅만, 설정은 두 번째 판 훅만 미리 불러온다. 테스트·개발 서버는 리워드 테스트 ID 가 하나라 계속 묶인 쪽으로 돈다 → 새 테스트 `App.adGroups.test.tsx`(ID 가 다를 때·같을 때, 연결을 일부러 틀리게 바꾸면 실패하는 것 확인).
 - 광고 스위치 `client/.env` `VITE_FULL_SCREEN_ADS` ios → **on**: 안드로이드도 전면·리워드와 분석 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 를 다시 보냄(3.0.0 과 같음). 안드로이드 광고 이벤트 누락이 고쳐졌다는 공지는 없다(10-29 확인: 개발 공지 최신 4951(10/09), 비슷한 보고 5057 에 10/28 토스 답 '애드몹 로딩이 오래 걸릴 수 있으니 타임아웃을 늘리거나 없애기') → 안드로이드 실기기 QR(테스트 광고)로 보상 인정을 본 뒤 출시. 보관해 둔 광고 기다림 수정(`47c019a`)은 넣지 않음(미검증·iOS 흐름도 바뀜) — 실기기에서 안 되면 그때.
 - `events.md`: 광고 그룹 표의 임시 표기 정리, AI 하루 20회(2.1~)로 바로잡음, 3.0.2(iOS 만)·3.0.3(on) 메모 추가.
-- Microsoft Clarity(화면 녹화·히트맵, 사용자 '이 버전까지 해서'): `@microsoft/clarity` 1.0.2, `lib/clarity.ts` 출시 빌드에서만(프로젝트 `z58r4u0qo8`), `<body data-clarity-mask="True">` 로 글자 전부 가림, identify 안 씀, 빌드 때 CSS 를 index.html 안으로(재생용). 분석 이벤트(`Analytics.log`)는 그대로. 개인정보처리방침 반영은 검토 전.
+- **AI 초안 전용 지면은 3.0.3 에서 빠짐**: 지면이 검토 때까지 '등록중'이라 사용자 결정 '지금 제출, AI 는 기존 지면' → `.env.production` 을 두 번째 판 지면으로 되돌림. 위 연결 코드·테스트는 남겨 3.0.4 에서 한 줄로 바꾼다.
+- Microsoft Clarity(화면 녹화·히트맵, 사용자 '이 버전까지 해서'): `@microsoft/clarity` 1.0.2, `lib/clarity.ts` — App 이 설정 '사용 기록 분석'이 켜져 있고 출시 빌드일 때만 init(프로젝트 `z58r4u0qo8`), identify 안 씀, 빌드 때 CSS 를 index.html 안으로(재생용). 가림은 콘솔 '균형 잡힘'(사용자) — 확인용 번들의 body 전체 가림은 뺐다. 분석 이벤트(`Analytics.log`)는 그대로.
+- `state.schema.json`: `settings.analytics.replay`(boolean, 선택 — 없으면 켜짐). 설정 '사용 기록 분석' 스위치(끄면 `consent(false)` 로 쿠키 지우고 다음에 열 때부터 안 불러옴). 개인정보처리방침 1·4-1·4-2 반영(시행일 2026-10-29).
 - 버전 3.0.3(`client/package.json`, 설정 화면). 기록 `releases/3.0.3.md`, 출시 노트 초안 `console/release-notes.md`.

@@ -193,6 +193,8 @@ describe('SettingsScreen (설정 행 상태)', () => {
         hasAnyText={false}
         extraBoard={extraLocked}
         backup={{ ...backupOff, configured: false }}
+        replay
+        onReplay={vi.fn()}
         onTrial={vi.fn()}
         onReset={vi.fn()}
       />,
@@ -216,6 +218,8 @@ describe('SettingsScreen (설정 행 상태)', () => {
         hasAnyText
         extraBoard={extraLocked}
         backup={backupOn}
+        replay
+        onReplay={vi.fn()}
         onTrial={vi.fn()}
         onReset={onReset}
       />,
@@ -232,5 +236,28 @@ describe('SettingsScreen (설정 행 상태)', () => {
     expect(onReset).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText('두 번째 만다라트 판'));
     expect(extraLocked.onUnlock).toHaveBeenCalledTimes(1);
+  });
+
+  it("'사용 기록 분석' 스위치(3.0.3 Microsoft Clarity): 켜진 상태를 보여 주고 누르면 끈다고 알려요", () => {
+    const onReplay = vi.fn();
+    wrap(
+      <SettingsScreen
+        content={content}
+        notification="agreed"
+        notificationAvailable
+        onNotification={vi.fn()}
+        hasAnyText
+        extraBoard={extraLocked}
+        backup={backupOff}
+        replay
+        onReplay={onReplay}
+        onTrial={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+    const toggle = screen.getByRole('switch', { name: '사용 기록 분석' });
+    expect(toggle).toBeChecked();
+    fireEvent.click(toggle);
+    expect(onReplay).toHaveBeenCalledWith(false);
   });
 });

@@ -1,5 +1,5 @@
 import { colors } from '@toss/tds-colors';
-import { Border, List, ListRow, Text, Top } from '@toss/tds-mobile';
+import { Border, List, ListRow, Switch, Text, Top } from '@toss/tds-mobile';
 
 import { PRIVACY_URL, TERMS_URL, type Content } from '../content';
 import { openUrl } from '../lib/bridge';
@@ -40,6 +40,9 @@ interface SettingsScreenProps {
   hasAnyText: boolean;
   extraBoard: ExtraBoardPanelProps;
   backup: BackupPanelProps;
+  /** '사용 기록 분석'(3.0.3, Microsoft Clarity) 켜짐 — 개인정보처리방침 4-1 */
+  replay: boolean;
+  onReplay: (on: boolean) => void;
   /** '1분 체험해 보기'(2.1) — 언제든 다시 해 볼 수 있게 */
   onTrial: () => void;
   onReset: () => void;
@@ -52,7 +55,7 @@ const NOTIFICATION_LABEL: Record<NotificationStatus, string> = {
 };
 
 /**
- * 설정. 매일 저녁 알림(동의 요청·상태) · 1분 체험해 보기 · 두 번째 판(리워드 잠금) | 백업 | 약관 | 초기화 · 버전.
+ * 설정. 매일 저녁 알림(동의 요청·상태) · 1분 체험해 보기 · 두 번째 판(리워드 잠금) | 백업 | 사용 기록 분석(3.0.3) · 약관 | 초기화 · 버전.
  * (예시 템플릿 불러오기는 2.1 에서 뺐어요 — 사용자 결정 2026-10-21. 같은 날 홈의 '예시로 시작하기'도 빼서 예시는 1분 체험판에서만 봐요)
  * 묶음 사이는 TDS Border(height16)로 나누고, 되돌릴 수 없는 초기화는 맨 아래 따로 둬요.
  */
@@ -64,6 +67,8 @@ export function SettingsScreen({
   hasAnyText,
   extraBoard,
   backup,
+  replay,
+  onReplay,
   onTrial,
   onReset,
 }: SettingsScreenProps) {
@@ -140,6 +145,10 @@ export function SettingsScreen({
 
       <Border variant="height16" />
       <List>
+        <ListRow
+          contents={<ListRow.Texts type="2RowTypeA" top="사용 기록 분석" bottom="화면을 어떻게 쓰는지 기록해 앱을 고쳐요 · Microsoft Clarity" />}
+          right={<Switch checked={replay} onChange={(_event, checked) => onReplay(checked)} aria-label="사용 기록 분석" />}
+        />
         <ListRow withArrow onClick={() => void openUrl(TERMS_URL)} contents={<ListRow.Texts type="1RowTypeA" top="이용약관" />} />
         <ListRow withArrow onClick={() => void openUrl(PRIVACY_URL)} contents={<ListRow.Texts type="1RowTypeA" top="개인정보처리방침" />} />
       </List>

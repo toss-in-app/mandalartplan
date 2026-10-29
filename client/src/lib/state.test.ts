@@ -109,8 +109,12 @@ describe('settings', () => {
       ai: { noticeAt: null, runs: { date: null, count: 0 } },
       trial: { cardDismissedAt: null },
       records: { widgets: null },
+      analytics: { replay: true },
     });
     expect(normalizeSettings({ version: 0 })).toBeNull();
+    // 사용 기록 분석(3.0.3): 저장된 값이 false 일 때만 꺼져요(없거나 이상한 값이면 기본 켜짐)
+    expect(normalizeSettings({ version: 1, analytics: { replay: false } })?.analytics.replay).toBe(false);
+    expect(normalizeSettings({ version: 1, analytics: { replay: 'no' } })?.analytics.replay).toBe(true);
   });
 
   it('AI 설정(2.0): 고지 시각과 하루 횟수, 모양이 다르면 기본값', () => {

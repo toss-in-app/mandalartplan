@@ -15,7 +15,7 @@ const js = readdirSync(assets)
 const testIds = [...new Set(js.match(/ait-ad-test-[a-z-]*/g) ?? [])];
 const liveIds = [...new Set(js.match(/ait\.v2\.live\.[0-9a-f]+/g) ?? [])];
 // src/ads/config.ts 가 읽는 VITE_AD_GROUP_* 는 .env.production 에 모두 값이 있어야 하고, 그 라이브 ID 가 전부 번들에 들어가야 해요.
-// 두 기능이 한 지면을 같이 쓰면(예: 2.0.0~3.0.2 의 AI 초안이 '두 번째 판' 지면을) ID 가 겹쳐도 돼요.
+// 두 기능이 한 지면을 같이 쓰면(예: 2.0.0~3.0.3 의 AI 초안이 '두 번째 판' 지면을) ID 가 겹쳐도 돼요.
 const adConfig = readFileSync(fileURLToPath(new URL('../src/ads/config.ts', import.meta.url)), 'utf8');
 const requiredKeys = [...new Set(adConfig.match(/VITE_AD_GROUP_[A-Z_]+/g) ?? [])];
 const envProd = Object.fromEntries(
@@ -41,15 +41,15 @@ if (liveIds.length < EXPECTED_LIVE) {
   console.error(`라이브 광고 그룹 ID 가 ${liveIds.length}개뿐이에요(기대 ${EXPECTED_LIVE}). client/.env.production 의 VITE_AD_GROUP_* 확인`);
   process.exit(1);
 }
-// 3.0.3 Microsoft Clarity: 화면 글자는 body 에서 전부 가리고(data-clarity-mask), CSS 는 페이지 안 <style> 로(녹화 재생 때 CSS 파일을 못 받아요 — vite.config.ts inlineCss)
+// 3.0.3 Microsoft Clarity: CSS 는 페이지 안 <style> 로(녹화 재생 때 CSS 파일을 못 받아요 — vite.config.ts inlineCss). 가림은 콘솔 마스킹 '균형 잡힘'을 따라요
 const html = readFileSync(fileURLToPath(new URL('../dist/index.html', import.meta.url)), 'utf8');
 const clarityId = readFileSync(fileURLToPath(new URL('../.env.production', import.meta.url)), 'utf8').match(/^VITE_CLARITY_PROJECT_ID=(\S+)/m)?.[1];
 if (clarityId && !js.includes(clarityId)) {
-  console.error(`Clarity 프로젝트 ID(${clarityId})가 번들에 없어요 — client/src/lib/clarity.ts·main.tsx 확인`);
+  console.error(`Clarity 프로젝트 ID(${clarityId})가 번들에 없어요 — client/src/lib/clarity.ts·App.tsx 확인`);
   process.exit(1);
 }
-if (!html.includes('<body data-clarity-mask="True">') || /<link rel="stylesheet"/.test(html)) {
-  console.error('dist/index.html 에 body 가림(data-clarity-mask)이 없거나 CSS 가 <link> 로 남아 있어요 — index.html·vite.config.ts inlineCss 확인');
+if (/<link rel="stylesheet"/.test(html)) {
+  console.error('dist/index.html 에 CSS 가 <link> 로 남아 있어요(클라리티 재생 화면이 깨져요) — vite.config.ts inlineCss 확인');
   process.exit(1);
 }
-console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳), Clarity ${clarityId ? `켬(${clarityId}, 글자 가림·CSS 페이지 안)` : '없음'}`);
+console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳), Clarity ${clarityId ? `켬(${clarityId}, CSS 페이지 안)` : '없음'}`);

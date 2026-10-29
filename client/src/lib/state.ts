@@ -69,6 +69,11 @@ export interface RecordsSettings {
   widgets: RecordWidgetId[] | null;
 }
 
+export interface AnalyticsSettings {
+  /** 설정 '사용 기록 분석'(3.0.3, Microsoft Clarity — lib/clarity.ts). 기본 켜짐, 끄면 쿠키를 지우고 다음에 열 때부터 불러오지 않아요 */
+  replay: boolean;
+}
+
 export interface SettingsState {
   version: 1;
   notification: NotificationStatus;
@@ -80,6 +85,7 @@ export interface SettingsState {
   ai: AiSettings;
   trial: TrialSettings;
   records: RecordsSettings;
+  analytics: AnalyticsSettings;
 }
 
 const BACKUP_KEY_RE = /^k[0-9a-f]{64}$/;
@@ -175,6 +181,7 @@ export function createDefaultSettings(): SettingsState {
     ai: { noticeAt: null, runs: { date: null, count: 0 } },
     trial: { cardDismissedAt: null },
     records: { widgets: null },
+    analytics: { replay: true },
   };
 }
 
@@ -207,6 +214,8 @@ export function normalizeSettings(input: unknown): SettingsState | null {
   if (typeof trial.cardDismissedAt === 'number' && trial.cardDismissedAt >= 0) s.trial.cardDismissedAt = Math.floor(trial.cardDismissedAt);
   const records = raw.records && typeof raw.records === 'object' ? (raw.records as Record<string, unknown>) : {};
   s.records.widgets = normalizeWidgetList(records.widgets);
+  const analytics = raw.analytics && typeof raw.analytics === 'object' ? (raw.analytics as Record<string, unknown>) : {};
+  s.analytics.replay = analytics.replay !== false;
   return s;
 }
 

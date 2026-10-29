@@ -1,15 +1,18 @@
 import Clarity from '@microsoft/clarity';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { startClarity } from './clarity';
+import { startClarity, stopClarity } from './clarity';
 
-vi.mock('@microsoft/clarity', () => ({ default: { init: vi.fn(), setTag: vi.fn() } }));
+vi.mock('@microsoft/clarity', () => ({ default: { init: vi.fn(), setTag: vi.fn(), consent: vi.fn() } }));
 
 beforeEach(() => {
   vi.mocked(Clarity.init).mockReset();
   vi.mocked(Clarity.setTag).mockReset();
+  vi.mocked(Clarity.consent).mockReset();
+});
+
+afterEach(() => {
+  delete window.clarity;
 });
 
 describe('startClarity (3.0.3 Microsoft Clarity)', () => {
@@ -32,10 +35,22 @@ describe('startClarity (3.0.3 Microsoft Clarity)', () => {
     });
     expect(startClarity({ mode: 'production', projectId: 'z58r4u0qo8', version: '3.0.3' })).toBe(false);
   });
+});
 
-  it('index.html 의 body 가 화면 글자를 전부 가려요(data-clarity-mask)', () => {
-    // vitest 는 client/ 에서 돌아요(jsdom 이라 import.meta.url 이 파일 주소가 아님)
-    const client = process.cwd().endsWith('client') ? process.cwd() : resolve(process.cwd(), 'client');
-    expect(readFileSync(resolve(client, 'index.html'), 'utf8')).toContain('<body data-clarity-mask="True">');
+describe('stopClarity (설정 사용 기록 분석 끄기)', () => {
+  it('불러온 적이 있으면 쿠키를 지워요(consent false)', () => {
+    window.clarity = vi.fn();
+    stopClarity();
+    expect(Clarity.consent).toHaveBeenCalledWith(false);
+  });
+
+  it('불러온 적이 없으면 아무것도 하지 않고, 실패해도 앱을 멈추지 않아요', () => {
+    stopClarity();
+    expect(Clarity.consent).not.toHaveBeenCalled();
+    window.clarity = vi.fn();
+    vi.mocked(Clarity.consent).mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(() => stopClarity()).not.toThrow();
   });
 });

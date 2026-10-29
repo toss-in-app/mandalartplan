@@ -388,6 +388,19 @@
             }
           },
           "description": "2026-10-21 추가 (3.0 기록 위젯 판). 없으면 기본값 { widgets: null }. 이 기기에만 남고 백업에는 싣지 않아요"
+        },
+        "analytics": {
+          "type": "object",
+          "required": [
+            "replay"
+          ],
+          "properties": {
+            "replay": {
+              "type": "boolean",
+              "description": "설정 '사용 기록 분석'(Microsoft Clarity). 기본 true, 끄면 다음에 열 때부터 불러오지 않음"
+            }
+          },
+          "description": "2026-10-29 추가 (3.0.3 Microsoft Clarity). 없으면 기본값(켜짐)"
         }
       }
     },
