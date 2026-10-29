@@ -16,7 +16,7 @@ vi.mock('@apps-in-toss/web-framework', async (importOriginal) => {
   return { ...actual, Device };
 });
 
-import { fullScreenAdsEnabled } from './config';
+import { bannerAdsEnabled, fullScreenAdsEnabled } from './config';
 
 describe('fullScreenAdsEnabled (VITE_FULL_SCREEN_ADS: on / ios / off)', () => {
   afterEach(() => {
@@ -53,5 +53,20 @@ describe('fullScreenAdsEnabled (VITE_FULL_SCREEN_ADS: on / ios / off)', () => {
     expect(fullScreenAdsEnabled()).toBe(false);
     platform.os = 'ios';
     expect(fullScreenAdsEnabled()).toBe(true);
+  });
+});
+
+describe('bannerAdsEnabled (VITE_BANNER_ADS: on / off — 3.0.4)', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("'on' 일 때만 true, 'off'·빈 값이면 false(3.0.4 사용자 '광고 다 떼어버려')", () => {
+    vi.stubEnv('VITE_BANNER_ADS', 'on');
+    expect(bannerAdsEnabled()).toBe(true);
+    vi.stubEnv('VITE_BANNER_ADS', 'off');
+    expect(bannerAdsEnabled()).toBe(false);
+    vi.stubEnv('VITE_BANNER_ADS', '');
+    expect(bannerAdsEnabled()).toBe(false);
   });
 });

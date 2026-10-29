@@ -2,7 +2,7 @@ import { colors } from '@toss/tds-colors';
 import { Button, Text, Top } from '@toss/tds-mobile';
 import { useEffect, useState } from 'react';
 
-import { AD_GROUPS } from '../ads/config';
+import { AD_GROUPS, bannerAdsEnabled } from '../ads/config';
 import { AdBanner } from '../components/AdBanner';
 import { EditDoneButton } from '../components/EditDoneButton';
 import type { RecordContext } from '../components/records/shared';
@@ -172,13 +172,13 @@ export function RecordsScreen({ board, record, widgets, onChangeWidgets, onOpen,
         </section>
       )}
 
-      {hasHistory && (
+      {hasHistory && bannerAdsEnabled() && (
         <div key="banner" style={{ padding: '24px 0 40px', display: edit.editing ? 'none' : 'block' }}>
           <AdBanner adGroupId={AD_GROUPS.bannerToday} />
         </div>
       )}
-      {/* 배너가 안 보일 때(기록 없음·편집 모드)도 맨 아래 40px — 홈·설정과 같게 */}
-      {(!hasHistory || edit.editing) && <div style={{ height: 40 }} />}
+      {/* 배너가 안 보일 때(기록 없음·편집 모드·배너 끔 3.0.4)도 맨 아래 40px — 홈·설정과 같게 */}
+      {(!hasHistory || edit.editing || !bannerAdsEnabled()) && <div style={{ height: 40 }} />}
     </>
   );
 }

@@ -48,9 +48,10 @@ export const USING_TEST_AD_GROUPS = Object.values(AD_GROUPS).some(
  * 전면·리워드 광고를 띄울지. `.env` 의 `VITE_FULL_SCREEN_ADS`:
  * - 'on': 모두 띄워요(3.0.0 까지, 3.0.3 부터 다시 — 사용자 2026-10-29 '안드로이드도 다시 켜')
  * - 'ios': iOS 토스앱에서만 띄워요(3.0.2, 사용자 2026-10-23 결정 '지금 현재 배포된 것에서 iOS 만') — 안드로이드는 off 와 같아요
- * - 그 밖(off): 띄우지 않아요(3.0.1, 사용자 2026-10-22 결정 '토스 쪽 광고 문제가 해결될 때까지 리워드 광고를 띄우지 말자, 배너만 남기자')
+ * - 그 밖(off): 띄우지 않아요(3.0.1, 사용자 2026-10-22 결정 '토스 쪽 광고 문제가 해결될 때까지 리워드 광고를 띄우지 말자, 배너만 남기자' ·
+ *   3.0.4, 사용자 2026-10-29 '광고 다 떼어버려 지금 광고에 문제 있어' — 이때는 배너도 꺼요)
  * 띄우지 않을 때는 전면(홈 '기록 보기')·리워드(고화질 저장·두 번째 판·AI 초안)를 부르지 않고 그 기능은 광고 없이 바로 열어 줘요(AD 표시·'광고 보고' 문구도 빠져요).
- * 배너(기록 화면)는 스위치와 무관하게 그대로예요.
+ * 배너(기록 화면)는 따로 `VITE_BANNER_ADS`(bannerAdsEnabled)가 정해요.
  * 배경: 안드로이드 토스앱이 광고 이벤트를 늦게/안 보내 광고를 다 보고도 보상이 인정되지 않던 것(2026-10-22 실기기 영상, 개발자 커뮤니티 공지 4304·4529).
  * iOS 는 이벤트가 정상이라 3.0.2 부터 iOS 만 켜요. 안드로이드가 고쳐지면 `.env` 를 on 으로 바꾸고 빌드만 하면 돼요 — 코드·광고 그룹 ID·콘솔 지면은 그대로예요.
  * 테스트는 vite.config 의 test.env 로 on 이라 광고 흐름을 계속 검사하고, off·ios 는 `vi.stubEnv` 로 따로 검사해요(config.test.ts·App.adsOff.test.tsx).
@@ -60,6 +61,16 @@ export function fullScreenAdsEnabled(): boolean {
   if (mode === 'on') return true;
   if (mode === 'ios') return platformIsIos();
   return false;
+}
+
+/**
+ * 배너 광고를 붙일지. `.env` 의 `VITE_BANNER_ADS` 가 'on' 일 때만 — 기록 화면·기록 자세히·주간 리포트 마지막 장의 배너 1개(`banner-today`).
+ * 3.0.3 까지는 스위치 없이 늘 붙였고, 3.0.4 부터 off(사용자 2026-10-29 '광고 다 떼어버려 지금 광고에 문제 있어').
+ * 끄면 배너 자리(위아래 여백)도 빼고, AdBanner 는 아무것도 그리지 않아 배너 SDK 를 초기화하지도 않아요.
+ * 테스트는 vite.config 의 test.env 로 on 이고, off 는 `vi.stubEnv` 로 따로 검사해요(config.test.ts·AdBanner.test.tsx·records.test.tsx).
+ */
+export function bannerAdsEnabled(): boolean {
+  return import.meta.env.VITE_BANNER_ADS === 'on';
 }
 
 /**

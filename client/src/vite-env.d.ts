@@ -17,8 +17,10 @@ interface ImportMetaEnv {
   readonly VITE_AD_GROUP_REWARDED_EXTRA_BOARD?: string;
   readonly VITE_AD_GROUP_BANNER_TODAY?: string;
   readonly VITE_AD_GROUP_REWARDED_AI_DRAFT?: string;
-  /** 전면·리워드 광고를 띄울지 — 'on' 모두, 'ios' iOS 토스앱에서만(3.0.2), 그 밖은 off(3.0.1; ads/config.ts fullScreenAdsEnabled). 배너는 무관 */
+  /** 전면·리워드 광고를 띄울지 — 'on' 모두, 'ios' iOS 토스앱에서만(3.0.2), 그 밖은 off(3.0.1·3.0.4; ads/config.ts fullScreenAdsEnabled). 배너는 VITE_BANNER_ADS */
   readonly VITE_FULL_SCREEN_ADS?: string;
+  /** 배너 광고를 붙일지 — 'on' 일 때만, 그 밖은 off(3.0.4~; ads/config.ts bannerAdsEnabled) */
+  readonly VITE_BANNER_ADS?: string;
   /** 콘솔 스마트 발송 기능성 템플릿의 발송 코드(알림 동의문). 비어 있으면 알림 기능 숨김(개발 빌드는 설계 코드) */
   readonly VITE_NOTIFICATION_TEMPLATE_CODE?: string;
   /** Microsoft Clarity 프로젝트 ID(3.0.3). .env.production 에만 — 출시 빌드에서만 켜요(lib/clarity.ts) */

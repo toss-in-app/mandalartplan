@@ -261,3 +261,25 @@ describe('RecordScreen (위젯마다 대시보드, 3.0)', () => {
     expect(screen.queryByTestId('ad-banner')).not.toBeInTheDocument();
   });
 });
+
+describe('배너 끔 (3.0.4 VITE_BANNER_ADS=off — 사용자 \'광고 다 떼어버려\')', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('기록이 있어도 기록 화면·대시보드·지난주 리포트 마지막 장에 배너가 없어요', () => {
+    vi.stubEnv('VITE_BANNER_ADS', 'off');
+    const records = board();
+    expect(screen.getByRole('button', { name: /^연속 / })).toBeInTheDocument();
+    expect(screen.queryByTestId('ad-banner')).not.toBeInTheDocument();
+    records.unmount();
+    const streak = dashboard('streak');
+    expect(screen.getByText('최근 14일')).toBeInTheDocument();
+    expect(screen.queryByTestId('ad-banner')).not.toBeInTheDocument();
+    streak.unmount();
+    dashboard('report');
+    for (let i = 0; i < 3; i += 1) fireEvent.click(screen.getByRole('button', { name: '다음 장' }));
+    expect(screen.getByText('글로 공유하기')).toBeInTheDocument();
+    expect(screen.queryByTestId('ad-banner')).not.toBeInTheDocument();
+  });
+});

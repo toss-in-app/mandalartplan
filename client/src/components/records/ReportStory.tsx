@@ -1,7 +1,7 @@
 import { colors } from '@toss/tds-colors';
 import { useState } from 'react';
 
-import { AD_GROUPS } from '../../ads/config';
+import { AD_GROUPS, bannerAdsEnabled } from '../../ads/config';
 import { CENTER, ringIndex, type Board } from '../../lib/mandalart';
 import { subTitle, type WeekReport } from '../../lib/records';
 import { WEEKDAY_LABELS } from '../../lib/stats';
@@ -203,9 +203,11 @@ function SharePage({ onShare }: { onShare: () => void }) {
       >
         글로 공유하기
       </button>
-      <div data-interactive style={{ marginTop: 28, borderRadius: 12, overflow: 'hidden' }}>
-        <AdBanner adGroupId={AD_GROUPS.bannerToday} />
-      </div>
+      {bannerAdsEnabled() && (
+        <div data-interactive style={{ marginTop: 28, borderRadius: 12, overflow: 'hidden' }}>
+          <AdBanner adGroupId={AD_GROUPS.bannerToday} />
+        </div>
+      )}
     </div>
   );
 }

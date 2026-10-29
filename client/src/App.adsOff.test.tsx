@@ -8,6 +8,7 @@ import { dateKey } from './lib/state';
 
 /**
  * 3.0.1: 전면·리워드 광고를 띄우지 않는 동안(.env VITE_FULL_SCREEN_ADS=off, 배너만) — 사용자 2026-10-22 결정.
+ * 3.0.4 도 같은 off 에 배너까지 꺼요(VITE_BANNER_ADS=off — 사용자 2026-10-29 '광고 다 떼어버려'). 배너 끔은 records.test.tsx·AdBanner.test.tsx 에서 봐요.
  * 테스트 기본은 on(vite.config test.env)이라 여기서만 off 로 두고, 광고 브릿지를 한 번도 부르지 않는지와 광고 없이 기능이 열리는지 봐요.
  */
 vi.mock('./lib/analytics', () => ({ logEvent: vi.fn() }));

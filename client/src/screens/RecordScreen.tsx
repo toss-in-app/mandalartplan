@@ -1,7 +1,7 @@
 import { SegmentedControl, Top } from '@toss/tds-mobile';
 import { useEffect, useRef, useState } from 'react';
 
-import { AD_GROUPS } from '../ads/config';
+import { AD_GROUPS, bannerAdsEnabled } from '../ads/config';
 import { AdBanner } from '../components/AdBanner';
 import { BoardDashboard } from '../components/records/BoardDashboard';
 import { CalendarDashboard } from '../components/records/CalendarDashboard';
@@ -166,7 +166,7 @@ export function RecordScreen({ widget, board, record, content, onClose, onShareR
         </div>
       )}
       {body}
-      {hasHistory ? (
+      {hasHistory && bannerAdsEnabled() ? (
         <div key="banner" style={{ padding: '24px 0 40px' }}>
           <AdBanner adGroupId={AD_GROUPS.bannerToday} />
         </div>

@@ -62,7 +62,7 @@ function App() {
   const backup = useBackup(app);
 
   // 광고: 전면은 오늘 체크가 생기면 미리 불러오고(하루 1회), 리워드는 공유 화면에 있는 동안만 미리 불러와요(동시 로딩 금지).
-  // 3.0.1~: 전면·리워드는 .env VITE_FULL_SCREEN_ADS 로 켜고 꺼요(3.0.2 는 ios — iOS 만, 3.0.3 부터 on — 양쪽). 꺼져 있으면 훅이 광고 없이 바로 열어 주고(free) AD 표시도 빠져요
+  // 3.0.1~: 전면·리워드는 .env VITE_FULL_SCREEN_ADS 로 켜고 꺼요(3.0.2 는 ios — iOS 만, 3.0.3 on — 양쪽, 3.0.4 off — 배너 VITE_BANNER_ADS 까지 전부 끔). 꺼져 있으면 훅이 광고 없이 바로 열어 주고(free) AD 표시도 빠져요
   const today = dateKey();
   const activeBoard = app.board;
   const todayChecks = app.state && activeBoard ? todaySet(app.state.checkins.byBoard[activeBoard.id], today).size : 0;

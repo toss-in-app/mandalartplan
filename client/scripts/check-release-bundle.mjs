@@ -52,4 +52,12 @@ if (/<link rel="stylesheet"/.test(html)) {
   console.error('dist/index.html 에 CSS 가 <link> 로 남아 있어요(클라리티 재생 화면이 깨져요) — vite.config.ts inlineCss 확인');
   process.exit(1);
 }
-console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳), Clarity ${clarityId ? `켬(${clarityId}, CSS 페이지 안)` : '없음'}`);
+// 3.0.4: 광고 스위치(.env, .env.production 이 있으면 그쪽)를 결과에 같이 찍어요 — 전부 off 면 라이브 ID 는 번들에 있어도 부르지 않아요
+const envValue = (key) =>
+  ['../.env.production', '../.env']
+    .map((file) => readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8').match(new RegExp(`^${key}=(\\S*)`, 'm'))?.[1])
+    .find((value) => value !== undefined) ?? '(없음)';
+console.log(
+  `출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳), ` +
+    `광고 스위치 전면·리워드 ${envValue('VITE_FULL_SCREEN_ADS')}·배너 ${envValue('VITE_BANNER_ADS')}, Clarity ${clarityId ? `켬(${clarityId}, CSS 페이지 안)` : '없음'}`,
+);
