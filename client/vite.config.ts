@@ -14,7 +14,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
-    // 전면·리워드 광고는 .env 에서 ios(3.0.2; 3.0.1 은 off) — 테스트는 광고 흐름도 계속 검사하려고 on. off·ios 는 vi.stubEnv 로 따로 검사해요(config.test.ts)
+    // 전면·리워드 광고는 .env 에서 on(3.0.3; 3.0.2 는 ios, 3.0.1 은 off) — 테스트도 광고 흐름을 검사하려고 on. off·ios 는 vi.stubEnv 로 따로 검사해요(config.test.ts)
     env: { VITE_FULL_SCREEN_ADS: 'on' },
   },
 });

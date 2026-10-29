@@ -55,7 +55,7 @@
 
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 
-> **3.0.1(2026-10-22~)**: 전면·리워드 광고를 띄우지 않아요(`client/.env` `VITE_FULL_SCREEN_ADS=off`, 배너만) — 안드로이드 토스앱 광고 이벤트 누락으로 광고를 다 봐도 보상이 안 되던 동안. 그동안 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 는 보내지 않고, 고화질 저장·두 번째 판·AI 초안은 광고 없이 바로 열려요(AI 하루 20회 그대로). 토스 쪽이 복구되면 on 으로 켜요(`releases/3.0.1.md`). **3.0.2(2026-10-23~)**: iOS 토스앱에서만 다시 켜요(`VITE_FULL_SCREEN_ADS=ios`) — 안드로이드는 위와 같고, iOS 는 3.0.0 처럼 광고를 띄우고 이벤트를 보내요(`releases/3.0.2.md`).
+> **3.0.1(2026-10-22~)**: 전면·리워드 광고를 띄우지 않아요(`client/.env` `VITE_FULL_SCREEN_ADS=off`, 배너만) — 안드로이드 토스앱 광고 이벤트 누락으로 광고를 다 봐도 보상이 안 되던 동안. 그동안 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 는 보내지 않고, 고화질 저장·두 번째 판·AI 초안은 광고 없이 바로 열려요(AI 하루 20회 그대로). 토스 쪽이 복구되면 on 으로 켜요(`releases/3.0.1.md`). **3.0.2(2026-10-23~)**: iOS 토스앱에서만 다시 켜요(`VITE_FULL_SCREEN_ADS=ios`) — 안드로이드는 위와 같고, iOS 는 3.0.0 처럼 광고를 띄우고 이벤트를 보내요(`releases/3.0.2.md`). **3.0.3(2026-10-29~)**: 다시 on — 안드로이드도 3.0.0 처럼 광고를 띄우고 이벤트를 보내요(`releases/3.0.3.md`).
 | 이름 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
 | `interstitial-today` | 전면 | 홈 '기록 보기' → today 전환 | 하루 1회 · 오늘 체크 1개 이상일 때만 · 사전 로딩 · 실패 시 건너뜀 |
