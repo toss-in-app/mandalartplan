@@ -61,7 +61,7 @@ function App() {
   const backup = useBackup(app);
 
   // 광고: 전면은 오늘 체크가 생기면 미리 불러오고(하루 1회), 리워드는 공유 화면에 있는 동안만 미리 불러와요(동시 로딩 금지).
-  // 3.0.1: 전면·리워드는 .env VITE_FULL_SCREEN_ADS 가 on 일 때만(지금 off — 배너만). off 면 훅이 광고 없이 바로 열어 주고(free) AD 표시도 빠져요
+  // 3.0.1~: 전면·리워드는 .env VITE_FULL_SCREEN_ADS 로 켜고 꺼요(3.0.2 부터 ios — iOS 만). 꺼져 있으면 훅이 광고 없이 바로 열어 주고(free) AD 표시도 빠져요
   const today = dateKey();
   const activeBoard = app.board;
   const todayChecks = app.state && activeBoard ? todaySet(app.state.checkins.byBoard[activeBoard.id], today).size : 0;
@@ -81,7 +81,8 @@ function App() {
       (onHome && activeBoard ? canFillBoard(activeBoard) : false) ||
       (aiSubIndex !== null && activeBoard ? canFillActions(activeBoard, aiSubIndex) : false));
   const extraBoardAdActive = route.name === 'settings' && !extraBoardOpen;
-  // AI 전용 지면을 만들 수 없는 동안(앱인토스 공지 54047) AI 는 '두 번째 판' 지면을 같이 써요 → 같은 그룹을 두 훅이 따로 불러오지 않게 하나로 묶어요
+  // 두 설정의 ID 가 같으면(테스트 ID, 또는 2.0.0~3.0.2 처럼 AI 가 '두 번째 판' 지면을 같이 쓸 때 — 공지 54047) 같은 그룹을 두 훅이 따로 불러오지 않게 하나로 묶어요.
+  // 3.0.3 부터 출시 빌드는 AI 전용 지면이라 따로 불러와요(App.adGroups.test.tsx)
   const aiSharesExtraBoard = AD_GROUPS.rewardedAiDraft === AD_GROUPS.rewardedExtraBoard;
   const extraBoardReward = useRewardedAd(AD_GROUPS.rewardedExtraBoard, extraBoardAdActive || (aiSharesExtraBoard && aiAdActive));
   const aiOwnReward = useRewardedAd(AD_GROUPS.rewardedAiDraft, !aiSharesExtraBoard && aiAdActive);

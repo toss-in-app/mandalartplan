@@ -177,3 +177,9 @@
 - `ads/config.ts` `fullScreenAdsEnabled()`: `.env` `VITE_FULL_SCREEN_ADS` 가 'on' 이면 모두, **'ios' 면 `Device.os` 가 'ios' 일 때만**(부를 때마다 읽는 가벼운 상수값, 예외나 다른 값이면 false; AIT Devtools 모의 브릿지가 붙은 개발 서버·vitest 에선 패널 Environment > OS 값(기본 ios)을 돌려줘 켜진 채로 보이고 android 로 바꾸면 다음 렌더부터 꺼짐, Devtools 도 호스트도 없으면 SDK 예외 → 꺼짐 — 2026-10-23 확인. `getPlatformOS()` 는 deprecated 라 `Device.os`), 그 밖은 off. 같은 함수를 읽는 9곳(전면·리워드 훅, 홈·세부·초안·설정·체험판 문구, AI 안내문)은 바꾸지 않음. 보관해 둔 광고 기다림 수정(`47c019a`)은 iOS 엔 필요 없어 넣지 않음(안드로이드 켤 때 실기기 확인 뒤).
 - 테스트: `ads/config.test.ts`(on·ios·off, 예외·다른 값, 부를 때마다 읽음) + `useRewardedAd.test.ts` ios 케이스(안드로이드 off, iOS 띄움). 테스트 환경은 그대로 `test.env` on.
 - 버전 3.0.2(`client/package.json`, 설정 화면). 기록 `releases/3.0.2.md`, 출시 노트 초안 `console/release-notes.md`.
+
+## 2026-10-29 [client] 3.0.3 AI 초안 리워드를 전용 지면으로 (공지 54047 복구, 사용자 '전용 지면 만들고 다음 버전에 교체')
+- 계약 변경 없음(`state`·`content`·분석 이벤트 그대로). 광고 그룹 `rewarded-ai-draft` 가 전용 라이브 ID `ait.v2.live.d29d6a0146a9451a`(2026-10-29 콘솔 MCP 생성, 보상 이름 'AI 초안' 1)를 씀 — `client/.env.production` 한 줄. 2.0.0~3.0.2 는 공지 54047 동안 `rewarded-extra-board` 지면을 같이 썼다.
+- 앱 코드는 그대로: `App.tsx` 가 두 설정의 ID 를 비교해 같을 때만 '두 번째 판' 훅 하나로 묶으니(`aiSharesExtraBoard`), ID 가 달라지면 AI 화면은 AI 지면 훅만, 설정은 두 번째 판 훅만 미리 불러온다. 테스트·개발 서버는 리워드 테스트 ID 가 하나라 계속 묶인 쪽으로 돈다 → 새 테스트 `App.adGroups.test.tsx`(ID 가 다를 때·같을 때, 연결을 일부러 틀리게 바꾸면 실패하는 것 확인).
+- `events.md`: 광고 그룹 표의 임시 표기 정리, AI 하루 20회(2.1~)로 바로잡음, 3.0.2(iOS 만) 메모 추가.
+- 버전 3.0.3(`client/package.json`, 설정 화면). 기록 `releases/3.0.3.md`, 출시 노트 초안 `console/release-notes.md`.

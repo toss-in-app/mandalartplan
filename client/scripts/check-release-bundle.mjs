@@ -15,7 +15,7 @@ const js = readdirSync(assets)
 const testIds = [...new Set(js.match(/ait-ad-test-[a-z-]*/g) ?? [])];
 const liveIds = [...new Set(js.match(/ait\.v2\.live\.[0-9a-f]+/g) ?? [])];
 // src/ads/config.ts 가 읽는 VITE_AD_GROUP_* 는 .env.production 에 모두 값이 있어야 하고, 그 라이브 ID 가 전부 번들에 들어가야 해요.
-// 두 기능이 한 지면을 같이 쓰면(예: AI 초안이 '두 번째 판' 지면을 임시로) ID 가 겹쳐도 돼요.
+// 두 기능이 한 지면을 같이 쓰면(예: 2.0.0~3.0.2 의 AI 초안이 '두 번째 판' 지면을) ID 가 겹쳐도 돼요.
 const adConfig = readFileSync(fileURLToPath(new URL('../src/ads/config.ts', import.meta.url)), 'utf8');
 const requiredKeys = [...new Set(adConfig.match(/VITE_AD_GROUP_[A-Z_]+/g) ?? [])];
 const envProd = Object.fromEntries(
