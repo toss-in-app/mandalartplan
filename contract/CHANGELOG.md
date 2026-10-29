@@ -187,3 +187,9 @@
 - Microsoft Clarity(화면 녹화·히트맵, 사용자 '이 버전까지 해서'): `@microsoft/clarity` 1.0.2, `lib/clarity.ts` — App 이 설정 '사용 기록 분석'이 켜져 있고 출시 빌드일 때만 init(프로젝트 `z58r4u0qo8`), identify 안 씀, 빌드 때 CSS 를 index.html 안으로(재생용). 가림은 콘솔 '균형 잡힘'(사용자) — 확인용 번들의 body 전체 가림은 뺐다. 분석 이벤트(`Analytics.log`)는 그대로.
 - `state.schema.json`: `settings.analytics.replay`(boolean, 선택 — 없으면 켜짐). 설정 '사용 기록 분석' 스위치(끄면 `consent(false)` 로 쿠키 지우고 다음에 열 때부터 안 불러옴). 개인정보처리방침 1·4-1·4-2 반영(시행일 2026-10-29).
 - 버전 3.0.3(`client/package.json`, 설정 화면). 기록 `releases/3.0.3.md`, 출시 노트 초안 `console/release-notes.md`.
+
+## 2026-10-29 [client] 3.0.4 광고 전부 끔 (사용자 '광고 다 떼어버려 지금 광고에 문제 있어' — 같은 날 승인된 3.0.3 은 출시 안 함)
+- `client/.env` `VITE_FULL_SCREEN_ADS` on → **off**: 3.0.1 과 같은 흐름 — `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 를 보내지 않고, 고화질 저장·두 번째 판·AI 초안은 광고 없이 바로(AI 하루 20회 그대로).
+- 새 스위치 `VITE_BANNER_ADS`(`ads/config.ts` `bannerAdsEnabled`, 'on' 일 때만 배너): **off** — 기록 화면·대시보드·지난주 리포트 마지막 장의 `banner-today` 를 붙이지 않고 자리도 뺌. 3.0.3 까지는 스위치 없이 늘 붙였다.
+- `events.md`: 광고 메모에 3.0.4 추가, AI 전용 지면 교체는 '광고를 다시 켤 때'로. 상태 스키마·이벤트 이름은 그대로.
+- 버전 3.0.4(3.0.3 의 Clarity·`settings.analytics.replay` 포함). 기록 `releases/3.0.4.md`, 출시 노트 `console/release-notes.md`.

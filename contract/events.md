@@ -57,12 +57,12 @@
 
 ## 광고 그룹 (콘솔에서 사업자 정보 뒤 생성 → ID 를 `.env.production` 의 `VITE_AD_GROUP_*` 로, 코드는 `client/src/ads/config.ts`. 비어 있으면 공식 테스트 ID `ait-ad-test-interstitial-id`·`ait-ad-test-rewarded-id`·`ait-ad-test-banner-id` — 개발·QR 테스트는 테스트 ID 로만)
 
-> **3.0.1(2026-10-22~)**: 전면·리워드 광고를 띄우지 않아요(`client/.env` `VITE_FULL_SCREEN_ADS=off`, 배너만) — 안드로이드 토스앱 광고 이벤트 누락으로 광고를 다 봐도 보상이 안 되던 동안. 그동안 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 는 보내지 않고, 고화질 저장·두 번째 판·AI 초안은 광고 없이 바로 열려요(AI 하루 20회 그대로). 토스 쪽이 복구되면 on 으로 켜요(`releases/3.0.1.md`). **3.0.2(2026-10-23~)**: iOS 토스앱에서만 다시 켜요(`VITE_FULL_SCREEN_ADS=ios`) — 안드로이드는 위와 같고, iOS 는 3.0.0 처럼 광고를 띄우고 이벤트를 보내요(`releases/3.0.2.md`). **3.0.3(2026-10-29~)**: 다시 on — 안드로이드도 3.0.0 처럼 광고를 띄우고 이벤트를 보내요(`releases/3.0.3.md`).
+> **3.0.1(2026-10-22~)**: 전면·리워드 광고를 띄우지 않아요(`client/.env` `VITE_FULL_SCREEN_ADS=off`, 배너만) — 안드로이드 토스앱 광고 이벤트 누락으로 광고를 다 봐도 보상이 안 되던 동안. 그동안 `ad_interstitial`·`reward_unlock`·`ai_draft_reward` 는 보내지 않고, 고화질 저장·두 번째 판·AI 초안은 광고 없이 바로 열려요(AI 하루 20회 그대로). 토스 쪽이 복구되면 on 으로 켜요(`releases/3.0.1.md`). **3.0.2(2026-10-23~)**: iOS 토스앱에서만 다시 켜요(`VITE_FULL_SCREEN_ADS=ios`) — 안드로이드는 위와 같고, iOS 는 3.0.0 처럼 광고를 띄우고 이벤트를 보내요(`releases/3.0.2.md`). **3.0.3(2026-10-29)**: 다시 on — 안드로이드도 3.0.0 처럼(승인만 받고 출시 안 함, `releases/3.0.3.md`). **3.0.4(2026-10-29~)**: 광고를 모두 꺼요 — 전면·리워드 `VITE_FULL_SCREEN_ADS=off` 에 배너도 `VITE_BANNER_ADS=off`(사용자 '광고 다 떼어버려'). 광고 이벤트는 보내지 않고 리워드 기능은 광고 없이 바로 열려요. 라이브 ID 는 번들에 남지만 부르지 않아요(`releases/3.0.4.md`).
 | 이름 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
 | `interstitial-today` | 전면 | 홈 '기록 보기' → today 전환 | 하루 1회 · 오늘 체크 1개 이상일 때만 · 사전 로딩 · 실패 시 건너뜀 |
 | `rewarded-hd-image` | 리워드 | 공유 화면 '고화질로 저장' | 보상 = 고화질 저장 1회, `userEarnedReward` 에서만 |
-| `rewarded-extra-board` | 리워드 | 설정 '두 번째 만다라트 판' | 보상 = `unlocks.extraBoard = true`(영구). 2.0.0~3.0.3(2026-10-20~) `rewarded-ai-draft` 가 이 지면을 함께 씀(콘솔 보상 이름 '기회' 1) → 3.0.4 부터 따로(예정). 콘솔 보상 이름은 3.0.4 가 라이브가 된 뒤 '두 번째 만다라트 판' 1 로 되돌림 |
+| `rewarded-extra-board` | 리워드 | 설정 '두 번째 만다라트 판' | 보상 = `unlocks.extraBoard = true`(영구). 2.0.0~3.0.3(2026-10-20~) `rewarded-ai-draft` 가 이 지면을 함께 씀(콘솔 보상 이름 '기회' 1) → 광고를 다시 켤 때 따로(예정 — 3.0.4 는 광고 전부 끔). 콘솔 보상 이름은 그 버전이 라이브가 된 뒤 '두 번째 만다라트 판' 1 로 되돌림 |
 | `banner-today` | 배너 | 기록 위젯 판 맨 아래와 대시보드마다 맨 아래(지난주 리포트는 마지막 장) — 3.0 | 화면마다 1개, refresh 없음, 버튼과 24px 이상, 체크 기록이 있을 때만, 판 편집 모드에선 숨김(다시 불러오지 않음) |
 
 ## 알림 템플릿 (콘솔 정기 발송, 기능성)
@@ -110,6 +110,6 @@ Supabase RPC: `backup_get(p_key)` · `backup_upsert(p_key, p_payload, p_payload_
 
 | 광고 그룹 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
-| `rewarded-ai-draft` | 리워드 | 목표 입력 '광고 보고 만들기' · 미리보기 '다시 만들기' · 세부 목표 화면 '빈 실천 AI로 채우기'(2.1 — 2.0 은 편집 화면 '빈 칸 AI로 채우기'·'실천 AI로 추천') | 보상 = AI 1회(이름 "AI 초안", 수량 1), `userEarnedReward` 에서만. 광고를 못 불러오면 AI 를 쓰지 않음(2026-10-20 결정). 사람당 하루 20회(2.1~, 2.0 은 10회, `settings.ai.runs`). 라이브 ID `VITE_AD_GROUP_REWARDED_AI_DRAFT` — 2.0.0~3.0.3 은 `rewarded-extra-board` 지면 ID 를 같이 씀(전면·리워드 지면 신규 생성 오류 공지 54047 로 시작, 콘솔 보상 이름 '기회' 1). 앱은 두 ID 가 같으면(테스트 ID 포함) 같은 그룹을 한 번만 불러옴. 전용 지면 `ait.v2.live.d29d6a0146a9451a`(2026-10-29 생성)는 3.0.3 검토 때 아직 등록 중이라 3.0.4 에서(예정) |
+| `rewarded-ai-draft` | 리워드 | 목표 입력 '광고 보고 만들기' · 미리보기 '다시 만들기' · 세부 목표 화면 '빈 실천 AI로 채우기'(2.1 — 2.0 은 편집 화면 '빈 칸 AI로 채우기'·'실천 AI로 추천') | 보상 = AI 1회(이름 "AI 초안", 수량 1), `userEarnedReward` 에서만. 광고를 못 불러오면 AI 를 쓰지 않음(2026-10-20 결정). 사람당 하루 20회(2.1~, 2.0 은 10회, `settings.ai.runs`). 라이브 ID `VITE_AD_GROUP_REWARDED_AI_DRAFT` — 2.0.0~3.0.3 은 `rewarded-extra-board` 지면 ID 를 같이 씀(전면·리워드 지면 신규 생성 오류 공지 54047 로 시작, 콘솔 보상 이름 '기회' 1). 앱은 두 ID 가 같으면(테스트 ID 포함) 같은 그룹을 한 번만 불러옴. 전용 지면 `ait.v2.live.d29d6a0146a9451a`(2026-10-29 생성)는 3.0.3 검토 때 아직 등록 중이라 광고를 다시 켤 때(예정 — 3.0.4 는 광고 전부 끔) |
 
 서버: Supabase Edge Function `mandalart-draft`(`supabase/functions/mandalart-draft/`), 남용 방지 테이블 `ai_draft_usage`·`ai_draft_cost` 와 RPC `ai_draft_take`·`ai_draft_cost_add`(서버 키만 실행) — `supabase/schema.sql`.
